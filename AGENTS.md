@@ -56,6 +56,7 @@ python agents/penulis/cek_naskah.py <slug>  # validasi naskah
 python agents/suara/buat_suara.py <slug>    # Dara: vo.mp3 + words.json + captions.srt (gratis)
 python agents/aset/cari_aset.py semua <slug> # Bima cepat: cari + pilih otomatis + bentuk shot
 python agents/aset/cari_aset.py cari <slug>  # Bima: kandidat + lembar kontak (lalu pilihan.json → unduh)
+python agents/tes_pabrik.py [--online]     # tes seluruh pabrik (aman, di folder sementara)
 start_studio.bat                            # buka Studio Yofamo (Windows)
 cd studio && npm run dev                    # sama, manual (http://127.0.0.1:3210)
 ```

@@ -92,3 +92,13 @@ Lalu di Task Scheduler → "Steve Yofamo" → tab Settings → centang **Run tas
 - Kalau kuota Pro sedang habis, tugas Steve berstatus **Gagal** di halaman. Jalankan ulang setelah kuota reset.
 - `agents/steve/sample_videos.json` hanya data uji (tanggal dan likes dikarang). Jangan dipakai untuk laporan.
 - Retensi dan swipe-away butuh YouTube Analytics API (login OAuth) — ditambahkan nanti.
+
+## Tes seluruh pabrik
+
+Setelah semua langkah di atas, jalankan dari folder project:
+
+```powershell
+python agents/tes_pabrik.py --online
+```
+
+Semua baris harus `OK`. Kalau ada `GAGAL`, kirim seluruh keluarannya ke Claude.
