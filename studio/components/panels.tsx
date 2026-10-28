@@ -104,7 +104,7 @@ export function AgentPanel({ def, ctx }: { def: AgentDef; ctx: PanelCtx }) {
                   </span></li>);
             })}</ul>
           ) : <Muted>Belum ada video yang suaranya sudah dibuat Dara.</Muted>}
-          {!asetReady && <Muted className="mt-2 text-signal">Belum siap: {[!state.health.ffmpeg && "ffmpeg", !state.health.stockKey && "PEXELS_API_KEY"].filter(Boolean).join(", ")}. Lihat menu Sistem.</Muted>}
+          {!asetReady && <Muted className="mt-2 text-signal">Belum siap: {[!state.health.ffmpeg && "ffmpeg", !state.health.stockKey && "PIXABAY_API_KEY"].filter(Boolean).join(", ")}. Lihat menu Sistem.</Muted>}
           {asetReady && (!state.health.ytdlp || !state.health.aiKey) && <Muted className="mt-2">Sumber nonaktif: {[!state.health.ytdlp && "YouTube CC (yt-dlp)", !state.health.aiKey && "gambar AI (Cloudflare)"].filter(Boolean).join(", ")}. Bima tetap jalan dengan sumber lain.</Muted>}
           <Muted className="mt-2">Siapkan visual: Bima merencanakan tiap kalimat, melihat kandidat satu per satu, lalu memilih yang paling cocok (memakai kuota Claude, paling akurat). Cepat: pilih otomatis tanpa kuota.</Muted>
         </>);
@@ -332,7 +332,7 @@ export function HealthPanel({ ctx }: { ctx: PanelCtx }) {
     { ok: h.env, name: "File .env", fix: "Salin .env.example menjadi .env lalu isi YOUTUBE_API_KEY.", good: "Ada." },
     { ok: h.edgeTts, name: "edge-tts (suara Dara)", fix: "Jalankan sekali dari folder project: python -m pip install -r requirements.txt", good: "Terpasang." },
     { ok: h.ffmpeg, name: "ffmpeg (Bima)", fix: "Jalankan di PowerShell: winget install Gyan.FFmpeg, lalu tutup dan buka lagi start_studio.bat.", good: "Ditemukan." },
-    { ok: h.stockKey, name: "API key stok video (Bima)", fix: "Daftar gratis di pexels.com/api, lalu isi PEXELS_API_KEY= di .env (PIXABAY_API_KEY opsional).", good: "Ada di .env." },
+    { ok: h.stockKey, name: "API key sumber klip (Bima)", fix: "Login gratis di pixabay.com, buka pixabay.com/api/docs, salin key-nya ke PIXABAY_API_KEY= di .env. (Pexels sedang menutup pendaftaran API key baru.)", good: "Ada di .env." },
     { ok: h.ytdlp, name: "yt-dlp (footage YouTube CC)", fix: "python -m pip install -r requirements.txt, lalu winget install DenoLand.Deno (dibutuhkan yt-dlp untuk YouTube).", good: "Terpasang." },
     { ok: h.aiKey, name: "Gambar AI gratis (Cloudflare)", fix: "Isi CLOUDFLARE_ACCOUNT_ID dan CLOUDFLARE_API_TOKEN di .env (lihat SETUP.md).", good: "Ada di .env." },
     { ok: !!ctx.state.snapshot, name: "Data channel", fix: "Buka meja Steve lalu klik Ambil data terbaru.", good: `Data per ${ctx.state.snapshot?.snapshot_date}.` },

@@ -35,12 +35,12 @@ copy .env.example .env
 notepad .env
 ```
 
-Isi `PEXELS_API_KEY` juga untuk Bima: daftar gratis di https://www.pexels.com/api/ → salin key ke `.env`. `PIXABAY_API_KEY` (https://pixabay.com/api/docs/) opsional sebagai cadangan.
+Untuk Bima, isi `PIXABAY_API_KEY`: login gratis di https://pixabay.com, buka https://pixabay.com/api/docs/, key-mu tampil di bagian **Parameters → key**. (`PEXELS_API_KEY` opsional; Pexels sedang menghentikan pendaftaran key baru.)
 
 **Gambar AI gratis (Cloudflare Workers AI, ±170 gambar/hari):**
 1. Daftar gratis di https://dash.cloudflare.com/sign-up.
 2. Account ID: buka dashboard → menu **Workers AI** (atau halaman akun) → salin **Account ID** → `CLOUDFLARE_ACCOUNT_ID=` di `.env`.
-3. Token: **My Profile → API Tokens → Create Token** → pakai template **Workers AI** → Create → salin → `CLOUDFLARE_API_TOKEN=` di `.env`.
+3. Token: **My Profile → API Tokens → Create Token** → klik **View all templates** → pilih **Workers AI**. Kalau tidak ada: **Start from scratch** → Permissions: `Account` · `Workers AI` · `Edit` → Continue → Create → salin → `CLOUDFLARE_API_TOKEN=` di `.env`. Jangan pilih *Full account access*.
 Kalau dilewati, Bima tetap jalan tanpa gambar AI (memakai footage dan grafis saja).
 
 Isi `YOUTUBE_API_KEY` (Google Cloud Console → YouTube Data API v3 → Credentials → API key, dibatasi hanya untuk YouTube Data API v3). Jangan pernah membagikan isi `.env`.

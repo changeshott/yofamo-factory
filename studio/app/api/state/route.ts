@@ -24,7 +24,7 @@ export async function GET() {
     agents: AGENTS.map((key) => ({ key, ready: fs.existsSync(path.join(P.skills, key, "SKILL.md")) })),
     job: jobState(),
     health: { env: fs.existsSync(P.env), claude: which("claude") !== null, python: py !== null, pythonCmd: py ? path.basename(py) : "", edgeTts: py ? await hasModule("edge_tts") : false,
-      stockKey: envHas("PEXELS_API_KEY", "PIXABAY_API_KEY"), ffmpeg: which("ffmpeg") !== null,
+      stockKey: envHas("PIXABAY_API_KEY", "PEXELS_API_KEY", "YOUTUBE_API_KEY"), ffmpeg: which("ffmpeg") !== null,
       ytdlp: py ? await hasModule("yt_dlp") : false, aiKey: envHas("CLOUDFLARE_API_TOKEN") && envHas("CLOUDFLARE_ACCOUNT_ID") },
   };
   return json(state);
