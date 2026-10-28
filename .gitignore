@@ -1,0 +1,11 @@
+.env
+state.db
+videos/*/
+!videos/.gitkeep
+musik/*
+sfx/*
+!musik/.gitkeep
+!sfx/.gitkeep
+__pycache__/
+logs/*.txt
+bible/.history/

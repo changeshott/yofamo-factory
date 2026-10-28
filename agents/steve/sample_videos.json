@@ -1,0 +1,328 @@
+{
+  "_note": "DATA CONTOH: judul & views asli Okt 2026, tanggal/likes/komentar dikarang untuk uji. Jangan dipakai untuk laporan.",
+  "channel": {
+    "id": "UCYpGhEleZjW3a7BB2NJloMw",
+    "title": "Yofamo Technology",
+    "handle": "@yofamoo_technology",
+    "subscribers": 1380,
+    "total_views": 50580,
+    "video_count": 21
+  },
+  "videos": [
+    {
+      "id": "sample00",
+      "snippet": {
+        "title": "SPEAKER GAIB! Dengar Musik Sekencang Mungkin Tanpa Headset #Shorts #Teknologi",
+        "publishedAt": "2026-10-25T03:42:55Z"
+      },
+      "statistics": {
+        "viewCount": "1300",
+        "likeCount": "52",
+        "commentCount": "6"
+      },
+      "contentDetails": {
+        "duration": "PT38S"
+      }
+    },
+    {
+      "id": "sample01",
+      "snippet": {
+        "title": "BENDA TERINGAN DI BUMI! Setipis Kapas Tapi Tahan Semburan Api #Shorts #Teknologi",
+        "publishedAt": "2026-10-22T03:42:55Z"
+      },
+      "statistics": {
+        "viewCount": "1700",
+        "likeCount": "68",
+        "commentCount": "8"
+      },
+      "contentDetails": {
+        "duration": "PT38S"
+      }
+    },
+    {
+      "id": "sample02",
+      "snippet": {
+        "title": "ROBOT CAIR TERMINATOR Beneran Diciptakan?!  Bisa Tembus Penjara! #Shorts #Teknologi",
+        "publishedAt": "2026-10-19T03:42:55Z"
+      },
+      "statistics": {
+        "viewCount": "2200",
+        "likeCount": "88",
+        "commentCount": "11"
+      },
+      "contentDetails": {
+        "duration": "PT38S"
+      }
+    },
+    {
+      "id": "sample03",
+      "snippet": {
+        "title": "MAIN GAME FPS BERASA DITEMBAK BENERAN?!  Baju VR Ini Bikin Sakit! #Shorts #Teknologi",
+        "publishedAt": "2026-10-16T03:42:55Z"
+      },
+      "statistics": {
+        "viewCount": "4100",
+        "likeCount": "164",
+        "commentCount": "20"
+      },
+      "contentDetails": {
+        "duration": "PT38S"
+      }
+    },
+    {
+      "id": "sample04",
+      "snippet": {
+        "title": "BIKIN HUTAN AVATAR DI RUMAH! Tanaman Menyala Ini Resmi Dijual Bebas  #Shorts #Teknologi",
+        "publishedAt": "2026-10-13T03:42:55Z"
+      },
+      "statistics": {
+        "viewCount": "1100",
+        "likeCount": "44",
+        "commentCount": "5"
+      },
+      "contentDetails": {
+        "duration": "PT38S"
+      }
+    },
+    {
+      "id": "sample05",
+      "snippet": {
+        "title": "LAYAR HP RETAK BISA SEMBUH SENDIRI?!  Selamat Tinggal Tukang Servis! #Shorts #Teknologi",
+        "publishedAt": "2026-10-10T03:42:55Z"
+      },
+      "statistics": {
+        "viewCount": "1900",
+        "likeCount": "76",
+        "commentCount": "9"
+      },
+      "contentDetails": {
+        "duration": "PT38S"
+      }
+    },
+    {
+      "id": "sample06",
+      "snippet": {
+        "title": "DOKTER BISA NGE-PRINT JANTUNG ASLI?! Keajaiban Printer 3D Medis  #Shorts #Teknologi",
+        "publishedAt": "2026-10-07T03:42:55Z"
+      },
+      "statistics": {
+        "viewCount": "4900",
+        "likeCount": "196",
+        "commentCount": "24"
+      },
+      "contentDetails": {
+        "duration": "PT38S"
+      }
+    },
+    {
+      "id": "sample07",
+      "snippet": {
+        "title": "TELEPATI ITU NYATA?! Teknologi Ini Bikin Kamu Bisa Ngomong Tanpa Buka Mulut!  #Shorts #Teknologi",
+        "publishedAt": "2026-10-04T03:42:55Z"
+      },
+      "statistics": {
+        "viewCount": "1300",
+        "likeCount": "52",
+        "commentCount": "6"
+      },
+      "contentDetails": {
+        "duration": "PT38S"
+      }
+    },
+    {
+      "id": "sample08",
+      "snippet": {
+        "title": "ALAT INI HANCURKAN SEGALA BAHASA! Earbud Penerjemah Real-Time Paling Canggih  #Shorts #Teknologi",
+        "publishedAt": "2026-10-01T03:42:55Z"
+      },
+      "statistics": {
+        "viewCount": "1200",
+        "likeCount": "48",
+        "commentCount": "6"
+      },
+      "contentDetails": {
+        "duration": "PT38S"
+      }
+    },
+    {
+      "id": "sample09",
+      "snippet": {
+        "title": "MINUM AIR BEKAS WC?! Teknologi Canggih Singapura Ini Bikin Melongo!  #Shorts #Teknologi",
+        "publishedAt": "2026-09-28T03:42:55Z"
+      },
+      "statistics": {
+        "viewCount": "1400",
+        "likeCount": "56",
+        "commentCount": "7"
+      },
+      "contentDetails": {
+        "duration": "PT38S"
+      }
+    },
+    {
+      "id": "sample10",
+      "snippet": {
+        "title": "MANUSIA JADI SUPERHERO! Rangka Robot Ini Bikin Orang Kuat Angkat Beban Tonan  #Shorts #Teknologi",
+        "publishedAt": "2026-09-25T03:42:55Z"
+      },
+      "statistics": {
+        "viewCount": "1600",
+        "likeCount": "64",
+        "commentCount": "8"
+      },
+      "contentDetails": {
+        "duration": "PT38S"
+      }
+    },
+    {
+      "id": "sample11",
+      "snippet": {
+        "title": "SATU BAJU BISA GANTI RIBUAN MOTIF! Teknologi Pakaian Paling Gila  #Shorts #Teknologi",
+        "publishedAt": "2026-09-22T03:42:55Z"
+      },
+      "statistics": {
+        "viewCount": "7600",
+        "likeCount": "304",
+        "commentCount": "38"
+      },
+      "contentDetails": {
+        "duration": "PT38S"
+      }
+    },
+    {
+      "id": "sample12",
+      "snippet": {
+        "title": "PERTANIAN MASA DEPAN! Kebun Sayur Tanpa Tanah & Tanpa Matahari #Shorts #Teknologi",
+        "publishedAt": "2026-09-19T03:42:55Z"
+      },
+      "statistics": {
+        "viewCount": "1300",
+        "likeCount": "52",
+        "commentCount": "6"
+      },
+      "contentDetails": {
+        "duration": "PT38S"
+      }
+    },
+    {
+      "id": "sample13",
+      "snippet": {
+        "title": "KACAMATA PINTAR META Bikin Kamu Jadi Cyborg! Bisa Lihat Apa Aja Lewat Mata #Shorts #Teknologi",
+        "publishedAt": "2026-09-16T03:42:55Z"
+      },
+      "statistics": {
+        "viewCount": "1300",
+        "likeCount": "52",
+        "commentCount": "6"
+      },
+      "contentDetails": {
+        "duration": "PT38S"
+      }
+    },
+    {
+      "id": "sample14",
+      "snippet": {
+        "title": "BISA NONTON MIMPI ORANG LAIN?! Teknologi Baca Pikiran Ini Ngeri Banget! #Shorts #Teknologi",
+        "publishedAt": "2026-09-13T03:42:55Z"
+      },
+      "statistics": {
+        "viewCount": "1000",
+        "likeCount": "40",
+        "commentCount": "5"
+      },
+      "contentDetails": {
+        "duration": "PT38S"
+      }
+    },
+    {
+      "id": "sample15",
+      "snippet": {
+        "title": "JURASSIC PARK JADI NYATA?! Ilmuwan Hidupkan Lagi Hewan Purba! #Shorts #Teknologi",
+        "publishedAt": "2026-09-10T03:42:55Z"
+      },
+      "statistics": {
+        "viewCount": "3900",
+        "likeCount": "156",
+        "commentCount": "19"
+      },
+      "contentDetails": {
+        "duration": "PT38S"
+      }
+    },
+    {
+      "id": "sample16",
+      "snippet": {
+        "title": "BUKAN DARI SAPI! Steak Daging Ini Dicetak Pakai PRINTER 3D",
+        "publishedAt": "2026-09-07T03:42:55Z"
+      },
+      "statistics": {
+        "viewCount": "6400",
+        "likeCount": "256",
+        "commentCount": "32"
+      },
+      "contentDetails": {
+        "duration": "PT38S"
+      }
+    },
+    {
+      "id": "sample17",
+      "snippet": {
+        "title": "DIBEKUKAN UNTUK HIDUP LAGI?! Misteri Ratusan Mayat di Tangki Nitrogen  #Shorts #Teknologi",
+        "publishedAt": "2026-09-04T03:42:55Z"
+      },
+      "statistics": {
+        "viewCount": "2200",
+        "likeCount": "88",
+        "commentCount": "11"
+      },
+      "contentDetails": {
+        "duration": "PT38S"
+      }
+    },
+    {
+      "id": "sample18",
+      "snippet": {
+        "title": "JADI SPIDER-MAN NYATA! Ilmuwan Ciptakan Alat Pemanjat Gedung #Shorts #Teknologi",
+        "publishedAt": "2026-09-01T03:42:55Z"
+      },
+      "statistics": {
+        "viewCount": "1600",
+        "likeCount": "64",
+        "commentCount": "8"
+      },
+      "contentDetails": {
+        "duration": "PT38S"
+      }
+    },
+    {
+      "id": "sample19",
+      "snippet": {
+        "title": "JADI IRON MAN DI DUNIA NYATA?! Baju Terbang Ini Resmi Dipakai Militer! #Shorts #Teknologi",
+        "publishedAt": "2026-08-29T03:42:55Z"
+      },
+      "statistics": {
+        "viewCount": "1600",
+        "likeCount": "64",
+        "commentCount": "8"
+      },
+      "contentDetails": {
+        "duration": "PT38S"
+      }
+    },
+    {
+      "id": "sample20",
+      "snippet": {
+        "title": "ROBOT ANJING Bisa Menyemburkan API?! Bukan Sci-Fi, Ini Nyata! #Shorts #Teknologi",
+        "publishedAt": "2026-08-26T03:42:55Z"
+      },
+      "statistics": {
+        "viewCount": "980",
+        "likeCount": "39",
+        "commentCount": "4"
+      },
+      "contentDetails": {
+        "duration": "PT38S"
+      }
+    }
+  ]
+}

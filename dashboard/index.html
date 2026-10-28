@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Yofamo Control Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0F1E33; --panel:#16283F; --panel-2:#1B3150; --line:#284565;
+  --text:#E9F0F7; --muted:#93A7BF; --faint:#647A96;
+  --circuit:#47B5FF; --signal:#FF9A4D; --weak:#56708F; --bad:#F07178;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+}
+*{box-sizing:border-box}
+html{background:var(--ink)}
+body{margin:0;background:var(--ink);color:var(--text);font:16px/1.55 var(--body);-webkit-font-smoothing:antialiased}
+a{color:var(--circuit)}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--circuit);outline-offset:2px;border-radius:4px}
+.wrap{max-width:1120px;margin:0 auto;padding:28px 24px 80px}
+
+header.top{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:flex-end;justify-content:space-between;padding-bottom:20px;border-bottom:1px solid var(--line)}
+.brand h1{font:700 clamp(28px,4vw,40px)/1.05 var(--display);letter-spacing:-.02em;margin:0}
+.brand p{margin:6px 0 0;color:var(--muted)}
+.brand p b{color:var(--text);font-weight:700}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--panel);color:var(--text);padding:10px 16px;border-radius:999px}
+.btn:hover{border-color:var(--circuit)}
+.btn.primary{background:var(--signal);border-color:var(--signal);color:#20130A;font-weight:700}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+
+nav.jump{display:flex;gap:18px;flex-wrap:wrap;margin:16px 0 0;font-size:15px}
+nav.jump a{color:var(--muted);text-decoration:none}
+nav.jump a:hover{color:var(--text)}
+
+.notice{margin:22px 0 0;padding:14px 18px;border-left:3px solid var(--signal);background:rgba(255,154,77,.08);border-radius:0 8px 8px 0}
+.notice.info{border-color:var(--circuit);background:rgba(71,181,255,.07)}
+.notice p{margin:0}
+.notice p+p{margin-top:4px;color:var(--muted)}
+
+section{margin-top:44px}
+h2{font:700 24px/1.2 var(--display);letter-spacing:-.01em;margin:0 0 4px}
+.sub{margin:0 0 18px;color:var(--muted);max-width:70ch}
+
+/* hero chart */
+.chart-wrap{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 18px 10px;position:relative}
+.chart-head{display:flex;flex-wrap:wrap;gap:6px 22px;margin-bottom:8px;color:var(--muted);font-size:14px}
+.key{display:inline-flex;align-items:center;gap:7px}
+.key i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.key i.median{height:0;border-top:2px dashed var(--text);border-radius:0;width:16px}
+svg.bars{width:100%;height:auto;display:block}
+.bar{cursor:pointer;transition:opacity .15s}
+.bars:hover .bar{opacity:.55}
+.bars .bar:hover,.bars .bar.on{opacity:1}
+.tip{position:absolute;pointer-events:none;background:#0A1526;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;max-width:280px;opacity:0;transition:opacity .1s}
+.tip b{display:block;font-size:14px}
+.empty{padding:40px 20px;text-align:center;color:var(--muted)}
+.empty p{margin:0 0 12px}
+
+/* pipeline */
+.line{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:0;position:relative}
+.station{position:relative;padding:0 8px 0 0}
+.station .dot{width:18px;height:18px;border-radius:50%;border:2px solid var(--faint);background:var(--ink);position:relative;z-index:1}
+.station::before{content:"";position:absolute;top:8px;left:18px;right:0;height:2px;background:var(--line)}
+.station:last-child::before{display:none}
+.station.ready .dot{border-color:var(--circuit);background:var(--circuit);box-shadow:0 0 0 4px rgba(71,181,255,.18)}
+.station.ready::before{background:linear-gradient(90deg,var(--circuit),var(--line) 60%)}
+.station.running .dot{border-color:var(--signal);background:var(--signal)}
+.station h3{font:700 16px/1.25 var(--display);margin:12px 0 2px}
+.station p{margin:0;color:var(--muted);font-size:14px}
+.station .state{display:inline-block;margin-top:8px;font-size:13px;color:var(--faint)}
+.station.ready .state{color:var(--circuit)}
+.station.running .state{color:var(--signal)}
+
+/* two columns */
+.cols{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:24px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+.report-pick{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+select{background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit}
+.md{max-width:72ch}
+.md h1{font:700 22px/1.25 var(--display);margin:0 0 8px}
+.md h2{font-size:18px;margin:22px 0 6px}
+.md h3{font-size:16px;margin:16px 0 6px}
+.md table{border-collapse:collapse;width:100%;font-size:14px;margin:8px 0}
+.md th,.md td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+.md th{color:var(--muted);font-weight:700}
+.md blockquote{margin:8px 0;padding-left:12px;border-left:3px solid var(--line);color:var(--muted)}
+.md ul,.md ol{padding-left:22px}
+.md code{background:var(--panel-2);padding:1px 5px;border-radius:4px;font-size:.92em}
+.job-status{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.pill{font-size:13px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.pill.running{border-color:var(--signal);color:var(--signal)}
+.pill.ok{border-color:var(--circuit);color:var(--circuit)}
+.pill.error{border-color:var(--bad);color:var(--bad)}
+pre.log{background:#0A1526;border:1px solid var(--line);border-radius:8px;padding:12px;margin:0;max-height:340px;overflow:auto;font:13px/1.5 Consolas,"Cascadia Mono",monospace;white-space:pre-wrap;word-break:break-word;color:#C9D6E4}
+.loglist{list-style:none;margin:14px 0 0;padding:0;font-size:14px}
+.loglist li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--line)}
+.loglist button{background:none;border:0;color:var(--circuit);padding:0;text-align:left}
+.loglist span{color:var(--faint);white-space:nowrap}
+
+/* table */
+.table-tools{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.seg button{background:var(--panel);border:1px solid var(--line);color:var(--muted);padding:7px 12px}
+.seg button:first-child{border-radius:999px 0 0 999px}
+.seg button:last-child{border-radius:0 999px 999px 0}
+.seg button+button{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--panel-2);color:var(--text)}
+.tbl{width:100%;border-collapse:collapse;font-size:15px}
+.tbl th{font-weight:700;color:var(--muted);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl th button{background:none;border:0;color:inherit;padding:0;font-weight:700}
+.tbl td{padding:10px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl td.num,.tbl th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tbl tr:hover td{background:rgba(71,181,255,.04)}
+.ttl{max-width:46ch}
+.ttl a{color:var(--text);text-decoration:none}
+.ttl a:hover{color:var(--circuit)}
+.ttl small{display:block;color:var(--faint)}
+.tier{font-size:13px;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.tier.menang{background:rgba(255,154,77,.16);color:var(--signal)}
+.tier.rata-rata{background:rgba(71,181,255,.12);color:var(--circuit)}
+.tier.lemah{background:rgba(86,112,143,.25);color:#B5C4D6}
+.scroll{overflow-x:auto}
+
+/* bible */
+textarea{width:100%;min-height:420px;background:#0A1526;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:14px;font:14px/1.6 Consolas,"Cascadia Mono",monospace;resize:vertical}
+.row{display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap}
+.msg{color:var(--muted);font-size:14px}
+
+@media (max-width:860px){
+  .cols{grid-template-columns:1fr}
+  .line{grid-template-columns:1fr;gap:18px}
+  .station{padding-left:34px}
+  .station .dot{position:absolute;left:0;top:2px}
+  .station::before{left:8px;top:22px;bottom:-20px;right:auto;width:2px;height:auto}
+  .station.ready::before{background:var(--circuit)}
+  .station h3{margin-top:0}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Yofamo Control Room</h1>
+      <p id="channelLine">Memuat data channel…</p>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btnFetch" data-job="fetch">Ambil data terbaru</button>
+      <button class="btn primary" id="btnSteve" data-job="steve">Jalankan Steve</button>
+    </div>
+  </header>
+  <nav class="jump" aria-label="Bagian halaman">
+    <a href="#shorts">Shorts</a><a href="#pabrik">Pabrik agent</a><a href="#laporan">Laporan & tugas</a><a href="#video">Semua video</a><a href="#bible">Channel bible</a>
+  </nav>
+
+  <div id="notices"></div>
+
+  <section id="shorts" aria-labelledby="h-shorts">
+    <h2 id="h-shorts">Performa semua Shorts</h2>
+    <p class="sub" id="chartSub">Urut dari terlama ke terbaru. Garis putus-putus adalah median channel.</p>
+    <div class="chart-wrap" id="chartWrap">
+      <div class="chart-head">
+        <span class="key"><i style="background:var(--signal)"></i>Menang (≥ 1,5× median)</span>
+        <span class="key"><i style="background:var(--circuit)"></i>Rata-rata</span>
+        <span class="key"><i style="background:var(--weak)"></i>Lemah (≤ 0,75× median)</span>
+        <span class="key"><i class="median"></i>Median</span>
+      </div>
+      <div id="chart"></div>
+      <div class="tip" id="tip" role="status"></div>
+    </div>
+  </section>
+
+  <section id="pabrik" aria-labelledby="h-pabrik">
+    <h2 id="h-pabrik">Pabrik agent</h2>
+    <p class="sub">Tujuh pos dari ide sampai terbit. Pos yang menyala sudah punya skill di <code>.claude/skills</code>.</p>
+    <div class="line" id="pipeline"></div>
+  </section>
+
+  <section id="laporan" aria-labelledby="h-laporan">
+    <div class="cols">
+      <div class="panel">
+        <h2 id="h-laporan">Laporan Steve</h2>
+        <div class="report-pick">
+          <label for="reportSel" class="msg">Minggu</label>
+          <select id="reportSel"></select>
+        </div>
+        <div class="md" id="report"></div>
+      </div>
+      <div class="panel" aria-labelledby="h-tugas">
+        <h2 id="h-tugas">Tugas</h2>
+        <div class="job-status"><span class="pill" id="jobPill">Siap</span><span class="msg" id="jobMeta"></span></div>
+        <pre class="log" id="log">Belum ada tugas yang dijalankan dari halaman ini.</pre>
+        <ul class="loglist" id="logList"></ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="video" aria-labelledby="h-video">
+    <h2 id="h-video">Semua video</h2>
+    <p class="sub">Views per hari membandingkan video baru dan lama secara adil.</p>
+    <div class="table-tools">
+      <div class="seg" role="group" aria-label="Saring video">
+        <button aria-pressed="true" data-filter="all">Semua</button>
+        <button aria-pressed="false" data-filter="menang">Menang</button>
+        <button aria-pressed="false" data-filter="rata-rata">Rata-rata</button>
+        <button aria-pressed="false" data-filter="lemah">Lemah</button>
+      </div>
+    </div>
+    <div class="panel scroll"><table class="tbl" id="tbl"></table></div>
+  </section>
+
+  <section id="bible" aria-labelledby="h-bible">
+    <h2 id="h-bible">Channel bible</h2>
+    <p class="sub">Aturan yang dibaca semua agent. Versi lama otomatis disimpan di <code>bible/.history</code> setiap kali kamu menyimpan.</p>
+    <textarea id="bibleText" spellcheck="false" aria-label="Isi channel bible"></textarea>
+    <div class="row"><button class="btn primary" id="btnBible">Simpan bible</button><span class="msg" id="bibleMsg"></span></div>
+  </section>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const fmt = n => n == null ? "–" : Number(n).toLocaleString("id-ID");
+const dec = n => n == null ? "–" : Number(n).toLocaleString("id-ID",{maximumFractionDigits:2});
+const short = n => n >= 1000 ? (n/1000).toLocaleString("id-ID",{maximumFractionDigits:1}) + " rb" : String(n);
+const COLORS = {menang:"var(--signal)", "rata-rata":"var(--circuit)", lemah:"var(--weak)"};
+let state = null, filter = "all", sortKey = "published", sortDir = -1, currentReport = null, viewingLog = null, bibleLoaded = false;
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, {...opts, headers: {"Content-Type":"application/json","X-Yofamo":"1", ...(opts.headers||{})}});
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.message || data.error || `HTTP ${res.status}`);
+  return data;
+}
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const cleanTitle = t => t.replace(/#\S+/g, "").replace(/\s{2,}/g, " ").trim();
+// Pembaca markdown kecil (tanpa internet): judul, tebal, miring, kode, tautan, daftar, tabel, kutipan.
+function inline(t){
+  return esc(t)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/(^|[\s(])\*([^*\s][^*]*)\*/g, "$1<em>$2</em>")
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+}
+function md(text){
+  const lines = String(text).replace(/\r/g, "").split("\n"), out = [];
+  let i = 0;
+  const cells = l => l.trim().replace(/^\||\|$/g, "").split("|").map(c => c.trim());
+  while (i < lines.length){
+    const l = lines[i];
+    if (/^```/.test(l)){ const buf = []; i++; while (i < lines.length && !/^```/.test(lines[i])) buf.push(lines[i++]); i++; out.push(`<pre class="log">${esc(buf.join("\n"))}</pre>`); continue; }
+    const h = l.match(/^(#{1,4})\s+(.*)/); if (h){ const n = Math.min(h[1].length, 3); out.push(`<h${n}>${inline(h[2])}</h${n}>`); i++; continue; }
+    if (/^\s*\|/.test(l) && /^\s*\|?\s*:?-{2,}/.test(lines[i+1] || "")){
+      const head = cells(l); i += 2; const body = [];
+      while (i < lines.length && /^\s*\|/.test(lines[i])) body.push(cells(lines[i++]));
+      out.push(`<table><thead><tr>${head.map(c => `<th>${inline(c)}</th>`).join("")}</tr></thead><tbody>${body.map(r => `<tr>${r.map(c => `<td>${inline(c)}</td>`).join("")}</tr>`).join("")}</tbody></table>`); continue;
+    }
+    if (/^\s*([-*]|\d+\.)\s+/.test(l)){
+      const ordered = /^\s*\d+\./.test(l), items = [];
+      while (i < lines.length && /^\s*([-*]|\d+\.)\s+/.test(lines[i])) items.push(lines[i++].replace(/^\s*([-*]|\d+\.)\s+/, ""));
+      const tag = ordered ? "ol" : "ul"; out.push(`<${tag}>${items.map(x => `<li>${inline(x)}</li>`).join("")}</${tag}>`); continue;
+    }
+    if (/^>\s?/.test(l)){ out.push(`<blockquote>${inline(l.replace(/^>\s?/, ""))}</blockquote>`); i++; continue; }
+    if (!l.trim()){ i++; continue; }
+    const para = []; while (i < lines.length && lines[i].trim() && !/^(#{1,4}\s|```|\s*\||\s*([-*]|\d+\.)\s|>)/.test(lines[i])) para.push(lines[i++]);
+    if (!para.length) { para.push(lines[i++]); }
+    out.push(`<p>${inline(para.join(" "))}</p>`);
+  }
+  return out.join("");
+}
+
+function daysSince(iso){ return Math.floor((Date.now() - Date.parse(iso + "T00:00:00")) / 864e5); }
+
+function renderHeader(){
+  const s = state.snapshot, n = $("#notices");
+  const notes = [];
+  if (!state.env_ready) notes.push(`<div class="notice"><p>File <code>.env</code> belum ada.</p><p>Salin <code>.env.example</code> menjadi <code>.env</code> dan isi YOUTUBE_API_KEY, lalu klik Ambil data terbaru.</p></div>`);
+  if (!state.claude_ready) notes.push(`<div class="notice"><p>Claude Code CLI tidak ditemukan.</p><p>Tombol Jalankan Steve butuh perintah <code>claude</code>. Install lalu buka ulang halaman ini.</p></div>`);
+  if (!s){ $("#channelLine").textContent = "Belum ada data. Klik Ambil data terbaru untuk mulai."; n.innerHTML = notes.join(""); return; }
+  const c = s.channel, latest = s.videos.reduce((a,v) => v.published > a ? v.published : a, "");
+  const gap = latest ? daysSince(latest) : null;
+  $("#channelLine").innerHTML = `<b>${esc(c.title)}</b>, ${fmt(c.subscribers)} subscriber, ${fmt(s.summary.videos)} video, median ${fmt(Math.round(s.summary.median_views))} views. Data per ${esc(s.snapshot_date)}.`;
+  if (gap != null && gap > 7) notes.unshift(`<div class="notice"><p>Video terakhir terbit ${gap} hari lalu (${esc(latest)}).</p><p>Shorts butuh upload rutin. Targetkan minimal 3 video per minggu.</p></div>`);
+  n.innerHTML = notes.join("");
+}
+
+function renderChart(){
+  const box = $("#chart"), s = state.snapshot;
+  if (!s || !s.videos.length){ box.innerHTML = `<div class="empty"><p>Grafik muncul setelah data pertama diambil.</p></div>`; return; }
+  const vids = [...s.videos].sort((a,b) => a.published.localeCompare(b.published));
+  const W = 1060, H = 300, padL = 44, padB = 34, padT = 12, n = vids.length;
+  const max = Math.max(...vids.map(v => v.views)) * 1.08, med = s.summary.median_views;
+  const step = (W - padL) / n, bw = Math.max(4, Math.min(34, step * .7));
+  const y = v => padT + (H - padT - padB) * (1 - v / max);
+  const ticks = [0, max/3, 2*max/3].map(t => Math.round(t / 500) * 500);
+  let g = `<svg class="bars" viewBox="0 0 ${W} ${H}" role="img" aria-label="Views tiap Short, ${n} video, median ${Math.round(med)}">`;
+  ticks.forEach(t => g += `<line x1="${padL}" x2="${W}" y1="${y(t)}" y2="${y(t)}" stroke="var(--line)" /><text x="${padL-8}" y="${y(t)+4}" fill="var(--faint)" font-size="12" text-anchor="end">${short(t)}</text>`);
+  vids.forEach((v,i) => {
+    const x = padL + i*step + (step-bw)/2, top = y(v.views);
+    g += `<rect class="bar" data-i="${i}" x="${x}" y="${top}" width="${bw}" height="${H-padB-top}" rx="3" fill="${COLORS[v.tier]}"><title>${esc(cleanTitle(v.title))}: ${fmt(v.views)} views</title></rect>`;
+  });
+  const first = vids[0].published, last = vids[n-1].published;
+  g += `<text x="${padL}" y="${H-10}" fill="var(--faint)" font-size="12">${esc(first)}</text><text x="${W}" y="${H-10}" fill="var(--faint)" font-size="12" text-anchor="end">${esc(last)}</text>`;
+  g += `<line x1="${padL}" x2="${W}" y1="${y(med)}" y2="${y(med)}" stroke="var(--text)" stroke-dasharray="5 5" stroke-width="1.5"/>`;
+  g += `<text x="${W-4}" y="${y(med)-6}" fill="var(--text)" font-size="12" text-anchor="end">median ${short(Math.round(med))}</text></svg>`;
+  box.innerHTML = g;
+  const tip = $("#tip"), wrap = $("#chartWrap");
+  box.querySelectorAll(".bar").forEach(b => {
+    b.addEventListener("mousemove", e => {
+      const v = vids[+b.dataset.i], r = wrap.getBoundingClientRect();
+      tip.innerHTML = `<b>${esc(cleanTitle(v.title))}</b>${fmt(v.views)} views · ${dec(v.vs_median)}× median · terbit ${esc(v.published)}`;
+      tip.style.left = Math.min(e.clientX - r.left + 12, r.width - 290) + "px";
+      tip.style.top = (e.clientY - r.top - 64) + "px";
+      tip.style.opacity = 1;
+    });
+    b.addEventListener("mouseleave", () => tip.style.opacity = 0);
+    b.addEventListener("click", () => window.open(vids[+b.dataset.i].url, "_blank", "noopener"));
+  });
+  $("#chartSub").textContent = `${n} Shorts, urut dari terlama ke terbaru. Garis putus-putus adalah median channel. Klik batang untuk membuka videonya.`;
+}
+
+function renderPipeline(){
+  const running = state.job.status === "running" && state.job.job === "steve";
+  $("#pipeline").innerHTML = state.agents.map(a => {
+    const cls = a.key === "steve-analis" && running ? "running" : a.ready ? "ready" : "";
+    const label = cls === "running" ? "Sedang bekerja" : a.ready ? "Aktif" : "Belum dibuat";
+    return `<div class="station ${cls}"><div class="dot" aria-hidden="true"></div><h3>${esc(a.name)}</h3><p>${esc(a.role)}</p><span class="state">${label}</span></div>`;
+  }).join("");
+}
+
+async function renderReports(){
+  const sel = $("#reportSel"), list = state.reports;
+  if (!list.length){ sel.innerHTML = `<option>Belum ada</option>`; sel.disabled = true; $("#report").innerHTML = `<p class="msg">Belum ada laporan. Klik Jalankan Steve untuk membuat laporan pertama.</p>`; return; }
+  sel.disabled = false;
+  const names = list.map(r => r.name);
+  if (sel.dataset.names !== names.join("|")){
+    sel.innerHTML = list.map(r => `<option value="${esc(r.name)}">${esc(r.name.replace(".md",""))}</option>`).join("");
+    sel.dataset.names = names.join("|");
+    if (!currentReport || !names.includes(currentReport)) currentReport = names[0];
+    sel.value = currentReport;
+    await loadReport(currentReport);
+  }
+}
+async function loadReport(name){
+  currentReport = name;
+  try { const r = await api(`/api/report?name=${encodeURIComponent(name)}`); $("#report").innerHTML = md(r.text); }
+  catch(e){ $("#report").innerHTML = `<p class="msg">${esc(e.message)}</p>`; }
+}
+
+const JOB = {fetch:"Ambil data", check:"Cek koneksi", steve:"Steve"};
+async function renderJob(){
+  const j = state.job, pill = $("#jobPill");
+  pill.className = "pill " + (j.status === "idle" ? "" : j.status);
+  pill.textContent = {idle:"Siap", running:"Berjalan", ok:"Selesai", error:"Gagal"}[j.status];
+  $("#jobMeta").textContent = j.job ? `${JOB[j.job] || j.job} · mulai ${j.started?.slice(11,16)}${j.finished ? " · selesai " + j.finished.slice(11,16) : ""}` : "";
+  document.querySelectorAll("[data-job]").forEach(b => b.disabled = j.status === "running");
+  $("#btnSteve").disabled ||= !state.claude_ready;
+  $("#logList").innerHTML = state.logs.map(l => `<li><button data-log="${esc(l.name)}">${esc(l.name)}</button><span>${esc(l.modified.replace("T"," "))}</span></li>`).join("");
+  const target = viewingLog || j.log;
+  if (target){
+    try { const r = await api(`/api/log?name=${encodeURIComponent(target)}`); const pre = $("#log"); pre.textContent = r.text || "(log masih kosong)"; pre.scrollTop = pre.scrollHeight; } catch {}
+  }
+}
+
+function renderTable(){
+  const s = state.snapshot, t = $("#tbl");
+  if (!s){ t.innerHTML = `<tr><td class="empty">Belum ada data.</td></tr>`; return; }
+  let rows = s.videos.filter(v => filter === "all" || v.tier === filter);
+  rows = [...rows].sort((a,b) => (a[sortKey] > b[sortKey] ? 1 : a[sortKey] < b[sortKey] ? -1 : 0) * sortDir);
+  const col = (key, label, num) => `<th class="${num?"num":""}" aria-sort="${sortKey===key?(sortDir>0?"ascending":"descending"):"none"}"><button data-sort="${key}">${label}${sortKey===key?(sortDir>0?" ↑":" ↓"):""}</button></th>`;
+  t.innerHTML = `<thead><tr>${col("title","Video")}${col("tier","Kelas")}${col("views","Views",1)}${col("vs_median","× median",1)}${col("views_per_day","Views/hari",1)}${col("engagement_pct","Engagement",1)}${col("published","Terbit",1)}</tr></thead><tbody>` +
+    rows.map(v => `<tr><td class="ttl"><a href="${esc(v.url)}" target="_blank" rel="noopener">${esc(cleanTitle(v.title))}</a>${v.views_since_last != null ? `<small>+${fmt(v.views_since_last)} views sejak data sebelumnya</small>` : ""}</td><td><span class="tier ${v.tier}">${v.tier}</span></td><td class="num">${fmt(v.views)}</td><td class="num">${dec(v.vs_median)}×</td><td class="num">${fmt(v.views_per_day)}</td><td class="num">${dec(v.engagement_pct)}%</td><td class="num">${esc(v.published)}</td></tr>`).join("") + `</tbody>`;
+}
+
+async function loadBible(){
+  const r = await api("/api/bible"); $("#bibleText").value = r.text; bibleLoaded = true;
+}
+
+async function refresh(){
+  try { state = await api("/api/state"); }
+  catch(e){ $("#channelLine").textContent = "Server dashboard tidak menjawab. Pastikan jendela server masih terbuka."; return schedule(); }
+  renderHeader(); renderChart(); renderPipeline(); renderTable();
+  await renderReports(); await renderJob();
+  if (!bibleLoaded) loadBible();
+  schedule();
+}
+let timer; function schedule(){ clearTimeout(timer); timer = setTimeout(refresh, state?.job?.status === "running" ? 2500 : 15000); }
+
+document.querySelectorAll("[data-job]").forEach(b => b.addEventListener("click", async () => {
+  viewingLog = null;
+  try { await api("/api/run", {method:"POST", body: JSON.stringify({job: b.dataset.job})}); }
+  catch(e){ $("#log").textContent = e.message; }
+  refresh();
+}));
+$("#reportSel").addEventListener("change", e => loadReport(e.target.value));
+$("#logList").addEventListener("click", e => { const n = e.target.dataset.log; if (n){ viewingLog = n; renderJob(); } });
+document.querySelector(".seg").addEventListener("click", e => {
+  const f = e.target.dataset.filter; if (!f) return;
+  filter = f; document.querySelectorAll(".seg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.filter === f));
+  renderTable();
+});
+$("#tbl").addEventListener("click", e => {
+  const k = e.target.closest("[data-sort]")?.dataset.sort; if (!k) return;
+  sortDir = sortKey === k ? -sortDir : (k === "title" || k === "tier" ? 1 : -1); sortKey = k; renderTable();
+});
+$("#btnBible").addEventListener("click", async () => {
+  const m = $("#bibleMsg");
+  try { const r = await api("/api/bible", {method:"POST", body: JSON.stringify({text: $("#bibleText").value})}); m.textContent = r.message; }
+  catch(e){ m.textContent = e.message; }
+});
+refresh();
+</script>
+</body>
+</html>
