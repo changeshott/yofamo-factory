@@ -36,16 +36,17 @@ python dashboard\server.py
 
 Browser terbuka di http://127.0.0.1:8765. Jendela hitam server harus tetap terbuka selama halaman dipakai.
 
-Di halaman itu:
+Halaman itu adalah **Studio Yofamo**, kantor virtual tim agent. Klik apa saja di kantor, atau pakai tombol di bawahnya:
 
-- **Ambil data terbaru** — mengambil statistik semua video (tanpa AI, tanpa kuota Claude).
-- **Jalankan Steve** — Steve menganalisis dan menulis laporan mingguan (memakai kuota Claude Pro, model Sonnet).
-- **Performa semua Shorts** — grafik views tiap Short dengan garis median; klik batang untuk membuka videonya.
-- **Pabrik agent** — tujuh pos pipeline; pos menyala kalau skill-nya sudah dibuat.
-- **Antrean video** — klik **Cari 3 ide** (Nova, boleh diberi arahan tema), buka ide lalu **Setujui ide**, klik **Tulis naskah dengan Raka**. Judul, naskah, deskripsi, dan tag punya tombol **Salin** untuk dipakai di CapCut dan YouTube Studio. Setelah upload, klik **Tandai sudah terbit**.
-- **Laporan Steve** dan **Tugas** — baca laporan per minggu dan log setiap tugas.
-- **Semua video** — tabel yang bisa diurutkan dan disaring.
-- **Channel bible** — edit aturan channel; versi lama tersimpan otomatis di `bible/.history`.
+- **Steve, Nova, Raka** — klik orangnya atau mejanya untuk melihat status, memberi tugas, dan membaca log kerjanya. Saat bekerja, mereka duduk di meja dengan layar menyala dan balon status di atas kepala.
+- **Meja Zona** (kamu, di karpet biru) — inbox keputusan: ide yang menunggu persetujuan, naskah yang siap direkam, dan target upload mingguan. Angka merah menunjukkan jumlah yang menunggu.
+- **Papan tulis** — antrean semua video, dari ide sampai terbit. Ada tombol Salin untuk judul, naskah, deskripsi, dan tag.
+- **Layar TV** — analitik semua Shorts (grafik dan tabel).
+- **Rak buku** — channel bible yang bisa diedit (versi lama tersimpan otomatis di `bible/.history`).
+- **Log kantor** — riwayat semua aktivitas agent dan keputusanmu.
+- **Meja kosong** — pos untuk agent berikutnya (Suara, Pencari aset, Editor CapCut, Upload).
+
+Suasana kantor mengikuti jam laptop: pagi, siang, sore, dan malam dengan lampu kota di jendela.
 
 Halaman ini hanya bisa dibuka dari laptopmu sendiri dan hanya menjalankan tugas yang sudah terdaftar.
 

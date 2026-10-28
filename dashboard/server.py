@@ -17,7 +17,7 @@ import subprocess
 import sys
 import threading
 import webbrowser
-from datetime import datetime
+from datetime import datetime, timedelta
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -196,6 +196,12 @@ MANUAL_MOVES = {
 }
 
 
+def week_stats() -> dict:
+    today = datetime.now().date()
+    monday = today - timedelta(days=today.weekday())
+    return {"since": monday.isoformat(), "published": pabrik.published_since(monday.isoformat())}
+
+
 def video_list() -> list[dict]:
     out = []
     for v in pabrik.all_videos():
@@ -265,6 +271,8 @@ class Handler(BaseHTTPRequestHandler):
                 "agents": agent_list(),
                 "logs": last_logs(),
                 "videos": video_list(),
+                "activity": pabrik.history(40),
+                "week": week_stats(),
                 "job": job,
                 "env_ready": (ROOT / ".env").exists(),
                 "claude_ready": shutil.which("claude") is not None,

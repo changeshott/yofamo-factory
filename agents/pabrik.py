@@ -116,6 +116,22 @@ def set_status(slug: str, status: str, note: str = "") -> dict:
     return get(slug)
 
 
+def history(limit: int = 30) -> list[dict]:
+    """Riwayat perubahan status terbaru, lengkap dengan judul kerja."""
+    with connect() as con:
+        rows = con.execute("""SELECT r.slug, r.dari, r.ke, r.waktu, r.catatan, v.judul_kerja
+                              FROM riwayat r LEFT JOIN videos v ON v.slug = r.slug
+                              ORDER BY r.id DESC LIMIT ?""", (limit,)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def published_since(iso_date: str) -> int:
+    with connect() as con:
+        row = con.execute("SELECT COUNT(DISTINCT slug) FROM riwayat WHERE ke='terbit' AND waktu >= ?",
+                          (iso_date,)).fetchone()
+    return int(row[0])
+
+
 def read_json(slug: str, name: str) -> dict | None:
     path = VIDEOS / slug / name
     if not path.exists():
