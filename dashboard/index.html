@@ -131,6 +131,41 @@ textarea{width:100%;min-height:420px;background:#0A1526;color:var(--text);border
 .row{display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap}
 .msg{color:var(--muted);font-size:14px}
 
+/* antrean video */
+.queue-tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.queue-tools input{flex:1 1 260px;background:var(--panel-2);color:var(--text);border:1px solid var(--line);border-radius:999px;padding:10px 16px;font:inherit}
+.queue-tools input::placeholder{color:var(--faint)}
+.queue{display:grid;gap:10px}
+.vid{background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.vid[open]{border-color:#35587F}
+.vid summary{list-style:none;display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px 18px;cursor:pointer}
+.vid summary::-webkit-details-marker{display:none}
+.vid summary h3{font:700 16px/1.3 var(--display);margin:0}
+.vid summary small{color:var(--faint);display:block;margin-top:2px}
+.step{font-size:13px;padding:3px 10px;border-radius:999px;white-space:nowrap;border:1px solid var(--line);color:var(--muted)}
+.step.ide{border-color:var(--signal);color:var(--signal)}
+.step.disetujui{border-color:var(--circuit);color:var(--circuit)}
+.step.naskah{background:rgba(71,181,255,.14);border-color:transparent;color:var(--circuit)}
+.step.terbit{background:rgba(255,154,77,.16);border-color:transparent;color:var(--signal)}
+.step.ditolak{color:var(--faint);text-decoration:line-through}
+.vid .chev{color:var(--faint);transition:transform .15s}
+.vid[open] .chev{transform:rotate(90deg)}
+.vid-body{padding:0 18px 18px;border-top:1px solid var(--line)}
+.vid-body h4{font:700 15px/1.3 var(--display);margin:16px 0 6px;color:var(--muted)}
+.vid-body p{margin:0 0 6px;max-width:72ch}
+.facts{margin:0;padding-left:20px}
+.facts li{margin:4px 0;max-width:72ch}
+.facts a{font-size:14px}
+.copy-row{display:flex;gap:10px;align-items:flex-start}
+.copy-row .val{flex:1;background:#0A1526;border:1px solid var(--line);border-radius:8px;padding:10px 12px;white-space:pre-wrap;word-break:break-word}
+.btn.small{padding:6px 12px;font-size:14px}
+.script{margin:0;padding-left:22px}
+.script li{margin:6px 0;max-width:72ch}
+.script li span{display:block;color:var(--faint);font-size:14px}
+.vid-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+.btn.ghost{background:none}
+.hook{font:700 22px/1.2 var(--display);color:var(--signal);margin:0 0 4px}
+
 @media (max-width:860px){
   .cols{grid-template-columns:1fr}
   .line{grid-template-columns:1fr;gap:18px}
@@ -156,7 +191,7 @@ textarea{width:100%;min-height:420px;background:#0A1526;color:var(--text);border
     </div>
   </header>
   <nav class="jump" aria-label="Bagian halaman">
-    <a href="#shorts">Shorts</a><a href="#pabrik">Pabrik agent</a><a href="#laporan">Laporan & tugas</a><a href="#video">Semua video</a><a href="#bible">Channel bible</a>
+    <a href="#shorts">Shorts</a><a href="#pabrik">Pabrik agent</a><a href="#antrean">Antrean video</a><a href="#laporan">Laporan & tugas</a><a href="#video">Semua video</a><a href="#bible">Channel bible</a>
   </nav>
 
   <div id="notices"></div>
@@ -180,6 +215,16 @@ textarea{width:100%;min-height:420px;background:#0A1526;color:var(--text);border
     <h2 id="h-pabrik">Pabrik agent</h2>
     <p class="sub">Tujuh pos dari ide sampai terbit. Pos yang menyala sudah punya skill di <code>.claude/skills</code>.</p>
     <div class="line" id="pipeline"></div>
+  </section>
+
+  <section id="antrean" aria-labelledby="h-antrean">
+    <h2 id="h-antrean">Antrean video</h2>
+    <p class="sub">Nova mencari ide bersumber. Kamu setujui yang paling menarik, lalu Raka menulis naskahnya.</p>
+    <div class="queue-tools">
+      <input id="ideTheme" type="text" maxlength="120" placeholder="Arahan tema (opsional), misalnya makanan masa depan" aria-label="Arahan tema untuk ide">
+      <button class="btn primary" data-job="ide" id="btnIde">Cari 3 ide</button>
+    </div>
+    <div class="queue" id="queue"></div>
   </section>
 
   <section id="laporan" aria-labelledby="h-laporan">
@@ -324,10 +369,11 @@ function renderChart(){
   $("#chartSub").textContent = `${n} Shorts, urut dari terlama ke terbaru. Garis putus-putus adalah median channel. Klik batang untuk membuka videonya.`;
 }
 
+const JOB_AGENT = {steve:"steve-analis", ide:"ide-riset", penulis:"penulis"};
 function renderPipeline(){
-  const running = state.job.status === "running" && state.job.job === "steve";
+  const runningKey = state.job.status === "running" ? JOB_AGENT[state.job.job] : null;
   $("#pipeline").innerHTML = state.agents.map(a => {
-    const cls = a.key === "steve-analis" && running ? "running" : a.ready ? "ready" : "";
+    const cls = a.key === runningKey ? "running" : a.ready ? "ready" : "";
     const label = cls === "running" ? "Sedang bekerja" : a.ready ? "Aktif" : "Belum dibuat";
     return `<div class="station ${cls}"><div class="dot" aria-hidden="true"></div><h3>${esc(a.name)}</h3><p>${esc(a.role)}</p><span class="state">${label}</span></div>`;
   }).join("");
@@ -352,14 +398,50 @@ async function loadReport(name){
   catch(e){ $("#report").innerHTML = `<p class="msg">${esc(e.message)}</p>`; }
 }
 
-const JOB = {fetch:"Ambil data", check:"Cek koneksi", steve:"Steve"};
+const JOB = {fetch:"Ambil data", check:"Cek koneksi", steve:"Steve", ide:"Nova mencari ide", penulis:"Raka menulis naskah"};
+
+const openVids = new Set(); let queueSig = "";
+const MOVE_LABEL = {disetujui:"Setujui ide", ditolak:"Tolak", ide:"Kembalikan ke ide", export:"Tandai sudah di-export", terbit:"Tandai sudah terbit"};
+function copyBox(label, text){
+  return `<h4>${label}</h4><div class="copy-row"><div class="val">${esc(text)}</div><button class="btn small" data-copy="${esc(text)}">Salin</button></div>`;
+}
+function renderQueue(){
+  const vids = state.videos || [], running = state.job.status === "running";
+  const sig = JSON.stringify(vids) + running;
+  if (sig === queueSig) return; queueSig = sig;
+  if (!vids.length){ $("#queue").innerHTML = `<div class="panel empty"><p>Antrean masih kosong.</p><p class="msg">Klik Cari 3 ide supaya Nova mencarikan topik berdasarkan laporan Steve.</p></div>`; return; }
+  $("#queue").innerHTML = vids.map(v => {
+    const i = v.idea || {}, sc = v.script, body = [];
+    if (i._error) body.push(`<p class="msg">${esc(i._error)}</p>`);
+    if (v.idea && !i._error){
+      body.push(`<h4>Ide dari Nova</h4><p class="hook">${esc(i.hook_ide || "")}</p><p>${esc(i.kenapa_menang || "")}</p><p class="msg">Kategori ${esc(i.kategori || "–")}, status teknologi: ${esc(i.status_teknologi || "–")}. ${i.risiko ? "Risiko: " + esc(i.risiko) : ""}</p>`);
+      if (i.fakta?.length) body.push(`<h4>Fakta & sumber</h4><ul class="facts">${i.fakta.map(f => `<li>${esc(f.klaim)} <a href="${esc(f.sumber_url)}" target="_blank" rel="noopener">${esc(f.sumber_nama || "sumber")}</a></li>`).join("")}</ul>`);
+      if (i.visual_tersedia) body.push(`<h4>Visual tersedia</h4><p>${esc(i.visual_tersedia)}</p>`);
+    }
+    if (sc && !sc._error){
+      const words = (sc.narasi || []).reduce((n, x) => n + String(x.kalimat || "").split(/\s+/).filter(Boolean).length, 0);
+      body.push(copyBox("Judul", sc.judul || ""));
+      body.push(`<h4>Teks hook di layar</h4><p class="hook">${esc(sc.hook_teks || "")}</p>`);
+      body.push(`<h4>Naskah voice-over (${words} kata, ±${Math.round(words/2.6)} detik)</h4><ol class="script">${(sc.narasi || []).map(n => `<li>${esc(n.kalimat)}<span>Visual: ${esc(n.visual)}</span></li>`).join("")}</ol>`);
+      body.push(`<div class="vid-actions"><button class="btn small" data-copy="${esc((sc.narasi || []).map(n => n.kalimat).join(" "))}">Salin naskah</button></div>`);
+      body.push(copyBox("Deskripsi", sc.deskripsi || ""));
+      body.push(copyBox("Tag", (sc.tag || []).join(", ")));
+      if (sc.catatan_editor) body.push(`<h4>Catatan untuk editor</h4><p>${esc(sc.catatan_editor)}</p>`);
+    }
+    const acts = [];
+    if (v.status === "disetujui") acts.push(`<button class="btn primary small" data-job="penulis" data-arg="${esc(v.slug)}" ${running ? "disabled" : ""}>Tulis naskah dengan Raka</button>`);
+    v.moves.forEach(m => acts.push(`<button class="btn small ${m === "disetujui" && v.status === "ide" ? "primary" : "ghost"}" data-move="${m}" data-slug="${esc(v.slug)}">${v.status === "naskah" && m === "disetujui" ? "Minta tulis ulang" : MOVE_LABEL[m]}</button>`));
+    if (acts.length) body.push(`<div class="vid-actions">${acts.join("")}</div>`);
+    return `<details class="vid" data-slug="${esc(v.slug)}" ${openVids.has(v.slug) ? "open" : ""}><summary><span class="step ${esc(v.status)}">${esc(v.label)}</span><div><h3>${esc(v.judul_kerja)}</h3><small>${esc(v.slug)}</small></div><span class="chev" aria-hidden="true">›</span></summary><div class="vid-body">${body.join("") || `<p class="msg">Belum ada file untuk video ini.</p>`}</div></details>`;
+  }).join("");
+}
 async function renderJob(){
   const j = state.job, pill = $("#jobPill");
   pill.className = "pill " + (j.status === "idle" ? "" : j.status);
   pill.textContent = {idle:"Siap", running:"Berjalan", ok:"Selesai", error:"Gagal"}[j.status];
   $("#jobMeta").textContent = j.job ? `${JOB[j.job] || j.job} · mulai ${j.started?.slice(11,16)}${j.finished ? " · selesai " + j.finished.slice(11,16) : ""}` : "";
   document.querySelectorAll("[data-job]").forEach(b => b.disabled = j.status === "running");
-  $("#btnSteve").disabled ||= !state.claude_ready;
+  ["#btnSteve", "#btnIde"].forEach(id => $(id).disabled ||= !state.claude_ready);
   $("#logList").innerHTML = state.logs.map(l => `<li><button data-log="${esc(l.name)}">${esc(l.name)}</button><span>${esc(l.modified.replace("T"," "))}</span></li>`).join("");
   const target = viewingLog || j.log;
   if (target){
@@ -384,19 +466,32 @@ async function loadBible(){
 async function refresh(){
   try { state = await api("/api/state"); }
   catch(e){ $("#channelLine").textContent = "Server dashboard tidak menjawab. Pastikan jendela server masih terbuka."; return schedule(); }
-  renderHeader(); renderChart(); renderPipeline(); renderTable();
+  renderHeader(); renderChart(); renderPipeline(); renderQueue(); renderTable();
   await renderReports(); await renderJob();
   if (!bibleLoaded) loadBible();
   schedule();
 }
 let timer; function schedule(){ clearTimeout(timer); timer = setTimeout(refresh, state?.job?.status === "running" ? 2500 : 15000); }
 
-document.querySelectorAll("[data-job]").forEach(b => b.addEventListener("click", async () => {
+document.addEventListener("click", async e => {
+  const b = e.target.closest("[data-job]");
+  if (!b || b.disabled) return;
   viewingLog = null;
-  try { await api("/api/run", {method:"POST", body: JSON.stringify({job: b.dataset.job})}); }
-  catch(e){ $("#log").textContent = e.message; }
+  const arg = b.dataset.job === "ide" ? $("#ideTheme").value : (b.dataset.arg || "");
+  try { await api("/api/run", {method:"POST", body: JSON.stringify({job: b.dataset.job, arg})}); document.getElementById("laporan").scrollIntoView({behavior:"smooth"}); }
+  catch(err){ $("#log").textContent = err.message; }
   refresh();
-}));
+});
+$("#queue").addEventListener("toggle", e => { const d = e.target; if (d.dataset?.slug) d.open ? openVids.add(d.dataset.slug) : openVids.delete(d.dataset.slug); }, true);
+$("#queue").addEventListener("click", async e => {
+  const c = e.target.closest("[data-copy]");
+  if (c){ try { await navigator.clipboard.writeText(c.dataset.copy); const t = c.textContent; c.textContent = "Disalin"; setTimeout(() => c.textContent = t, 1200); } catch { c.textContent = "Gagal menyalin"; } return; }
+  const m = e.target.closest("[data-move]"); if (!m) return;
+  m.disabled = true;
+  try { await api("/api/video/status", {method:"POST", body: JSON.stringify({slug: m.dataset.slug, status: m.dataset.move})}); }
+  catch(err){ $("#log").textContent = err.message; }
+  queueSig = ""; refresh();
+});
 $("#reportSel").addEventListener("change", e => loadReport(e.target.value));
 $("#logList").addEventListener("click", e => { const n = e.target.dataset.log; if (n){ viewingLog = n; renderJob(); } });
 document.querySelector(".seg").addEventListener("click", e => {

@@ -24,6 +24,9 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "agents"))
+import pabrik  # noqa: E402  (antrean video, state.db)
+
 HERE = Path(__file__).resolve().parent
 HOST, PORT = "127.0.0.1", 8765
 RAW_DIR = ROOT / "insights" / "raw"
@@ -35,8 +38,8 @@ SKILLS = ROOT / ".claude" / "skills"
 # Urutan pabrik. "skill" = nama folder di .claude/skills (status dihitung dari situ).
 PIPELINE = [
     {"key": "steve-analis", "name": "Steve", "role": "Analis statistik"},
-    {"key": "ide-riset", "name": "Ide & riset", "role": "Topik + fakta bersumber"},
-    {"key": "penulis", "name": "Penulis", "role": "Naskah, judul, tag"},
+    {"key": "ide-riset", "name": "Nova", "role": "Ide + fakta bersumber"},
+    {"key": "penulis", "name": "Raka", "role": "Naskah, judul, tag"},
     {"key": "suara", "name": "Suara", "role": "TTS + timing kata"},
     {"key": "aset", "name": "Pencari aset", "role": "Klip berlisensi"},
     {"key": "editor-capcut", "name": "Editor CapCut", "role": "Tulis file draft"},
@@ -51,25 +54,53 @@ STEVE_TOOLS = [
 ]
 
 
-def job_command(job: str) -> list[str] | str:
+def tools_for(*scripts: str) -> list[str]:
+    out = ["Read", "Write", "Glob", "Grep"]
+    for sc in scripts:
+        for py in ("python", "python3"):
+            out += [f"Bash({py} {sc} *)", f"Bash({py} {sc})"]
+        out += [f"PowerShell(python {sc} *)", f"PowerShell(python {sc})"]
+    return out
+
+
+IDE_TOOLS = tools_for("agents/pabrik.py") + ["WebSearch", "WebFetch"]
+PENULIS_TOOLS = tools_for("agents/pabrik.py", "agents/penulis/cek_naskah.py")
+SLUG = re.compile(r"^[a-z0-9-]{3,80}$")
+
+
+def claude_cmd(prompt: str, tools: list[str]) -> list[str] | str:
+    claude = shutil.which("claude")
+    if not claude:
+        return "Perintah 'claude' tidak ditemukan. Install Claude Code CLI lalu buka ulang halaman ini."
+    return [claude, "-p", prompt, "--model", "sonnet", "--max-turns", "60", "--allowedTools", *tools]
+
+
+def job_command(job: str, arg: str = "") -> list[str] | str:
     """Kembalikan argumen perintah, atau string pesan error."""
     if job == "fetch":
         return [sys.executable, str(ROOT / "agents" / "steve" / "fetch_stats.py")]
     if job == "check":
         return [sys.executable, str(ROOT / "agents" / "steve" / "fetch_stats.py"), "--check"]
     if job == "steve":
-        claude = shutil.which("claude")
-        if not claude:
-            return "Perintah 'claude' tidak ditemukan. Install Claude Code CLI lalu buka ulang halaman ini."
-        return [claude, "-p", "/steve-analis", "--model", "sonnet", "--max-turns", "40",
-                "--allowedTools", *STEVE_TOOLS]
+        return claude_cmd("/steve-analis", STEVE_TOOLS)
+    if job == "ide":
+        theme = re.sub(r"[^\w\s,.\-]", "", arg, flags=re.UNICODE).strip()[:120]
+        return claude_cmd(f"/ide-riset {theme}".strip(), IDE_TOOLS)
+    if job == "penulis":
+        v = pabrik.get(arg) if SLUG.match(arg or "") else None
+        if not v:
+            return "Video tidak ditemukan."
+        if v["status"] != "disetujui":
+            return "Hanya ide berstatus disetujui yang bisa ditulis naskahnya."
+        return claude_cmd(f"/penulis {arg}", PENULIS_TOOLS)
     return f"Tugas tidak dikenal: {job}"
 
 
-JOB_LABELS = {"fetch": "Ambil data", "check": "Cek koneksi", "steve": "Jalankan Steve"}
+JOB_LABELS = {"fetch": "Ambil data", "check": "Cek koneksi", "steve": "Steve",
+              "ide": "Nova mencari ide", "penulis": "Raka menulis naskah"}
 
 _lock = threading.Lock()
-_current: dict = {"job": None, "status": "idle", "started": None, "finished": None,
+_current: dict = {"job": None, "arg": None, "status": "idle", "started": None, "finished": None,
                   "log": None, "exit": None}
 
 
@@ -92,8 +123,8 @@ def run_job(job: str, argv: list[str], log_path: Path) -> None:
                         finished=datetime.now().isoformat(timespec="seconds"))
 
 
-def start_job(job: str) -> tuple[bool, str]:
-    argv = job_command(job)
+def start_job(job: str, arg: str = "") -> tuple[bool, str]:
+    argv = job_command(job, arg)
     if isinstance(argv, str):
         return False, argv
     with _lock:
@@ -101,7 +132,7 @@ def start_job(job: str) -> tuple[bool, str]:
             return False, f"Masih ada tugas berjalan: {JOB_LABELS.get(_current['job'], _current['job'])}."
         LOGS.mkdir(exist_ok=True)
         log_path = LOGS / f"{job}-{datetime.now():%Y-%m-%d_%H%M%S}.txt"
-        _current.update(job=job, status="running", exit=None, finished=None,
+        _current.update(job=job, arg=arg or None, status="running", exit=None, finished=None,
                         started=datetime.now().isoformat(timespec="seconds"),
                         log=log_path.name)
     threading.Thread(target=run_job, args=(job, argv, log_path), daemon=True).start()
@@ -154,6 +185,25 @@ def last_logs() -> list[dict]:
 
 
 SAFE_NAME = re.compile(r"^[\w.\-]+$")
+
+# Perubahan status yang boleh dilakukan Zona dari halaman.
+MANUAL_MOVES = {
+    "ide": {"disetujui", "ditolak"},
+    "ditolak": {"ide"},
+    "naskah": {"disetujui", "export", "terbit"},
+    "disetujui": {"ide"},
+    "export": {"terbit"},
+}
+
+
+def video_list() -> list[dict]:
+    out = []
+    for v in pabrik.all_videos():
+        out.append({**v, "label": pabrik.STATUS_LABEL.get(v["status"], v["status"]),
+                    "idea": pabrik.read_json(v["slug"], "idea.json"),
+                    "script": pabrik.read_json(v["slug"], "script.json"),
+                    "moves": sorted(MANUAL_MOVES.get(v["status"], set()))})
+    return out
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -214,6 +264,7 @@ class Handler(BaseHTTPRequestHandler):
                 "reports": report_list(),
                 "agents": agent_list(),
                 "logs": last_logs(),
+                "videos": video_list(),
                 "job": job,
                 "env_ready": (ROOT / ".env").exists(),
                 "claude_ready": shutil.which("claude") is not None,
@@ -241,9 +292,19 @@ class Handler(BaseHTTPRequestHandler):
         body = self.read_body()
 
         if url.path == "/api/run":
-            ok, msg = start_job(str(body.get("job", "")))
+            ok, msg = start_job(str(body.get("job", "")), str(body.get("arg", "") or ""))
             return self.send_json({"ok": ok, "message": msg},
                                   HTTPStatus.OK if ok else HTTPStatus.CONFLICT)
+        if url.path == "/api/video/status":
+            slug, to = str(body.get("slug", "")), str(body.get("status", ""))
+            v = pabrik.get(slug) if SLUG.match(slug) else None
+            if not v:
+                return self.send_json({"ok": False, "message": "Video tidak ditemukan."}, HTTPStatus.NOT_FOUND)
+            if to not in MANUAL_MOVES.get(v["status"], set()):
+                return self.send_json({"ok": False, "message": f"Tidak bisa mengubah {v['status']} menjadi {to}."},
+                                      HTTPStatus.CONFLICT)
+            pabrik.set_status(slug, to, "diubah dari Control Room")
+            return self.send_json({"ok": True, "message": pabrik.STATUS_LABEL.get(to, to)})
         if url.path == "/api/bible":
             text = body.get("text")
             if not isinstance(text, str) or not text.strip():

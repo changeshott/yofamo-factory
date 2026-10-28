@@ -42,6 +42,7 @@ Di halaman itu:
 - **Jalankan Steve** — Steve menganalisis dan menulis laporan mingguan (memakai kuota Claude Pro, model Sonnet).
 - **Performa semua Shorts** — grafik views tiap Short dengan garis median; klik batang untuk membuka videonya.
 - **Pabrik agent** — tujuh pos pipeline; pos menyala kalau skill-nya sudah dibuat.
+- **Antrean video** — klik **Cari 3 ide** (Nova, boleh diberi arahan tema), buka ide lalu **Setujui ide**, klik **Tulis naskah dengan Raka**. Judul, naskah, deskripsi, dan tag punya tombol **Salin** untuk dipakai di CapCut dan YouTube Studio. Setelah upload, klik **Tandai sudah terbit**.
 - **Laporan Steve** dan **Tugas** — baca laporan per minggu dan log setiap tugas.
 - **Semua video** — tabel yang bisa diurutkan dan disaring.
 - **Channel bible** — edit aturan channel; versi lama tersimpan otomatis di `bible/.history`.
