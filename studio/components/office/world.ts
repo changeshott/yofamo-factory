@@ -4,11 +4,11 @@ import type { Look } from "./sprites";
 export const RW = 22, RD = 15, WALL = 112, T = 16;
 export const BW = 624, BH = 446, OX = 256, OY = 132;
 
-export type AgentId = "steve" | "nova" | "raka" | "dara";
+export type AgentId = "steve" | "nova" | "raka" | "dara" | "bima";
 export interface AgentDef {
   id: AgentId;
   skill: string;
-  job: "steve" | "ide" | "penulis" | "suara";
+  job: "steve" | "ide" | "penulis" | "suara" | "aset";
   name: string;
   role: string;
   about: string;
@@ -43,10 +43,15 @@ export const TEAM: AgentDef[] = [
     look: { skin: "#E8B892", hair: "#2E2140", shirt: "#9B6BD3", pants: "#2B2B3A", accent: "#F4F1E8", style: "bun" },
     busy: { suara: "Merekam suara…" },
   },
+  {
+    id: "bima", skill: "aset", job: "aset", name: "Bima", role: "Pencari aset", desk: [5.4, 7.0], color: "#4FD1C5",
+    about: "Mencari klip video vertikal berlisensi gratis (Pexels/Pixabay) untuk setiap kalimat naskah, lalu mencatat kreditnya.",
+    look: { skin: "#B97D57", hair: "#2A1D14", shirt: "#2FA59A", pants: "#34404F", accent: "#F4F1E8", style: "curly" },
+    busy: { aset: "Mencari footage…" },
+  },
 ];
 
 export const FUTURE = [
-  { key: "aset", name: "Pencari aset", role: "Klip berlisensi", desk: [5.4, 7.0] as [number, number] },
   { key: "editor-capcut", name: "Editor CapCut", role: "Tulis file draft CapCut", desk: [9.2, 7.0] as [number, number] },
   { key: "upload", name: "Upload", role: "Terbit terjadwal ke YouTube", desk: [13.0, 7.0] as [number, number] },
 ];

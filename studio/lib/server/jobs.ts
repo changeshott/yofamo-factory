@@ -18,6 +18,7 @@ const TOOLS = {
   steve: scriptTools("agents/steve/fetch_stats.py"),
   ide: [...scriptTools("agents/pabrik.py"), "WebSearch", "WebFetch"],
   penulis: scriptTools("agents/pabrik.py", "agents/penulis/cek_naskah.py"),
+  aset: scriptTools("agents/pabrik.py", "agents/aset/cari_aset.py"),
 };
 
 type Store = { state: JobState; child: ChildProcess | null };
@@ -46,6 +47,17 @@ async function command(job: JobName, arg: string): Promise<{ cmd: string; args: 
     const voiceArg = voice === "wanita" ? ["--voice", "id-ID-GadisNeural"] : [];
     return { cmd: py, args: ["agents/suara/buat_suara.py", slug, ...voiceArg] };
   }
+  let asetSlug = "";
+  if (job === "aset") {
+    const [slug, mode] = arg.split("|");
+    if (!SLUG.test(slug ?? "")) return "Video tidak ditemukan.";
+    const rows = await pabrik<{ slug: string; status: string }[]>(["list", "--json"]);
+    const v = rows.find((r) => r.slug === slug);
+    if (!v) return "Video tidak ditemukan.";
+    if (v.status !== "suara" && v.status !== "aset") return "Aset dicari setelah Dara membuat suara (status suara).";
+    if (mode === "cepat") return py ? { cmd: py, args: ["agents/aset/cari_aset.py", slug] } : "Python tidak ditemukan.";
+    asetSlug = slug;
+  }
   const claude = which("claude");
   if (!claude) return "Perintah 'claude' tidak ditemukan. Install Claude Code CLI lalu jalankan ulang Studio.";
   const base = ["--model", "sonnet", "--max-turns", "60", "--allowedTools"];
@@ -62,6 +74,7 @@ async function command(job: JobName, arg: string): Promise<{ cmd: string; args: 
     if (v.status !== "disetujui") return "Hanya ide berstatus disetujui yang bisa ditulis naskahnya.";
     return { cmd: claude, args: ["-p", `/penulis ${arg}`, ...base, ...TOOLS.penulis] };
   }
+  if (job === "aset") return { cmd: claude, args: ["-p", `/aset ${asetSlug}`, ...base, ...TOOLS.aset] };
   return `Tugas tidak dikenal: ${job}`;
 }
 
@@ -72,6 +85,7 @@ const LABEL: Record<JobName, string> = {
   ide: "Nova mencari ide",
   penulis: "Raka menulis naskah",
   suara: "Dara membuat suara",
+  aset: "Bima mencari klip",
 };
 
 export async function startJob(job: JobName, arg = ""): Promise<{ ok: boolean; message: string }> {

@@ -28,6 +28,8 @@ copy .env.example .env
 notepad .env
 ```
 
+Isi `PEXELS_API_KEY` juga untuk Bima: daftar gratis di https://www.pexels.com/api/ → salin key ke `.env`. `PIXABAY_API_KEY` (https://pixabay.com/api/docs/) opsional sebagai cadangan.
+
 Isi `YOUTUBE_API_KEY` (Google Cloud Console → YouTube Data API v3 → Credentials → API key, dibatasi hanya untuk YouTube Data API v3). Jangan pernah membagikan isi `.env`.
 
 ## 3. Buka Studio Yofamo

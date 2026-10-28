@@ -1,0 +1,391 @@
+{
+ "_catatan": "Contoh respon Pexels palsu untuk mode --uji. Bukan klip sungguhan.",
+ "pexels": {
+  "videos": [
+   {
+    "id": 9000000,
+    "width": 1080,
+    "height": 1920,
+    "url": "https://www.pexels.com/video/contoh-9000000/",
+    "image": "https://images.pexels.com/videos/9000000/contoh.jpeg",
+    "duration": 4,
+    "user": {
+     "name": "Contoh Kreator 1",
+     "url": ""
+    },
+    "video_files": [
+     {
+      "id": 1,
+      "quality": "hd",
+      "file_type": "video/mp4",
+      "width": 1080,
+      "height": 1920,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000000/contoh-1080.mp4"
+     },
+     {
+      "id": 2,
+      "quality": "sd",
+      "file_type": "video/mp4",
+      "width": 540,
+      "height": 960,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000000/contoh-540.mp4"
+     }
+    ]
+   },
+   {
+    "id": 9000001,
+    "width": 1080,
+    "height": 1920,
+    "url": "https://www.pexels.com/video/contoh-9000001/",
+    "image": "https://images.pexels.com/videos/9000001/contoh.jpeg",
+    "duration": 7,
+    "user": {
+     "name": "Contoh Kreator 2",
+     "url": ""
+    },
+    "video_files": [
+     {
+      "id": 11,
+      "quality": "hd",
+      "file_type": "video/mp4",
+      "width": 1080,
+      "height": 1920,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000001/contoh-1080.mp4"
+     },
+     {
+      "id": 12,
+      "quality": "sd",
+      "file_type": "video/mp4",
+      "width": 540,
+      "height": 960,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000001/contoh-540.mp4"
+     }
+    ]
+   },
+   {
+    "id": 9000002,
+    "width": 1080,
+    "height": 1920,
+    "url": "https://www.pexels.com/video/contoh-9000002/",
+    "image": "https://images.pexels.com/videos/9000002/contoh.jpeg",
+    "duration": 12,
+    "user": {
+     "name": "Contoh Kreator 3",
+     "url": ""
+    },
+    "video_files": [
+     {
+      "id": 21,
+      "quality": "hd",
+      "file_type": "video/mp4",
+      "width": 1080,
+      "height": 1920,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000002/contoh-1080.mp4"
+     },
+     {
+      "id": 22,
+      "quality": "sd",
+      "file_type": "video/mp4",
+      "width": 540,
+      "height": 960,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000002/contoh-540.mp4"
+     }
+    ]
+   },
+   {
+    "id": 9000003,
+    "width": 1080,
+    "height": 1920,
+    "url": "https://www.pexels.com/video/contoh-9000003/",
+    "image": "https://images.pexels.com/videos/9000003/contoh.jpeg",
+    "duration": 6,
+    "user": {
+     "name": "Contoh Kreator 4",
+     "url": ""
+    },
+    "video_files": [
+     {
+      "id": 31,
+      "quality": "hd",
+      "file_type": "video/mp4",
+      "width": 1080,
+      "height": 1920,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000003/contoh-1080.mp4"
+     },
+     {
+      "id": 32,
+      "quality": "sd",
+      "file_type": "video/mp4",
+      "width": 540,
+      "height": 960,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000003/contoh-540.mp4"
+     }
+    ]
+   },
+   {
+    "id": 9000004,
+    "width": 1080,
+    "height": 1920,
+    "url": "https://www.pexels.com/video/contoh-9000004/",
+    "image": "https://images.pexels.com/videos/9000004/contoh.jpeg",
+    "duration": 9,
+    "user": {
+     "name": "Contoh Kreator 5",
+     "url": ""
+    },
+    "video_files": [
+     {
+      "id": 41,
+      "quality": "hd",
+      "file_type": "video/mp4",
+      "width": 1080,
+      "height": 1920,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000004/contoh-1080.mp4"
+     },
+     {
+      "id": 42,
+      "quality": "sd",
+      "file_type": "video/mp4",
+      "width": 540,
+      "height": 960,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000004/contoh-540.mp4"
+     }
+    ]
+   },
+   {
+    "id": 9000005,
+    "width": 1080,
+    "height": 1920,
+    "url": "https://www.pexels.com/video/contoh-9000005/",
+    "image": "https://images.pexels.com/videos/9000005/contoh.jpeg",
+    "duration": 15,
+    "user": {
+     "name": "Contoh Kreator 6",
+     "url": ""
+    },
+    "video_files": [
+     {
+      "id": 51,
+      "quality": "hd",
+      "file_type": "video/mp4",
+      "width": 1080,
+      "height": 1920,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000005/contoh-1080.mp4"
+     },
+     {
+      "id": 52,
+      "quality": "sd",
+      "file_type": "video/mp4",
+      "width": 540,
+      "height": 960,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000005/contoh-540.mp4"
+     }
+    ]
+   },
+   {
+    "id": 9000006,
+    "width": 1080,
+    "height": 1920,
+    "url": "https://www.pexels.com/video/contoh-9000006/",
+    "image": "https://images.pexels.com/videos/9000006/contoh.jpeg",
+    "duration": 5,
+    "user": {
+     "name": "Contoh Kreator 7",
+     "url": ""
+    },
+    "video_files": [
+     {
+      "id": 61,
+      "quality": "hd",
+      "file_type": "video/mp4",
+      "width": 1080,
+      "height": 1920,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000006/contoh-1080.mp4"
+     },
+     {
+      "id": 62,
+      "quality": "sd",
+      "file_type": "video/mp4",
+      "width": 540,
+      "height": 960,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000006/contoh-540.mp4"
+     }
+    ]
+   },
+   {
+    "id": 9000007,
+    "width": 1080,
+    "height": 1920,
+    "url": "https://www.pexels.com/video/contoh-9000007/",
+    "image": "https://images.pexels.com/videos/9000007/contoh.jpeg",
+    "duration": 8,
+    "user": {
+     "name": "Contoh Kreator 8",
+     "url": ""
+    },
+    "video_files": [
+     {
+      "id": 71,
+      "quality": "hd",
+      "file_type": "video/mp4",
+      "width": 1080,
+      "height": 1920,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000007/contoh-1080.mp4"
+     },
+     {
+      "id": 72,
+      "quality": "sd",
+      "file_type": "video/mp4",
+      "width": 540,
+      "height": 960,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000007/contoh-540.mp4"
+     }
+    ]
+   },
+   {
+    "id": 9000008,
+    "width": 1080,
+    "height": 1920,
+    "url": "https://www.pexels.com/video/contoh-9000008/",
+    "image": "https://images.pexels.com/videos/9000008/contoh.jpeg",
+    "duration": 11,
+    "user": {
+     "name": "Contoh Kreator 9",
+     "url": ""
+    },
+    "video_files": [
+     {
+      "id": 81,
+      "quality": "hd",
+      "file_type": "video/mp4",
+      "width": 1080,
+      "height": 1920,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000008/contoh-1080.mp4"
+     },
+     {
+      "id": 82,
+      "quality": "sd",
+      "file_type": "video/mp4",
+      "width": 540,
+      "height": 960,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000008/contoh-540.mp4"
+     }
+    ]
+   },
+   {
+    "id": 9000009,
+    "width": 1080,
+    "height": 1920,
+    "url": "https://www.pexels.com/video/contoh-9000009/",
+    "image": "https://images.pexels.com/videos/9000009/contoh.jpeg",
+    "duration": 10,
+    "user": {
+     "name": "Contoh Kreator 10",
+     "url": ""
+    },
+    "video_files": [
+     {
+      "id": 91,
+      "quality": "hd",
+      "file_type": "video/mp4",
+      "width": 1080,
+      "height": 1920,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000009/contoh-1080.mp4"
+     },
+     {
+      "id": 92,
+      "quality": "sd",
+      "file_type": "video/mp4",
+      "width": 540,
+      "height": 960,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000009/contoh-540.mp4"
+     }
+    ]
+   },
+   {
+    "id": 9000010,
+    "width": 1080,
+    "height": 1920,
+    "url": "https://www.pexels.com/video/contoh-9000010/",
+    "image": "https://images.pexels.com/videos/9000010/contoh.jpeg",
+    "duration": 6,
+    "user": {
+     "name": "Contoh Kreator 11",
+     "url": ""
+    },
+    "video_files": [
+     {
+      "id": 101,
+      "quality": "hd",
+      "file_type": "video/mp4",
+      "width": 1080,
+      "height": 1920,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000010/contoh-1080.mp4"
+     },
+     {
+      "id": 102,
+      "quality": "sd",
+      "file_type": "video/mp4",
+      "width": 540,
+      "height": 960,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000010/contoh-540.mp4"
+     }
+    ]
+   },
+   {
+    "id": 9000011,
+    "width": 1080,
+    "height": 1920,
+    "url": "https://www.pexels.com/video/contoh-9000011/",
+    "image": "https://images.pexels.com/videos/9000011/contoh.jpeg",
+    "duration": 14,
+    "user": {
+     "name": "Contoh Kreator 12",
+     "url": ""
+    },
+    "video_files": [
+     {
+      "id": 111,
+      "quality": "hd",
+      "file_type": "video/mp4",
+      "width": 1080,
+      "height": 1920,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000011/contoh-1080.mp4"
+     },
+     {
+      "id": 112,
+      "quality": "sd",
+      "file_type": "video/mp4",
+      "width": 540,
+      "height": 960,
+      "fps": 25,
+      "link": "https://videos.pexels.com/video-files/9000011/contoh-540.mp4"
+     }
+    ]
+   }
+  ]
+ }
+}

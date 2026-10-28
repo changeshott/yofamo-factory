@@ -61,11 +61,19 @@ export interface Video {
   script: Script | null;
   moves: VideoStatus[];
   media: { vo: boolean; srt: boolean; durasi: number | null; uji: boolean; suara: string | null };
+  aset: AsetManifest | null;
 }
+
+export interface Klip {
+  i: number; kalimat: string; visual: string; kueri: string; durasi_butuh: number; file: string;
+  sumber: "pexels" | "pixabay"; id: number; url_halaman: string; gambar: string; pembuat: string;
+  durasi: number; lebar: number; tinggi: number; lisensi: string; terlalu_pendek: boolean; ada?: boolean;
+}
+export interface AsetManifest { _error?: string; dibuat?: string; uji?: boolean; kueri_inggris?: boolean; klip?: Klip[]; kurang?: number[] }
 
 export interface Activity { slug: string; dari: string | null; ke: string; waktu: string; judul_kerja: string | null }
 
-export type JobName = "fetch" | "check" | "steve" | "ide" | "penulis" | "suara";
+export type JobName = "fetch" | "check" | "steve" | "ide" | "penulis" | "suara" | "aset";
 export interface JobState {
   job: JobName | null;
   arg: string | null;
@@ -86,5 +94,5 @@ export interface StudioState {
   logs: FileEntry[];
   agents: { key: string; ready: boolean }[];
   job: JobState;
-  health: { env: boolean; claude: boolean; python: boolean; pythonCmd: string; edgeTts: boolean };
+  health: { env: boolean; claude: boolean; python: boolean; pythonCmd: string; edgeTts: boolean; stockKey: boolean };
 }

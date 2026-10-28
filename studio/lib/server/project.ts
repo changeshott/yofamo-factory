@@ -108,6 +108,7 @@ export const MANUAL_MOVES: Partial<Record<VideoStatus, VideoStatus[]>> = {
   disetujui: ["ide"],
   naskah: ["disetujui", "export", "terbit"],
   suara: ["naskah", "export", "terbit"],
+  aset: ["suara", "export", "terbit"],
   export: ["terbit"],
 };
 
@@ -122,7 +123,24 @@ export async function videos(): Promise<Video[]> {
     script: readJson(path.join(P.videos, r.slug, "script.json")),
     moves: MANUAL_MOVES[r.status] ?? [],
     media: media(r.slug),
+    aset: aset(r.slug),
   }));
+}
+
+function aset(slug: string): Video["aset"] {
+  const dir = path.join(P.videos, slug, "aset");
+  const m = readJson<NonNullable<Video["aset"]>>(path.join(dir, "manifest.json"));
+  if (!m || m._error || !Array.isArray(m.klip)) return m;
+  return { ...m, klip: m.klip.map((k) => ({ ...k, ada: SAFE_FILE.test(k.file) && fs.existsSync(path.join(dir, k.file)) })) };
+}
+
+/** Ada API key stok video di .env? Nilainya tidak pernah dibaca keluar. */
+export function hasStockKey(): boolean {
+  try {
+    return /^\s*(PEXELS_API_KEY|PIXABAY_API_KEY)\s*=\s*\S+/m.test(fs.readFileSync(P.env, "utf8"));
+  } catch {
+    return false;
+  }
 }
 
 function media(slug: string): Video["media"] {
