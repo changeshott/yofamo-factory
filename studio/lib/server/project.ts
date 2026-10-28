@@ -3,7 +3,7 @@ import { execFile } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
-import type { Activity, FileEntry, Snapshot, Video, VideoStatus } from "@/lib/types";
+import type { Activity, FileEntry, Produksi, Snapshot, Video, VideoStatus } from "@/lib/types";
 
 const run = promisify(execFile);
 
@@ -19,6 +19,7 @@ export const P = {
   skills: path.join(ROOT, ".claude", "skills"),
   env: path.join(ROOT, ".env"),
   pabrik: path.join(ROOT, "agents", "pabrik.py"),
+  produksi: path.join(ROOT, "produksi"),
 };
 
 export const SAFE_FILE = /^[\w.\-]+$/;
@@ -176,6 +177,18 @@ export async function hasModule(mod: string): Promise<boolean> {
   if (py) { try { await run(py, ["-c", `import ${mod}`], { windowsHide: true, timeout: 20_000 }); ok = true; } catch { ok = false; } }
   modCache.set(mod, { at: Date.now(), ok });
   return ok;
+}
+
+/** Permintaan "Buat video" terbaru (dari produksi/<id>.json). */
+export function produksi(running: boolean): Produksi[] {
+  try {
+    return fs.readdirSync(P.produksi).filter((f) => /^[\w-]+\.json$/.test(f)).sort().reverse().slice(0, 12)
+      .map((f) => readJson<Produksi>(path.join(P.produksi, f)))
+      .filter((x): x is Produksi => !!x && Array.isArray(x.tahap))
+      .map((x, i) => (x.status === "berjalan" && !(running && i === 0) ? { ...x, status: "terhenti" as const } : x));
+  } catch {
+    return [];
+  }
 }
 
 export const activity = () => pabrik<Activity[]>(["history", "--limit", "40", "--json"]);

@@ -20,6 +20,8 @@ Setiap agent adalah satu skill Claude Code di `.claude/skills/`. Kalau diminta "
 
 Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetujui di Studio Yofamo** (`disetujui`) → Raka (naskah, status `naskah`) → Dara (suara + subtitle, status `suara`) → Bima (klip, status `aset`) → Kai (video final, status `draft`) → **Zona menonton & menyetujui** (`export`) → upload manual (status `terbit`).
 
+**Jalur cepat — tombol "+ Buat video" di Studio** (`agents/produser.py`): Zona menulis topik → Nova membuat 1 ide tentang topik itu (tetap 2 sumber) → ide otomatis disetujui karena Zona sendiri yang meminta → Raka → Dara → Bima → Kai → video `draft` yang tetap harus ditonton dan disetujui Zona. Kemajuan di `produksi/<id>.json`.
+
 ## Struktur folder
 
 - `bible/gaya-edit.json` — gaya editan Kai (font, warna subtitle, hook, zoom, musik).
@@ -32,6 +34,7 @@ Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetu
 - `state.db` — SQLite antrean & status tiap video. Diakses hanya lewat `python agents/pabrik.py`.
 - `studio/` — Studio Yofamo: kantor virtual lokal (Next.js + TypeScript + Tailwind). Membaca file project dan menjalankan agent lewat `claude -p`.
 - `logs/` — log setiap tugas yang dijalankan.
+- `produksi/` — catatan kemajuan tiap permintaan "Buat video" (tidak di-commit).
 - `milik-saya/` — rekaman Zona sendiri (layar HP, gadget, dll). Bima memakainya lebih dulu kalau nama file cocok dengan kalimat, misalnya `tangan-robot-lab.mp4`. Tidak di-commit.
 - `cache/` — unduhan mentah Bima (boleh dihapus Zona kalau penuh, tidak di-commit).
 
@@ -45,7 +48,7 @@ Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetu
 - API key ada di `.env` (dibaca script). Jangan menampilkan isi `.env` di chat atau laporan.
 - Ringkasan akhir agent: maksimal sekitar 15 baris, poin terpenting dulu. Laporan dan log dibaca Zona lewat Studio Yofamo (`studio/`).
 - Jangan mengubah file di `studio/` kecuali diminta.
-- Status video hanya diubah lewat `agents/pabrik.py`. Agent tidak boleh menyetujui ide sendiri; persetujuan selalu dari Zona.
+- Status video hanya diubah lewat `agents/pabrik.py`. Agent tidak boleh menyetujui ide sendiri; persetujuan selalu dari Zona (permintaan lewat "Buat video" dihitung sebagai persetujuan Zona untuk ide itu saja). Video final selalu ditonton & disetujui Zona.
 - Hanya script di `agents/` yang boleh dijalankan. Jangan meng-install paket atau menjalankan perintah lain tanpa diminta.
 
 ## Perintah penting
@@ -59,6 +62,7 @@ python agents/suara/buat_suara.py <slug>    # Dara: vo.mp3 + words.json + captio
 python agents/aset/cari_aset.py semua <slug> # Bima cepat: cari + pilih otomatis + bentuk shot
 python agents/aset/cari_aset.py cari <slug>  # Bima: kandidat + lembar kontak (lalu pilihan.json → unduh)
 python agents/editor/rakit.py <slug>        # Kai: rakit export/final.mp4
+python agents/produser.py "topik"           # satu permintaan → video jadi (semua agent berurutan)
 python agents/tes_pabrik.py [--online]     # tes seluruh pabrik (aman, di folder sementara)
 start_studio.bat                            # buka Studio Yofamo (Windows)
 cd studio && npm run dev                    # sama, manual (http://127.0.0.1:3210)

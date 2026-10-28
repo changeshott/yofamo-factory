@@ -2,20 +2,20 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { StudioState, VideoStatus } from "@/lib/types";
-import { api, daysSince, fmt } from "@/lib/format";
+import { activeStage, api, daysSince, fmt } from "@/lib/format";
 import Office from "./office/Office";
 import { drawAvatar } from "./office/sprites";
 import { FOUNDER, TEAM } from "./office/world";
 import { Btn } from "./ui";
 import {
-  ActivityPanel, AgentPanel, AnalyticsPanel, BiblePanel, FounderPanel, FuturePanel, HealthPanel, QueuePanel, ReportsPanel, agentById, type PanelCtx,
+  ActivityPanel, AgentPanel, AnalyticsPanel, BiblePanel, FounderPanel, FuturePanel, GaleriPanel, HealthPanel, ProduksiPanel, QueuePanel, ReportsPanel, agentById, type PanelCtx,
 } from "./panels";
 
 const TITLES: Record<string, string> = {
   founder: "Meja Zona", queue: "Papan antrean video", analytics: "Analitik Shorts", reports: "Laporan Steve",
-  bible: "Channel bible", activity: "Log kantor", health: "Cek sistem", server: "Server agent",
+  bible: "Channel bible", activity: "Log kantor", health: "Cek sistem", server: "Server agent", produksi: "Buat video", galeri: "Galeri video",
 };
-const JOB_TXT: Record<string, string> = { steve: "Steve menganalisis", fetch: "Steve mengambil data", check: "Cek koneksi YouTube", ide: "Nova mencari ide", penulis: "Raka menulis naskah", suara: "Dara membuat suara", aset: "Bima mencari klip", editor: "Kai merakit video" };
+const JOB_TXT: Record<string, string> = { steve: "Steve menganalisis", fetch: "Steve mengambil data", check: "Cek koneksi YouTube", ide: "Nova mencari ide", penulis: "Raka menulis naskah", suara: "Dara membuat suara", aset: "Bima mencari klip", editor: "Kai merakit video", produksi: "Produksi video" };
 
 interface Toast { id: number; text: string; tone: "ok" | "err" | "info" }
 
@@ -89,13 +89,15 @@ export default function Studio() {
   const look = agent?.look ?? (panel === "founder" ? FOUNDER.look : null);
   useEffect(() => { if (avatar.current && look) drawAvatar(avatar.current, look, agent?.id ?? "zona"); }, [look, agent]);
 
-  const ctx: PanelCtx | null = state ? { state, run, move, open, target, setTarget } : null;
-  const inbox = state ? state.videos.filter((v) => v.status === "ide" || v.status === "naskah").length : 0;
-  const ideas = state?.videos.filter((v) => v.status === "ide").length ?? 0, ready = state?.videos.filter((v) => v.status === "naskah").length ?? 0;
+  const ctx: PanelCtx | null = state ? { state, run, move, open, target, setTarget, stop } : null;
+  const busyKey = state?.job.job === "produksi" ? activeStage(state) : state?.job.job ?? "";
+  const prodStage = state?.job.job === "produksi" ? state.produksi[0]?.tahap.find((t) => t.status === "jalan")?.nama : null;
+  const inbox = state ? state.videos.filter((v) => v.status === "ide" || v.status === "draft").length : 0;
+  const ideas = state?.videos.filter((v) => v.status === "ide").length ?? 0, ready = state?.videos.filter((v) => v.status === "draft").length ?? 0;
   const lastUp = state?.snapshot?.videos.reduce((a, v) => (v.published > a ? v.published : a), "") ?? "";
   const gap = lastUp ? daysSince(lastUp) : null;
   const h = new Date().getHours(), sapa = h < 11 ? "Selamat pagi" : h < 15 ? "Selamat siang" : h < 18 ? "Selamat sore" : "Selamat malam";
-  const todo = [ideas && `${ideas} ide menunggu persetujuanmu`, ready && `${ready} naskah siap direkam`].filter(Boolean).join(", ");
+  const todo = [ideas && `${ideas} ide menunggu persetujuanmu`, ready && `${ready} video menunggu kamu tonton`].filter(Boolean).join(", ");
   const problems = state ? [!state.health.python && "Python", !state.health.claude && "Claude Code", !state.health.env && ".env"].filter(Boolean) : [];
 
   const title = agent ? `${agent.name} · ${agent.role}` : panel?.startsWith("future:") ? "Meja kosong" : panel ? TITLES[panel] ?? "" : "";
@@ -114,7 +116,7 @@ export default function Studio() {
           {state?.job.status === "running" && (
             <div className="mt-2 flex items-center gap-2 text-sm">
               <span className="size-2 animate-pulse rounded-full bg-signal motion-reduce:animate-none" aria-hidden />
-              <span>{JOB_TXT[state.job.job ?? ""] ?? "Tugas berjalan"}…</span>
+              <button className="text-left hover:underline" onClick={() => state.job.job === "produksi" && open("produksi")}>{prodStage ? `Produksi: ${prodStage}` : JOB_TXT[state.job.job ?? ""] ?? "Tugas berjalan"}…</button>
               <Btn size="sm" tone="danger" onClick={stop}>Hentikan</Btn>
             </div>
           )}
@@ -139,9 +141,11 @@ export default function Studio() {
       {/* dok bawah */}
       <nav aria-label="Bagian kantor" className="absolute inset-x-0 bottom-3 z-10 flex justify-center px-3">
         <div className="flex max-w-full gap-1.5 overflow-x-auto rounded-xl border border-line/80 bg-ink-800/85 p-1.5 shadow-xl backdrop-blur-md">
+          <button onClick={() => open("produksi")} className="mr-1 shrink-0 rounded-lg bg-signal px-3 py-2 font-pixel text-sm leading-none font-bold text-[#24140A] shadow hover:brightness-110">+ Buat video</button>
           <DockBtn onClick={() => open("founder")} color="#F4F1E8" count={inbox}>Meja Zona</DockBtn>
-          {TEAM.map((t) => <DockBtn key={t.id} onClick={() => open(`agent:${t.id}`)} color={t.color} busy={!!state && state.job.status === "running" && !!t.busy[state.job.job ?? ""]}>{t.name}</DockBtn>)}
+          {TEAM.map((t) => <DockBtn key={t.id} onClick={() => open(`agent:${t.id}`)} color={t.color} busy={!!state && state.job.status === "running" && !!t.busy[busyKey]}>{t.name}</DockBtn>)}
           <span className="mx-1 w-px shrink-0 bg-line" aria-hidden />
+          <DockBtn onClick={() => open("galeri")}>Galeri</DockBtn>
           <DockBtn onClick={() => open("queue")}>Antrean</DockBtn>
           <DockBtn onClick={() => open("analytics")}>Analitik</DockBtn>
           <DockBtn onClick={() => open("reports")}>Laporan</DockBtn>
@@ -173,6 +177,8 @@ export default function Studio() {
             : panel.startsWith("future:") ? <FuturePanel k={panel.slice(7)} />
             : panel === "founder" ? <FounderPanel ctx={ctx} />
             : panel === "queue" ? <QueuePanel ctx={ctx} />
+            : panel === "produksi" ? <ProduksiPanel ctx={ctx} />
+            : panel === "galeri" ? <GaleriPanel ctx={ctx} />
             : panel === "analytics" ? <AnalyticsPanel ctx={ctx} />
             : panel === "reports" ? <ReportsPanel ctx={ctx} />
             : panel === "bible" ? <BiblePanel />

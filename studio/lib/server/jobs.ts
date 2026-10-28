@@ -57,6 +57,15 @@ async function command(job: JobName, arg: string): Promise<{ cmd: string; args: 
     if (v.status !== "aset" && v.status !== "draft") return "Video dirakit setelah visual dari Bima siap (status aset).";
     return { cmd: py, args: ["agents/editor/rakit.py", arg] };
   }
+  if (job === "produksi") {
+    if (!py) return "Python tidak ditemukan.";
+    if (!which("ffmpeg")) return "ffmpeg belum terpasang. Jalankan: winget install Gyan.FFmpeg";
+    const [suara, visual, ...rest] = arg.split("|");
+    const teks = rest.join(" ").replace(/[^\p{L}\p{N}\s,.\-?!]/gu, "").trim().slice(0, 200);
+    if (teks.length < 3) return "Tulis dulu mau video tentang apa.";
+    if (!which("claude")) return "Perintah 'claude' tidak ditemukan. Install Claude Code CLI dulu.";
+    return { cmd: py, args: ["agents/produser.py", teks, "--suara", suara === "wanita" ? "wanita" : "pria", "--visual", visual === "cepat" ? "cepat" : "teliti", ...(process.env.YOFAMO_UJI === "1" ? ["--uji"] : [])] };
+  }
   let asetSlug = "";
   if (job === "aset") {
     const [slug, mode] = arg.split("|");
@@ -98,6 +107,7 @@ const LABEL: Record<JobName, string> = {
   suara: "Dara membuat suara",
   aset: "Bima mencari klip",
   editor: "Kai merakit video",
+  produksi: "Produksi video",
 };
 
 export async function startJob(job: JobName, arg = ""): Promise<{ ok: boolean; message: string }> {
@@ -122,7 +132,7 @@ export async function startJob(job: JobName, arg = ""): Promise<{ ok: boolean; m
   store.child = child;
   store.state = { job, arg: arg || null, status: "running", started: localIso(), finished: null, log: logName };
 
-  const timer = setTimeout(() => child.kill(), 30 * 60_000);
+  const timer = setTimeout(() => child.kill(), (job === "produksi" ? 180 : 30) * 60_000);
   const done = (status: JobState["status"], note?: string) => {
     clearTimeout(timer);
     if (note) fs.writeSync(out, `\n[studio] ${note}\n`);

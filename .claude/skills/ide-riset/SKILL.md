@@ -13,6 +13,7 @@ Gaya: teliti seperti jurnalis sains, skeptis terhadap klaim viral.
 
 - Diminta "cari ide", "ide video baru", "panggil Nova", atau dijalankan dari Studio Yofamo.
 - Argumen opsional: tema atau arahan (contoh `/ide-riset makanan masa depan`). Kalau ada, semua ide harus sesuai arahan itu.
+- **Mode permintaan:** kalau argumen diawali `--permintaan` (contoh `/ide-riset --permintaan robot yang bisa merasakan sakit`), Zona sudah menentukan topiknya lewat tombol *Buat video* di Studio. Buat **tepat 1 ide** tentang topik itu persis (boleh dipersempit ke satu teknologi spesifik yang paling kuat), lewati langkah memilih 3 ide, tapi aturan verifikasi tetap sama (minimal 2 sumber berbeda). Kalau topiknya tidak bisa diverifikasi atau melanggar bible, **jangan membuat ide apa pun** dan jelaskan alasannya di jawaban akhir.
 
 ## Procedure
 
@@ -29,7 +30,7 @@ Gaya: teliti seperti jurnalis sains, skeptis terhadap klaim viral.
    - Tentukan statusnya: `dijual`, `dipakai` (sudah dipakai institusi/industri), `prototipe`, atau `riset`.
    - Setiap fakta mencatat URL sumbernya. Angka harus persis seperti di sumber.
    - Kalau sumber saling bertentangan atau hanya ada 1 sumber, buang kandidat itu.
-6. Pilih **3 ide terbaik**. Untuk masing-masing:
+6. Pilih **3 ide terbaik** (mode permintaan: 1 ide). Untuk masing-masing:
    ```bash
    python agents/pabrik.py new "<judul kerja singkat>"
    ```

@@ -1,5 +1,6 @@
 import type { StudioState } from "@/lib/types";
 import { shade, sprite, type Look, type Pose } from "./sprites";
+import { activeStage } from "@/lib/format";
 import { BH, BLOCKED, BW, FOUNDER, FUTURE, OX, OY, RD, RW, SPOTS, T, TEAM, WALL, type AgentDef } from "./world";
 
 type Pt = [number, number];
@@ -88,8 +89,9 @@ export class OfficeEngine {
 
   jobFor(def: AgentDef): { kind: "busy" | "ok" | "err" | "stopped"; text: string } | null {
     const j = this.state?.job;
-    if (!j?.job || !def.busy[j.job]) return null;
-    if (j.status === "running") return { kind: "busy", text: def.busy[j.job]! };
+    const key = j?.job === "produksi" ? activeStage(this.state) : j?.job;
+    if (!j?.job || !key || !def.busy[key]) return null;
+    if (j.status === "running") return { kind: "busy", text: def.busy[key]! };
     const fin = j.finished ? Date.parse(j.finished) : 0;
     if (!fin || Date.now() - fin > 3 * 60_000) return null;
     if (j.status === "ok") return { kind: "ok", text: "Selesai! Cek hasilnya" };

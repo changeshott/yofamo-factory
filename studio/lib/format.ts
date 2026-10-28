@@ -58,3 +58,11 @@ export async function api<T = { ok: boolean; message: string }>(path: string, bo
   if (!res.ok) throw new Error((data as { message?: string; error?: string }).message ?? (data as { error?: string }).error ?? `HTTP ${res.status}`);
   return data as T;
 }
+
+/** Saat produksi berjalan: job agent yang sedang bekerja (dipakai kantor & dok). */
+export function activeStage(state: { produksi?: { status: string; tahap: { status: string; job: string }[] }[] } | null): string {
+  const p = state?.produksi?.[0];
+  if (!p) return "";
+  const t = p.tahap.find((x) => x.status === "jalan") ?? [...p.tahap].reverse().find((x) => x.status !== "menunggu");
+  return t?.job ?? "";
+}

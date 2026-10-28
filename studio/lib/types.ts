@@ -74,7 +74,7 @@ export interface AsetManifest { _error?: string; dibuat?: string; uji?: boolean;
 
 export interface Activity { slug: string; dari: string | null; ke: string; waktu: string; judul_kerja: string | null }
 
-export type JobName = "fetch" | "check" | "steve" | "ide" | "penulis" | "suara" | "aset" | "editor";
+export type JobName = "fetch" | "check" | "steve" | "ide" | "penulis" | "suara" | "aset" | "editor" | "produksi";
 export interface JobState {
   job: JobName | null;
   arg: string | null;
@@ -82,6 +82,12 @@ export interface JobState {
   started: string | null;
   finished: string | null;
   log: string | null;
+}
+
+export interface Tahap { kunci: string; job: string; nama: string; status: "menunggu" | "jalan" | "ok" | "gagal"; mulai: string | null; selesai: string | null; catatan: string }
+export interface Produksi {
+  id: string; permintaan: string; opsi: { suara: string; visual: string; uji?: boolean }; dibuat: string; selesai: string | null;
+  status: "berjalan" | "selesai" | "gagal" | "terhenti"; slug: string | null; pesan: string; tahap: Tahap[];
 }
 
 export interface FileEntry { name: string; modified: string }
@@ -95,5 +101,6 @@ export interface StudioState {
   logs: FileEntry[];
   agents: { key: string; ready: boolean }[];
   job: JobState;
+  produksi: Produksi[];
   health: { env: boolean; claude: boolean; python: boolean; pythonCmd: string; edgeTts: boolean; stockKey: boolean; ffmpeg: boolean; ytdlp: boolean; aiKey: boolean };
 }
