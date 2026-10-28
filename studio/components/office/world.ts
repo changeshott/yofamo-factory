@@ -4,11 +4,11 @@ import type { Look } from "./sprites";
 export const RW = 22, RD = 15, WALL = 112, T = 16;
 export const BW = 624, BH = 446, OX = 256, OY = 132;
 
-export type AgentId = "steve" | "nova" | "raka";
+export type AgentId = "steve" | "nova" | "raka" | "dara";
 export interface AgentDef {
   id: AgentId;
   skill: string;
-  job: "steve" | "ide" | "penulis";
+  job: "steve" | "ide" | "penulis" | "suara";
   name: string;
   role: string;
   about: string;
@@ -37,10 +37,15 @@ export const TEAM: AgentDef[] = [
     look: { skin: "#C99068", hair: "#1A1A1A", shirt: "#F08A3C", pants: "#2B2B33", accent: "#2C3B57", style: "cap" },
     busy: { penulis: "Menulis naskah…" },
   },
+  {
+    id: "dara", skill: "suara", job: "suara", name: "Dara", role: "Suara & subtitle", desk: [1.6, 7.0], color: "#C792EA",
+    about: "Mengubah naskah Raka menjadi voice-over, timing per kata, dan subtitle SRT. Gratis (edge-tts), tidak memakai kuota Claude.",
+    look: { skin: "#E8B892", hair: "#2E2140", shirt: "#9B6BD3", pants: "#2B2B3A", accent: "#F4F1E8", style: "bun" },
+    busy: { suara: "Merekam suara…" },
+  },
 ];
 
 export const FUTURE = [
-  { key: "suara", name: "Suara", role: "TTS + timing kata", desk: [1.6, 7.0] as [number, number] },
   { key: "aset", name: "Pencari aset", role: "Klip berlisensi", desk: [5.4, 7.0] as [number, number] },
   { key: "editor-capcut", name: "Editor CapCut", role: "Tulis file draft CapCut", desk: [9.2, 7.0] as [number, number] },
   { key: "upload", name: "Upload", role: "Terbit terjadwal ke YouTube", desk: [13.0, 7.0] as [number, number] },

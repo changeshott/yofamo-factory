@@ -73,7 +73,23 @@ export function AgentPanel({ def, ctx }: { def: AgentDef; ctx: PanelCtx }) {
           </ul>
         ) : (<><Muted>Belum ada ide yang disetujui. Setujui ide Nova di meja Zona dulu.</Muted><Btn className="mt-2" onClick={() => ctx.open("founder")}>Ke meja Zona</Btn></>);
       })()}
-      {noClaude && <Muted className="mt-2 text-signal">Perintah claude tidak ditemukan, jadi tugas AI belum bisa dijalankan.</Muted>}
+      {def.id === "dara" && (() => {
+        const ok = state.videos.filter((v) => v.status === "naskah" || v.status === "suara");
+        return (<>
+          <div className="mb-2 flex items-center gap-2 text-sm"><label className="text-muted" htmlFor="voice">Suara</label>
+            <select id="voice" value={theme || "pria"} onChange={(e) => setTheme(e.target.value)} className="rounded-lg border border-line bg-ink-950 px-2 py-1.5">
+              <option value="pria">Ardi (pria)</option><option value="wanita">Gadis (wanita)</option></select></div>
+          {ok.length ? (
+            <ul className="divide-y divide-line">{ok.map((v) => (
+              <li key={v.slug} className="flex items-center justify-between gap-3 py-2 text-sm"><span>{v.judul_kerja}{v.media.durasi != null && <small className="block text-faint">{v.media.durasi.toFixed(1)} detik{v.media.uji ? " (uji)" : ""}</small>}</span>
+                <Btn size="sm" tone="primary" disabled={busy(state) || !state.health.edgeTts} onClick={() => ctx.run("suara", `${v.slug}|${theme === "wanita" ? "wanita" : "pria"}`)}>{v.media.vo ? "Buat ulang" : "Buat suara"}</Btn></li>))}
+            </ul>
+          ) : <Muted>Belum ada naskah siap. Minta Raka menulis dulu.</Muted>}
+          {!state.health.edgeTts && <Muted className="mt-2 text-signal">Paket edge-tts belum terpasang. Jalankan sekali: <code>python -m pip install -r requirements.txt</code></Muted>}
+          <Muted className="mt-2">Gratis, tidak memakai kuota Claude. Butuh internet.</Muted>
+        </>);
+      })()}
+      {noClaude && def.id !== "dara" && <Muted className="mt-2 text-signal">Perintah claude tidak ditemukan, jadi tugas AI belum bisa dijalankan.</Muted>}
       <H3>Pekerjaan terakhir</H3>
       {logs.length ? (
         <ul className="divide-y divide-line text-sm">{logs.map((l) => (
@@ -94,8 +110,8 @@ export function FuturePanel({ k }: { k: string }) {
 }
 
 /* ---------------------------------------------------------------- video */
-const MOVE: Record<string, string> = { disetujui: "Setujui ide", ditolak: "Tolak", ide: "Kembalikan ke ide", export: "Sudah di-export", terbit: "Tandai terbit" };
-const STEP: Record<string, string> = { ide: "bg-signal/20 text-signal", disetujui: "bg-circuit/15 text-circuit", naskah: "bg-leaf/15 text-leaf", terbit: "bg-signal text-[#24140A]", ditolak: "text-faint line-through" };
+const MOVE: Record<string, string> = { disetujui: "Setujui ide", ditolak: "Tolak", ide: "Kembalikan ke ide", naskah: "Kembali ke naskah", export: "Sudah di-export", terbit: "Tandai terbit" };
+const STEP: Record<string, string> = { ide: "bg-signal/20 text-signal", disetujui: "bg-circuit/15 text-circuit", naskah: "bg-leaf/15 text-leaf", suara: "bg-[#C792EA]/15 text-[#C792EA]", terbit: "bg-signal text-[#24140A]", ditolak: "text-faint line-through" };
 
 export function VideoCard({ v, ctx, defaultOpen }: { v: Video; ctx: PanelCtx; defaultOpen?: boolean }) {
   const i = v.idea, sc = v.script;
@@ -130,10 +146,20 @@ export function VideoCard({ v, ctx, defaultOpen }: { v: Video; ctx: PanelCtx; de
           <Copy label="Tag" text={(sc.tag ?? []).join(", ")} />
           {sc.catatan_editor && (<><h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Catatan editor</h4><p className="text-sm">{sc.catatan_editor}</p></>)}
         </>)}
+        {(v.media.vo || v.media.srt) && (<>
+          <h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Suara dari Dara{v.media.durasi != null ? ` (${v.media.durasi.toFixed(1)} detik)` : ""}</h4>
+          {v.media.vo && <audio controls preload="none" className="w-full" src={`/api/media?slug=${v.slug}&file=vo.mp3&v=${encodeURIComponent(v.diubah)}`} />}
+          {v.media.uji && <Muted>Mode uji: timing perkiraan, belum ada audio.</Muted>}
+          <div className="mt-2 flex flex-wrap gap-2">
+            {v.media.vo && <a className="text-sm text-circuit hover:underline" href={`/api/media?slug=${v.slug}&file=vo.mp3&unduh=1`}>Unduh vo.mp3</a>}
+            {v.media.srt && <a className="text-sm text-circuit hover:underline" href={`/api/media?slug=${v.slug}&file=captions.srt&unduh=1`}>Unduh subtitle (.srt)</a>}
+          </div>
+        </>)}
         {!i && !sc && <Muted className="mt-2">Belum ada file untuk video ini.</Muted>}
         <div className="mt-3 flex flex-wrap gap-2">
+          {(v.status === "naskah" || v.status === "suara") && <Btn size="sm" tone="primary" disabled={busy(ctx.state) || !ctx.state.health.edgeTts} onClick={() => ctx.run("suara", v.slug)}>{v.media.vo ? "Buat ulang suara" : "Buat suara (gratis)"}</Btn>}
           {v.status === "disetujui" && <Btn size="sm" tone="primary" disabled={busy(ctx.state) || !ctx.state.health.claude} onClick={() => ctx.run("penulis", v.slug)}>Tulis naskah dengan Raka</Btn>}
-          {v.moves.map((m) => <Btn key={m} size="sm" tone={m === "disetujui" && v.status === "ide" ? "primary" : "ghost"} onClick={() => ctx.move(v.slug, m)}>{v.status === "naskah" && m === "disetujui" ? "Minta tulis ulang" : MOVE[m]}</Btn>)}
+          {v.moves.map((m) => <Btn key={m} size="sm" tone={m === "disetujui" && v.status === "ide" ? "primary" : "ghost"} onClick={() => ctx.move(v.slug, m)}>{(v.status === "naskah" || v.status === "suara") && m === "disetujui" ? "Minta tulis ulang" : MOVE[m]}</Btn>)}
         </div>
       </div>
     </details>
@@ -141,14 +167,14 @@ export function VideoCard({ v, ctx, defaultOpen }: { v: Video; ctx: PanelCtx; de
 }
 
 export function QueuePanel({ ctx }: { ctx: PanelCtx }) {
-  const order = ["ide", "naskah", "disetujui", "export", "terbit", "ditolak"];
+  const order = ["ide", "suara", "naskah", "disetujui", "export", "terbit", "ditolak"];
   const vids = [...ctx.state.videos].sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
   if (!vids.length) return (<><Muted>Antrean masih kosong. Minta Nova mencari ide dulu.</Muted><Btn className="mt-3" tone="primary" onClick={() => ctx.open("agent:nova")}>Ke meja Nova</Btn></>);
   return <>{vids.map((v) => <VideoCard key={v.slug} v={v} ctx={ctx} />)}</>;
 }
 
 export function FounderPanel({ ctx }: { ctx: PanelCtx }) {
-  const { state, target } = ctx, v = state.videos, ideas = v.filter((x) => x.status === "ide"), ready = v.filter((x) => x.status === "naskah");
+  const { state, target } = ctx, v = state.videos, ideas = v.filter((x) => x.status === "ide"), ready = v.filter((x) => x.status === "naskah" || x.status === "suara");
   const wk = state.week.published, lu = state.snapshot?.videos.reduce((a, x) => (x.published > a ? x.published : a), ""), gap = lu ? daysSince(lu) : null;
   return (<>
     <H3>Target minggu ini</H3>

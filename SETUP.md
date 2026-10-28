@@ -13,6 +13,10 @@
   irm https://claude.ai/install.ps1 | iex
   ```
 - Login sekali dengan `claude` → pilih **Claude account with subscription**. Cek `/status`: Login method harus **Claude Pro account**.
+- Paket Python untuk Dara (suara), cukup sekali dari folder project:
+  ```powershell
+  python -m pip install -r requirements.txt
+  ```
 - Jangan isi variabel `ANTHROPIC_API_KEY` di komputer ini (kalau ada, Claude Code memakai API berbayar).
 
 ## 2. Folder project

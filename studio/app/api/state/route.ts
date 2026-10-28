@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { jobState } from "@/lib/server/jobs";
 import { json } from "@/lib/server/guard";
-import { P, activity, latestSnapshot, listFiles, pythonCmd, videos, week, which } from "@/lib/server/project";
+import { P, activity, hasEdgeTts, latestSnapshot, listFiles, pythonCmd, videos, week, which } from "@/lib/server/project";
 import type { StudioState } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -23,7 +23,7 @@ export async function GET() {
     logs: listFiles(P.logs, ".txt", 25),
     agents: AGENTS.map((key) => ({ key, ready: fs.existsSync(path.join(P.skills, key, "SKILL.md")) })),
     job: jobState(),
-    health: { env: fs.existsSync(P.env), claude: which("claude") !== null, python: py !== null, pythonCmd: py ? path.basename(py) : "" },
+    health: { env: fs.existsSync(P.env), claude: which("claude") !== null, python: py !== null, pythonCmd: py ? path.basename(py) : "", edgeTts: py ? await hasEdgeTts() : false },
   };
   return json(state);
 }

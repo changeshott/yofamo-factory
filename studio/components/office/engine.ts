@@ -416,6 +416,7 @@ export class OfficeEngine {
         art: (i, x0, x1) => {
           const yy = y + 0.32, w = x1 - x0;
           if (!on) { if (i === 0) this.poly(this.qy(yy, x0 + w * 0.4, x0 + w * 0.6, 37, 40), shade(def.color, 0.6)); return; }
+          if (def.id === "dara") { for (let b = 0; b < 9; b++) { const h = 1 + Math.abs(Math.round(Math.sin((b + tk * 0.9 + i * 4) * 1.3) * 5)); this.poly(this.qy(yy, x0 + b * w / 9 + 0.01, x0 + (b + 0.6) * w / 9, 38 - h / 2, 38 + h / 2), b % 3 ? "#E6D2FF" : "#C792EA"); } return; }
           if (def.id === "steve") for (let b = 0; b < 5; b++) { const h = 3 + ((b * 5 + tk + i * 3) % 8); this.poly(this.qy(yy, x0 + b * w / 5 + 0.02, x0 + (b + 0.7) * w / 5, 34, 34 + h), b === 2 ? "#FF9A4D" : "#BFE3FF"); }
           else for (let l = 0; l < 4; l++) { const len = (((l * 3 + tk + i * 2) % 6) + 2) / 8 * w; this.poly(this.qy(yy, x0 + 0.02, x0 + Math.min(len, w), 42 - l * 3, 43 - l * 3), def.id === "nova" && l === 0 ? "#6FD29A" : "#DCEBFA"); }
         },

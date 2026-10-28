@@ -35,6 +35,17 @@ async function command(job: JobName, arg: string): Promise<{ cmd: string; args: 
     if (!py) return "Python tidak ditemukan. Install Python dan centang 'Add python.exe to PATH'.";
     return { cmd: py, args: ["agents/steve/fetch_stats.py", ...(job === "check" ? ["--check"] : [])] };
   }
+  if (job === "suara") {
+    if (!py) return "Python tidak ditemukan.";
+    const [slug, voice] = arg.split("|");
+    if (!SLUG.test(slug ?? "")) return "Video tidak ditemukan.";
+    const rows = await pabrik<{ slug: string; status: string }[]>(["list", "--json"]);
+    const v = rows.find((r) => r.slug === slug);
+    if (!v) return "Video tidak ditemukan.";
+    if (v.status !== "naskah" && v.status !== "suara") return "Suara hanya bisa dibuat untuk video berstatus naskah.";
+    const voiceArg = voice === "wanita" ? ["--voice", "id-ID-GadisNeural"] : [];
+    return { cmd: py, args: ["agents/suara/buat_suara.py", slug, ...voiceArg] };
+  }
   const claude = which("claude");
   if (!claude) return "Perintah 'claude' tidak ditemukan. Install Claude Code CLI lalu jalankan ulang Studio.";
   const base = ["--model", "sonnet", "--max-turns", "60", "--allowedTools"];
@@ -60,6 +71,7 @@ const LABEL: Record<JobName, string> = {
   steve: "Steve",
   ide: "Nova mencari ide",
   penulis: "Raka menulis naskah",
+  suara: "Dara membuat suara",
 };
 
 export async function startJob(job: JobName, arg = ""): Promise<{ ok: boolean; message: string }> {

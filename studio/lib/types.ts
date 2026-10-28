@@ -60,11 +60,12 @@ export interface Video {
   idea: Idea | null;
   script: Script | null;
   moves: VideoStatus[];
+  media: { vo: boolean; srt: boolean; durasi: number | null; uji: boolean; suara: string | null };
 }
 
 export interface Activity { slug: string; dari: string | null; ke: string; waktu: string; judul_kerja: string | null }
 
-export type JobName = "fetch" | "check" | "steve" | "ide" | "penulis";
+export type JobName = "fetch" | "check" | "steve" | "ide" | "penulis" | "suara";
 export interface JobState {
   job: JobName | null;
   arg: string | null;
@@ -85,5 +86,5 @@ export interface StudioState {
   logs: FileEntry[];
   agents: { key: string; ready: boolean }[];
   job: JobState;
-  health: { env: boolean; claude: boolean; python: boolean; pythonCmd: string };
+  health: { env: boolean; claude: boolean; python: boolean; pythonCmd: string; edgeTts: boolean };
 }

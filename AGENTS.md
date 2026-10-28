@@ -11,14 +11,14 @@ Pemilik: Zona. Semua jawaban dan laporan ditulis dalam **bahasa Indonesia**.
 | Steve | Analis: membaca statistik channel, menemukan pola topik/hook yang menang | `/steve-analis` | aktif |
 | Nova | Ide & riset: 3 ide bersumber per putaran → `videos/<slug>/idea.json` | `/ide-riset [tema]` | aktif |
 | Raka | Penulis: naskah, judul, hook, deskripsi, tag → `script.json` | `/penulis <slug>` | aktif |
-| (belum) | Suara (TTS + timing) | `/suara` | belum dibuat |
+| Dara | Suara: voice-over gratis (edge-tts) + timing kata + subtitle → `vo.mp3`, `words.json`, `captions.srt` | `/suara <slug>` | aktif |
 | (belum) | Pencari aset | `/aset` | belum dibuat |
 | (belum) | Editor CapCut (tulis file draft) | `/editor-capcut` | belum dibuat |
 | (belum) | Review & upload | `/upload` | belum dibuat |
 
-Setiap agent adalah satu skill Claude Code di `.claude/skills/`. Kalau diminta "panggil Steve/Nova/Raka", jalankan skill-nya.
+Setiap agent adalah satu skill Claude Code di `.claude/skills/`. Kalau diminta "panggil Steve/Nova/Raka/Dara", jalankan skill-nya.
 
-Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetujui di Studio Yofamo** (`disetujui`) → Raka (naskah, status `naskah`) → Zona merekam/mengedit di CapCut dan upload manual.
+Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetujui di Studio Yofamo** (`disetujui`) → Raka (naskah, status `naskah`) → Dara (suara + subtitle, status `suara`) → Zona mengedit di CapCut dan upload manual.
 
 ## Struktur folder
 
@@ -26,7 +26,7 @@ Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetu
 - `agents/<nama>/` — script Python milik tiap agent. Jalankan dari root project.
 - `insights/raw/` — data mentah statistik (JSON) dari script Steve. Jangan diedit manual.
 - `insights/YYYY-Www.md` — laporan mingguan Steve (contoh `2026-W44.md`).
-- `videos/<slug>/` — semua file satu video: `idea.json`, `script.json`, `vo.mp3`, `words.json`, `aset/`, `manifest.json`, `export/`.
+- `videos/<slug>/` — semua file satu video: `idea.json`, `script.json`, `vo.mp3`, `words.json`, `captions.srt`, `aset/`, `manifest.json`, `export/`.
 - `state.db` — SQLite antrean & status tiap video. Diakses hanya lewat `python agents/pabrik.py`.
 - `studio/` — Studio Yofamo: kantor virtual lokal (Next.js + TypeScript + Tailwind). Membaca file project dan menjalankan agent lewat `claude -p`.
 - `logs/` — log setiap tugas yang dijalankan.
@@ -50,6 +50,7 @@ python agents/steve/fetch_stats.py          # ambil statistik terbaru → insigh
 python agents/steve/fetch_stats.py --check  # cek API key & koneksi saja
 python agents/pabrik.py list                # lihat antrean video
 python agents/penulis/cek_naskah.py <slug>  # validasi naskah
+python agents/suara/buat_suara.py <slug>    # Dara: vo.mp3 + words.json + captions.srt (gratis)
 start_studio.bat                            # buka Studio Yofamo (Windows)
 cd studio && npm run dev                    # sama, manual (http://127.0.0.1:3210)
 ```

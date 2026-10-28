@@ -2,7 +2,7 @@ import { guard, json } from "@/lib/server/guard";
 import { startJob } from "@/lib/server/jobs";
 import type { JobName } from "@/lib/types";
 
-const JOBS: JobName[] = ["fetch", "check", "steve", "ide", "penulis"];
+const JOBS: JobName[] = ["fetch", "check", "steve", "ide", "penulis", "suara"];
 
 export async function POST(req: Request) {
   const denied = guard(req); if (denied) return denied;

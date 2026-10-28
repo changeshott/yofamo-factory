@@ -107,6 +107,7 @@ export const MANUAL_MOVES: Partial<Record<VideoStatus, VideoStatus[]>> = {
   ditolak: ["ide"],
   disetujui: ["ide"],
   naskah: ["disetujui", "export", "terbit"],
+  suara: ["naskah", "export", "terbit"],
   export: ["terbit"],
 };
 
@@ -120,7 +121,31 @@ export async function videos(): Promise<Video[]> {
     idea: readJson(path.join(P.videos, r.slug, "idea.json")),
     script: readJson(path.join(P.videos, r.slug, "script.json")),
     moves: MANUAL_MOVES[r.status] ?? [],
+    media: media(r.slug),
   }));
+}
+
+function media(slug: string): Video["media"] {
+  const dir = path.join(P.videos, slug);
+  const w = readJson<{ durasi?: number; uji?: boolean; suara?: string }>(path.join(dir, "words.json"));
+  return {
+    vo: fs.existsSync(path.join(dir, "vo.mp3")),
+    srt: fs.existsSync(path.join(dir, "captions.srt")),
+    durasi: w?.durasi ?? null,
+    uji: !!w?.uji,
+    suara: w?.suara ?? null,
+  };
+}
+
+let edgeCache: { at: number; ok: boolean } | null = null;
+/** Cek paket edge-tts (di-cache 60 detik supaya polling tetap ringan). */
+export async function hasEdgeTts(): Promise<boolean> {
+  if (edgeCache && Date.now() - edgeCache.at < 60_000) return edgeCache.ok;
+  const py = pythonCmd();
+  let ok = false;
+  if (py) { try { await run(py, ["-c", "import edge_tts"], { windowsHide: true, timeout: 15_000 }); ok = true; } catch { ok = false; } }
+  edgeCache = { at: Date.now(), ok };
+  return ok;
 }
 
 export const activity = () => pabrik<Activity[]>(["history", "--limit", "40", "--json"]);
