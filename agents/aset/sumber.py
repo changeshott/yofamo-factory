@@ -3,6 +3,7 @@
 Urutan prioritas (paling akurat untuk teknologi nyata → paling umum):
     youtube  — hanya video berlisensi Creative Commons (CC BY), lewat YouTube Data API
     nasa     — NASA Image and Video Library (domain publik, tanpa API key)
+    wikimedia— Wikimedia Commons, hanya domain publik / CC0 / CC BY (tanpa API key)
     pexels   — Pexels License
     pixabay  — Pixabay Content License
 """
@@ -82,6 +83,36 @@ def nasa(query: str) -> list[dict]:
                             url_halaman=f"https://images.nasa.gov/details/{urllib.parse.quote(nid)}", gambar=prev,
                             lebar=1920, tinggi=1080, lisensi="NASA (domain publik; tanpa kesan didukung NASA)",
                             unduh=f"nasa:{nid}"))
+    return out
+
+
+WIKI_OK = re.compile(r"^(public domain|pd\b|cc0|cc[ -]by[ -]\d)", re.I)
+
+
+def wikimedia(query: str) -> list[dict]:
+    """Video Wikimedia Commons. CC BY-SA dan lisensi lain dilewati supaya aman dipakai ulang."""
+    params = {"action": "query", "format": "json", "generator": "search", "gsrsearch": f"{query} filetype:video",
+              "gsrnamespace": 6, "gsrlimit": 12, "prop": "imageinfo", "iiprop": "url|size|extmetadata",
+              "iiurlwidth": 480}
+    data = http_json("https://commons.wikimedia.org/w/api.php?" + urllib.parse.urlencode(params))
+    pages = sorted((data.get("query") or {}).get("pages", {}).values(), key=lambda p: p.get("index", 0))
+    out = []
+    for p in pages:
+        info = (p.get("imageinfo") or [{}])[0]
+        meta = info.get("extmetadata") or {}
+        lic = re.sub(r"<[^>]+>", "", (meta.get("LicenseShortName") or {}).get("value", "")).strip()
+        if not lic or not WIKI_OK.match(lic) or "sa" in lic.lower().split():
+            continue
+        if "-sa" in lic.lower() or " sa " in f" {lic.lower()} ":
+            continue
+        artist = re.sub(r"<[^>]+>", "", (meta.get("Artist") or {}).get("value", "")).strip()[:80]
+        title = re.sub(r"^File:|\.(webm|ogv|mp4|mpg|mpeg)$", "", p.get("title", ""), flags=re.I)
+        out.append(kandidat(sumber="wikimedia", id=p.get("pageid", ""), judul=title, pembuat=artist or "Wikimedia Commons",
+                            url_halaman=info.get("descriptionurl", ""), gambar=info.get("thumburl", ""),
+                            lebar=info.get("width") or 0, tinggi=info.get("height") or 0, durasi=float(info.get("duration") or 0),
+                            lisensi=f"{lic} (Wikimedia Commons)", unduh=info.get("url", "")))
+        if len(out) >= 6:
+            break
     return out
 
 

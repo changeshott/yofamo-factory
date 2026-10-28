@@ -2,7 +2,7 @@
 """Bima — pencari aset Yofamo. Untuk setiap kalimat naskah menyiapkan 1–3 shot vertikal 1080x1920
 (ganti visual tiap ±3 detik supaya tidak kaku) dari tiga jenis sumber gratis:
 
-    footage  YouTube Creative Commons (CC BY) → NASA → Pexels → Pixabay
+    footage  YouTube Creative Commons (CC BY) → NASA → Wikimedia Commons → Pexels/Pixabay (opsional)
     ai       gambar FLUX gratis (Cloudflare Workers AI) yang digerakkan halus (Ken Burns)
     grafis   kartu angka / teks kinetik yang dirender sendiri
 
@@ -33,6 +33,7 @@ import shutil
 import subprocess
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime
 from pathlib import Path
@@ -144,12 +145,14 @@ def search_all(query: str, english: bool) -> list[dict]:
         fx = read_json(FIXTURE, {})
         per = {"youtube": [sumber.kandidat(**c) for c in fx.get("youtube", [])],
                "nasa": [sumber.kandidat(**c) for c in fx.get("nasa", [])],
+               "wikimedia": [sumber.kandidat(**c) for c in fx.get("wikimedia", [])],
                "pexels": [c for v in fx.get("pexels", {}).get("videos", []) if (c := sumber.from_pexels(v))]}
     else:
         per = {}
         yt, pex, pix = os.environ.get("YOUTUBE_API_KEY", ""), os.environ.get("PEXELS_API_KEY", ""), os.environ.get("PIXABAY_API_KEY", "")
         jobs = [("youtube", lambda: sumber.youtube_cc(query, yt) if yt and english else []),
                 ("nasa", lambda: sumber.nasa(query) if english else []),
+                ("wikimedia", lambda: sumber.wikimedia(query) if english else []),
                 ("pexels", lambda: sumber.pexels(query, pex) if pex else []),
                 ("pixabay", lambda: sumber.pixabay(query, pix) if pix else [])]
         for name, fn in jobs:
@@ -163,7 +166,7 @@ def search_all(query: str, english: bool) -> list[dict]:
                 per[name] = []
     out, rnd = [], 0
     while any(per.values()) and len(out) < 24:
-        for name in ("youtube", "nasa", "pexels", "pixabay"):
+        for name in ("youtube", "nasa", "wikimedia", "pexels", "pixabay"):
             lst = per.get(name) or []
             take = 2 if rnd == 0 else 1
             out += lst[:take]
@@ -301,15 +304,16 @@ def raw_footage(c: dict, need: float, seg: int, used: list) -> tuple[Path, float
     if UJI:
         p = cache_path(f"uji-{c['sumber']}-{c['id']}.mp4")
         if not p.exists():
-            size = "1280x720" if c["sumber"] in ("youtube", "nasa") else "720x1280"
+            size = "1280x720" if c["sumber"] in ("youtube", "nasa", "wikimedia") else "720x1280"
             gerak.placeholder(p, f"{c['sumber']} {c['id']}", "", size, max(need + 2, 8))
         return p, min(seg * (need + 0.5), max(0.0, gerak.duration(p) - need))
     if c["sumber"] == "youtube":
         return yt_segment(c, need, used)
     url = sumber.nasa_file(c["id"]) if c["sumber"] == "nasa" else c["unduh"]
-    p = http_download(url, cache_path(f"{c['sumber']}-{c['id']}.mp4"))
+    ext = Path(urllib.parse.urlparse(url).path).suffix.lower() if c["sumber"] == "wikimedia" else ".mp4"
+    p = http_download(url, cache_path(f"{c['sumber']}-{c['id']}{ext if ext in ('.webm', '.ogv', '.mp4', '.mpg', '.mpeg') else '.mp4'}"))
     d = gerak.duration(p)
-    base = d * 0.15 if c["sumber"] == "nasa" else min(0.6, max(0.0, d - need))
+    base = d * 0.15 if c["sumber"] in ("nasa", "wikimedia") else min(0.6, max(0.0, d - need))
     return p, max(0.0, min(base + seg * (need + 0.5), d - need)) if d > need else 0.0
 
 
@@ -450,6 +454,8 @@ def write_credits(aset: Path, klip: list[dict]) -> None:
         seen.add(key)
         if k["sumber"] == "youtube":
             desc.append(f"🎬 \"{k['judul']}\" oleh {k['pembuat']} (CC BY) {k['url_halaman']}")
+        elif k["sumber"] == "wikimedia":
+            desc.append(f"🎬 \"{k['judul']}\" oleh {k['pembuat']} ({k['lisensi']}) {k['url_halaman']}")
         elif k["sumber"] == "nasa":
             desc.append("🎬 Footage: NASA")
     if any(k.get("sumber") in ("pexels", "pixabay") for k in klip):

@@ -198,5 +198,31 @@
    "lisensi": "NASA (domain publik; tanpa kesan didukung NASA)",
    "unduh": "nasa:UJI_NASA_1"
   }
+ ],
+ "wikimedia": [
+  {
+   "sumber": "wikimedia",
+   "id": "900001",
+   "judul": "Contoh Commons 1",
+   "pembuat": "Pengguna Commons",
+   "url_halaman": "https://commons.wikimedia.org/wiki/File:Contoh.webm",
+   "gambar": "x",
+   "lebar": 1280,
+   "tinggi": 720,
+   "lisensi": "CC BY 4.0 (Wikimedia Commons)",
+   "unduh": "https://upload.wikimedia.org/contoh.webm"
+  },
+  {
+   "sumber": "wikimedia",
+   "id": "910001",
+   "judul": "Contoh Commons 2",
+   "pembuat": "Pengguna Commons",
+   "url_halaman": "https://commons.wikimedia.org/wiki/File:Contoh.webm",
+   "gambar": "x",
+   "lebar": 1280,
+   "tinggi": 720,
+   "lisensi": "CC BY 4.0 (Wikimedia Commons)",
+   "unduh": "https://upload.wikimedia.org/contoh.webm"
+  }
  ]
 }

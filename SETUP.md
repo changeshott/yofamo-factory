@@ -35,7 +35,7 @@ copy .env.example .env
 notepad .env
 ```
 
-Untuk Bima, isi `PIXABAY_API_KEY`: login gratis di https://pixabay.com, buka https://pixabay.com/api/docs/, key-mu tampil di bagian **Parameters → key**. (`PEXELS_API_KEY` opsional; Pexels sedang menghentikan pendaftaran key baru.)
+Untuk Bima, key stok **opsional** (Bima sudah cukup dengan YouTube CC, NASA, Wikimedia Commons, gambar AI, dan grafis). Kalau mau menambah Pixabay, isi `PIXABAY_API_KEY`: login gratis di https://pixabay.com, buka https://pixabay.com/api/docs/, key-mu tampil di bagian **Parameters → key**. (`PEXELS_API_KEY` opsional; Pexels sedang menghentikan pendaftaran key baru.)
 
 **Gambar AI gratis (Cloudflare Workers AI, ±170 gambar/hari):**
 1. Daftar gratis di https://dash.cloudflare.com/sign-up.
