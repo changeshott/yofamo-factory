@@ -131,13 +131,16 @@ function aset(slug: string): Video["aset"] {
   const dir = path.join(P.videos, slug, "aset");
   const m = readJson<NonNullable<Video["aset"]>>(path.join(dir, "manifest.json"));
   if (!m || m._error || !Array.isArray(m.klip)) return m;
-  return { ...m, klip: m.klip.map((k) => ({ ...k, ada: SAFE_FILE.test(k.file) && fs.existsSync(path.join(dir, k.file)) })) };
+  let kredit = "";
+  try { kredit = fs.readFileSync(path.join(dir, "kredit_deskripsi.txt"), "utf8"); } catch { /* belum ada */ }
+  return { ...m, kredit, klip: m.klip.map((k) => ({ ...k, ada: SAFE_FILE.test(k.file) && fs.existsSync(path.join(dir, k.file)) })) };
 }
 
-/** Ada API key stok video di .env? Nilainya tidak pernah dibaca keluar. */
-export function hasStockKey(): boolean {
+/** Apakah key ini terisi di .env? Nilainya tidak pernah dibaca keluar. */
+export function envHas(...keys: string[]): boolean {
   try {
-    return /^\s*(PEXELS_API_KEY|PIXABAY_API_KEY)\s*=\s*\S+/m.test(fs.readFileSync(P.env, "utf8"));
+    const text = fs.readFileSync(P.env, "utf8");
+    return keys.some((k) => new RegExp(`^\\s*${k}\\s*=\\s*\\S+`, "m").test(text));
   } catch {
     return false;
   }
@@ -155,14 +158,15 @@ function media(slug: string): Video["media"] {
   };
 }
 
-let edgeCache: { at: number; ok: boolean } | null = null;
-/** Cek paket edge-tts (di-cache 60 detik supaya polling tetap ringan). */
-export async function hasEdgeTts(): Promise<boolean> {
-  if (edgeCache && Date.now() - edgeCache.at < 60_000) return edgeCache.ok;
+const modCache = new Map<string, { at: number; ok: boolean }>();
+/** Cek paket Python terpasang (di-cache 60 detik supaya polling tetap ringan). */
+export async function hasModule(mod: string): Promise<boolean> {
+  const c = modCache.get(mod);
+  if (c && Date.now() - c.at < 60_000) return c.ok;
   const py = pythonCmd();
   let ok = false;
-  if (py) { try { await run(py, ["-c", "import edge_tts"], { windowsHide: true, timeout: 15_000 }); ok = true; } catch { ok = false; } }
-  edgeCache = { at: Date.now(), ok };
+  if (py) { try { await run(py, ["-c", `import ${mod}`], { windowsHide: true, timeout: 20_000 }); ok = true; } catch { ok = false; } }
+  modCache.set(mod, { at: Date.now(), ok });
   return ok;
 }
 

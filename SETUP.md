@@ -19,6 +19,13 @@
   ```
 - Jangan isi variabel `ANTHROPIC_API_KEY` di komputer ini (kalau ada, Claude Code memakai API berbayar).
 
+- **ffmpeg** (untuk Bima membentuk klip) dan **Deno** (dibutuhkan yt-dlp untuk YouTube), sekali saja:
+  ```powershell
+  winget install Gyan.FFmpeg
+  winget install DenoLand.Deno
+  ```
+  Tutup lalu buka lagi PowerShell sesudahnya.
+
 ## 2. Folder project
 
 Taruh di tempat tetap, misalnya `C:\Users\zonaf\Projects\yofamo-factory`, lalu:
@@ -29,6 +36,12 @@ notepad .env
 ```
 
 Isi `PEXELS_API_KEY` juga untuk Bima: daftar gratis di https://www.pexels.com/api/ → salin key ke `.env`. `PIXABAY_API_KEY` (https://pixabay.com/api/docs/) opsional sebagai cadangan.
+
+**Gambar AI gratis (Cloudflare Workers AI, ±170 gambar/hari):**
+1. Daftar gratis di https://dash.cloudflare.com/sign-up.
+2. Account ID: buka dashboard → menu **Workers AI** (atau halaman akun) → salin **Account ID** → `CLOUDFLARE_ACCOUNT_ID=` di `.env`.
+3. Token: **My Profile → API Tokens → Create Token** → pakai template **Workers AI** → Create → salin → `CLOUDFLARE_API_TOKEN=` di `.env`.
+Kalau dilewati, Bima tetap jalan tanpa gambar AI (memakai footage dan grafis saja).
 
 Isi `YOUTUBE_API_KEY` (Google Cloud Console → YouTube Data API v3 → Credentials → API key, dibatasi hanya untuk YouTube Data API v3). Jangan pernah membagikan isi `.env`.
 

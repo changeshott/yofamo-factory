@@ -55,7 +55,8 @@ async function command(job: JobName, arg: string): Promise<{ cmd: string; args: 
     const v = rows.find((r) => r.slug === slug);
     if (!v) return "Video tidak ditemukan.";
     if (v.status !== "suara" && v.status !== "aset") return "Aset dicari setelah Dara membuat suara (status suara).";
-    if (mode === "cepat") return py ? { cmd: py, args: ["agents/aset/cari_aset.py", slug] } : "Python tidak ditemukan.";
+    if (!which("ffmpeg")) return "ffmpeg belum terpasang. Jalankan: winget install Gyan.FFmpeg";
+    if (mode === "cepat") return py ? { cmd: py, args: ["agents/aset/cari_aset.py", "semua", slug] } : "Python tidak ditemukan.";
     asetSlug = slug;
   }
   const claude = which("claude");

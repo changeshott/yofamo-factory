@@ -45,9 +45,9 @@ export const TEAM: AgentDef[] = [
   },
   {
     id: "bima", skill: "aset", job: "aset", name: "Bima", role: "Pencari aset", desk: [5.4, 7.0], color: "#4FD1C5",
-    about: "Mencari klip video vertikal berlisensi gratis (Pexels/Pixabay) untuk setiap kalimat naskah, lalu mencatat kreditnya.",
+    about: "Sutradara visual: tiap kalimat dapat 1–3 shot vertikal (ganti tiap ±3 detik) dari footage YouTube CC, NASA, Pexels, gambar AI gratis yang digerakkan halus, atau kartu grafis. Semua legal dan kreditnya dicatat.",
     look: { skin: "#B97D57", hair: "#2A1D14", shirt: "#2FA59A", pants: "#34404F", accent: "#F4F1E8", style: "curly" },
-    busy: { aset: "Mencari footage…" },
+    busy: { aset: "Memilih visual…" },
   },
 ];
 

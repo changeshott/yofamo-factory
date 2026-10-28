@@ -12,7 +12,7 @@ Pemilik: Zona. Semua jawaban dan laporan ditulis dalam **bahasa Indonesia**.
 | Nova | Ide & riset: 3 ide bersumber per putaran → `videos/<slug>/idea.json` | `/ide-riset [tema]` | aktif |
 | Raka | Penulis: naskah, judul, hook, deskripsi, tag → `script.json` | `/penulis <slug>` | aktif |
 | Dara | Suara: voice-over gratis (edge-tts) + timing kata + subtitle → `vo.mp3`, `words.json`, `captions.srt` | `/suara <slug>` | aktif |
-| Bima | Pencari aset: klip vertikal berlisensi gratis (Pexels/Pixabay) per kalimat → `aset/*.mp4`, `aset/manifest.json`, `aset/KREDIT.txt` | `/aset <slug>` | aktif |
+| Bima | Visual: 1–3 shot 1080x1920 per kalimat dari footage CC BY/NASA/Pexels/Pixabay, gambar AI gratis (Cloudflare FLUX + Ken Burns), atau kartu grafis → `aset/NN-a.mp4`, `aset/manifest.json` | `/aset <slug>` | aktif |
 | (belum) | Editor CapCut (tulis file draft) | `/editor-capcut` | belum dibuat |
 | (belum) | Review & upload | `/upload` | belum dibuat |
 
@@ -26,17 +26,18 @@ Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetu
 - `agents/<nama>/` — script Python milik tiap agent. Jalankan dari root project.
 - `insights/raw/` — data mentah statistik (JSON) dari script Steve. Jangan diedit manual.
 - `insights/YYYY-Www.md` — laporan mingguan Steve (contoh `2026-W44.md`).
-- `videos/<slug>/` — semua file satu video: `idea.json`, `script.json`, `vo.mp3`, `words.json`, `captions.srt`, `aset/` (klip + `manifest.json` + `KREDIT.txt` + `kueri.json`), `export/`.
+- `videos/<slug>/` — semua file satu video: `idea.json`, `script.json`, `vo.mp3`, `words.json`, `captions.srt`, `aset/` (`rencana.json`, `kandidat.json`, `lembar/`, `pilihan.json`, shot `NN-a.mp4`, `manifest.json`, `KREDIT.txt`, `kredit_deskripsi.txt`), `export/`.
 - `state.db` — SQLite antrean & status tiap video. Diakses hanya lewat `python agents/pabrik.py`.
 - `studio/` — Studio Yofamo: kantor virtual lokal (Next.js + TypeScript + Tailwind). Membaca file project dan menjalankan agent lewat `claude -p`.
 - `logs/` — log setiap tugas yang dijalankan.
+- `cache/` — unduhan mentah Bima (boleh dihapus Zona kalau penuh, tidak di-commit).
 
 ## Aturan kerja
 
 - Angka selalu berasal dari file di `insights/raw/`, tidak pernah dikarang. Kalau data kurang, tulis "data belum cukup".
 - Satu video sedikit (< 5) bukan pola. Sebut sebagai "dugaan" sampai ada minimal 5 video pendukung.
 - Jangan pernah menghapus file di `insights/` atau `videos/`. Tulis file baru.
-- Klip hanya dari sumber berlisensi gratis (Pexels, Pixabay) atau milik Zona. Jangan pernah mengambil video dari YouTube, TikTok, film, atau berita.
+- Klip hanya dari sumber berlisensi bebas: YouTube **Creative Commons (CC BY)** lewat script Bima, NASA, Pexels, Pixabay, gambar AI, atau milik Zona. Jangan pernah mengambil video YouTube biasa, TikTok, film, atau berita.
 - Jangan mengupload, menghapus, atau mengubah apa pun di YouTube. Steve hanya **membaca** data publik.
 - API key ada di `.env` (dibaca script). Jangan menampilkan isi `.env` di chat atau laporan.
 - Ringkasan akhir agent: maksimal sekitar 15 baris, poin terpenting dulu. Laporan dan log dibaca Zona lewat Studio Yofamo (`studio/`).
@@ -52,7 +53,8 @@ python agents/steve/fetch_stats.py --check  # cek API key & koneksi saja
 python agents/pabrik.py list                # lihat antrean video
 python agents/penulis/cek_naskah.py <slug>  # validasi naskah
 python agents/suara/buat_suara.py <slug>    # Dara: vo.mp3 + words.json + captions.srt (gratis)
-python agents/aset/cari_aset.py <slug>      # Bima: unduh klip per kalimat (butuh PEXELS_API_KEY)
+python agents/aset/cari_aset.py semua <slug> # Bima cepat: cari + pilih otomatis + bentuk shot
+python agents/aset/cari_aset.py cari <slug>  # Bima: kandidat + lembar kontak (lalu pilihan.json → unduh)
 start_studio.bat                            # buka Studio Yofamo (Windows)
 cd studio && npm run dev                    # sama, manual (http://127.0.0.1:3210)
 ```

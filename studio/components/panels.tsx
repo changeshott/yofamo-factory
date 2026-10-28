@@ -90,21 +90,23 @@ export function AgentPanel({ def, ctx }: { def: AgentDef; ctx: PanelCtx }) {
         </>);
       })()}
       {def.id === "bima" && (() => {
+        const asetReady = state.health.ffmpeg && state.health.stockKey;
         const ok = state.videos.filter((v) => v.status === "suara" || v.status === "aset");
         return (<>
           {ok.length ? (
             <ul className="divide-y divide-line">{ok.map((v) => {
-              const n = v.aset?.klip?.length ?? 0, total = v.script?.narasi?.length ?? 0;
+              const n = v.aset?.klip?.length ?? 0;
               return (
-                <li key={v.slug} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"><span>{v.judul_kerja}<small className="block text-faint">{n ? `${n}/${total} klip${v.aset?.uji ? " (uji)" : ""}` : "belum ada klip"}</small></span>
+                <li key={v.slug} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"><span>{v.judul_kerja}<small className="block text-faint">{n ? `${n} shot${v.aset?.uji ? " (uji)" : ""}${v.aset?.kurang?.length ? `, kurang ${v.aset.kurang.length}` : ""}` : "belum ada visual"}</small></span>
                   <span className="flex gap-2">
-                    <Btn size="sm" tone="primary" disabled={busy(state) || noClaude || !state.health.stockKey} onClick={() => ctx.run("aset", v.slug)}>Cari klip</Btn>
-                    <Btn size="sm" disabled={busy(state) || !state.health.stockKey} onClick={() => ctx.run("aset", `${v.slug}|cepat`)}>Cepat</Btn>
+                    <Btn size="sm" tone="primary" disabled={busy(state) || noClaude || !asetReady} onClick={() => ctx.run("aset", v.slug)}>Siapkan visual</Btn>
+                    <Btn size="sm" disabled={busy(state) || !asetReady} onClick={() => ctx.run("aset", `${v.slug}|cepat`)}>Cepat</Btn>
                   </span></li>);
             })}</ul>
           ) : <Muted>Belum ada video yang suaranya sudah dibuat Dara.</Muted>}
-          {!state.health.stockKey && <Muted className="mt-2 text-signal">Isi <code>PEXELS_API_KEY</code> di .env dulu (gratis di pexels.com/api), lalu muat ulang Studio.</Muted>}
-          <Muted className="mt-2">Cari klip: Bima menulis kata kunci Inggris dulu (sedikit kuota Claude, hasil lebih tepat). Cepat: langsung pakai kolom visual naskah, tanpa kuota.</Muted>
+          {!asetReady && <Muted className="mt-2 text-signal">Belum siap: {[!state.health.ffmpeg && "ffmpeg", !state.health.stockKey && "PEXELS_API_KEY"].filter(Boolean).join(", ")}. Lihat menu Sistem.</Muted>}
+          {asetReady && (!state.health.ytdlp || !state.health.aiKey) && <Muted className="mt-2">Sumber nonaktif: {[!state.health.ytdlp && "YouTube CC (yt-dlp)", !state.health.aiKey && "gambar AI (Cloudflare)"].filter(Boolean).join(", ")}. Bima tetap jalan dengan sumber lain.</Muted>}
+          <Muted className="mt-2">Siapkan visual: Bima merencanakan tiap kalimat, melihat kandidat satu per satu, lalu memilih yang paling cocok (memakai kuota Claude, paling akurat). Cepat: pilih otomatis tanpa kuota.</Muted>
         </>);
       })()}
       {noClaude && def.id !== "dara" && <Muted className="mt-2 text-signal">Perintah claude tidak ditemukan, jadi tugas AI belum bisa dijalankan.</Muted>}
@@ -173,25 +175,32 @@ export function VideoCard({ v, ctx, defaultOpen }: { v: Video; ctx: PanelCtx; de
             {v.media.srt && <a className="text-sm text-circuit hover:underline" href={`/api/media?slug=${v.slug}&file=captions.srt&unduh=1`}>Unduh subtitle (.srt)</a>}
           </div>
         </>)}
-        {v.aset && !v.aset._error && !!v.aset.klip?.length && (<>
-          <h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Klip dari Bima ({v.aset.klip.length}/{sc?.narasi?.length ?? "?"}){v.aset.uji ? " · uji" : ""}</h4>
-          {!!v.aset.kurang?.length && <Muted className="text-signal">Belum ada klip untuk kalimat {v.aset.kurang.join(", ")}.</Muted>}
-          <ul className="mt-1 grid grid-cols-3 gap-2 sm:grid-cols-4">{v.aset.klip.map((k) => (
-            <li key={k.i} className="overflow-hidden rounded-md border border-line bg-ink-950 text-[11px]">
-              <div className="relative aspect-[9/16] bg-ink-900">
-                {k.ada ? <video className="size-full object-cover" src={`/api/media?slug=${v.slug}&file=aset/${k.file}`} muted loop playsInline preload="metadata" onMouseEnter={(e) => e.currentTarget.play().catch(() => {})} onMouseLeave={(e) => e.currentTarget.pause()} />
-                  : <span className="grid size-full place-items-center p-1 text-center text-faint">{v.aset?.uji ? "uji" : "file hilang"}</span>}
-                <b className="absolute top-1 left-1 rounded bg-ink-950/80 px-1">{k.i + 1}</b>
-                {k.terlalu_pendek && <b className="absolute top-1 right-1 rounded bg-signal px-1 text-[#24140A]" title={`Klip ${k.durasi} dtk, bicara ${k.durasi_butuh} dtk`}>pendek</b>}
-              </div>
-              <a className="block truncate px-1.5 py-1 text-circuit hover:underline" href={k.url_halaman} target="_blank" rel="noopener noreferrer" title={`${k.kueri} · ${k.pembuat}`}>{k.sumber} · {k.durasi} dtk</a>
-            </li>))}</ul>
-          <Muted className="mt-1">Arahkan kursor untuk memutar. Ganti satu klip: <code>python agents/aset/cari_aset.py {v.slug} --ulang &lt;nomor&gt;</code></Muted>
-        </>)}
+        {v.aset && !v.aset._error && !!v.aset.klip?.length && (() => {
+          const kl = v.aset.klip!, n = (j: string) => kl.filter((k) => k.jenis === j).length;
+          return (<>
+            <h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Visual dari Bima: {kl.length} shot{v.aset.uji ? " · uji" : ""}</h4>
+            <Muted>{n("footage")} footage · {n("ai")} gambar AI · {n("grafis")} grafis · rata-rata {((v.aset.durasi ?? 0) / kl.length).toFixed(1)} dtk per shot</Muted>
+            {!!v.aset.kurang?.length && <Muted className="text-signal">Belum ada visual untuk kalimat {v.aset.kurang.join(", ")}.</Muted>}
+            {v.aset.pakai_ai && <Muted className="text-signal">Ada gambar AI realistis: saat upload, centang &quot;konten diubah/sintetis&quot; di YouTube Studio.</Muted>}
+            <ul className="mt-2 grid grid-cols-4 gap-1.5 sm:grid-cols-5">{kl.map((k) => (
+              <li key={k.file} className="overflow-hidden rounded-md border border-line bg-ink-950 text-[11px]" title={k.kalimat}>
+                <div className="relative aspect-[9/16] bg-ink-900">
+                  {k.ada ? <video className="size-full object-cover" src={`/api/media?slug=${v.slug}&file=aset/${k.file}`} muted loop playsInline preload="metadata" onMouseEnter={(e) => e.currentTarget.play().catch(() => {})} onMouseLeave={(e) => e.currentTarget.pause()} />
+                    : <span className="grid size-full place-items-center p-1 text-center text-faint">file hilang</span>}
+                  <b className="absolute top-1 left-1 rounded bg-ink-950/80 px-1">{k.i + 1}{"abc"[k.potong]}</b>
+                  <b className={`absolute right-1 bottom-1 rounded px-1 ${k.jenis === "ai" ? "bg-[#C792EA] text-[#1B1030]" : k.jenis === "grafis" ? "bg-signal text-[#24140A]" : "bg-ink-950/80"}`}>{k.jenis === "footage" ? k.sumber : k.jenis}</b>
+                </div>
+                {k.url_halaman ? <a className="block truncate px-1 py-0.5 text-circuit hover:underline" href={k.url_halaman} target="_blank" rel="noopener noreferrer">{k.durasi.toFixed(1)} dtk · {k.pembuat || k.sumber}</a>
+                  : <span className="block truncate px-1 py-0.5 text-faint">{k.durasi.toFixed(1)} dtk</span>}
+              </li>))}</ul>
+            {!!v.aset.kredit && <Copy label="Kredit untuk deskripsi" text={v.aset.kredit} />}
+            <Muted className="mt-1">Arahkan kursor ke shot untuk memutar. Ganti visual satu kalimat: <code>python agents/aset/cari_aset.py unduh {v.slug} --ulang &lt;nomor&gt;</code></Muted>
+          </>);
+        })()}
         {!i && !sc && <Muted className="mt-2">Belum ada file untuk video ini.</Muted>}
         <div className="mt-3 flex flex-wrap gap-2">
           {(v.status === "naskah" || v.status === "suara") && <Btn size="sm" tone="primary" disabled={busy(ctx.state) || !ctx.state.health.edgeTts} onClick={() => ctx.run("suara", v.slug)}>{v.media.vo ? "Buat ulang suara" : "Buat suara (gratis)"}</Btn>}
-          {(v.status === "suara" || v.status === "aset") && <Btn size="sm" tone="primary" disabled={busy(ctx.state) || !ctx.state.health.claude || !ctx.state.health.stockKey} onClick={() => ctx.run("aset", v.slug)}>{v.aset?.klip?.length ? "Cari ulang klip" : "Cari klip dengan Bima"}</Btn>}
+          {(v.status === "suara" || v.status === "aset") && <Btn size="sm" tone="primary" disabled={busy(ctx.state) || !ctx.state.health.claude || !ctx.state.health.stockKey || !ctx.state.health.ffmpeg} onClick={() => ctx.run("aset", v.slug)}>{v.aset?.klip?.length ? "Siapkan ulang visual" : "Siapkan visual dengan Bima"}</Btn>}
           {v.status === "disetujui" && <Btn size="sm" tone="primary" disabled={busy(ctx.state) || !ctx.state.health.claude} onClick={() => ctx.run("penulis", v.slug)}>Tulis naskah dengan Raka</Btn>}
           {v.moves.map((m) => <Btn key={m} size="sm" tone={m === "disetujui" && v.status === "ide" ? "primary" : "ghost"} onClick={() => ctx.move(v.slug, m)}>{(v.status === "naskah" || v.status === "suara") && m === "disetujui" ? "Minta tulis ulang" : MOVE[m]}</Btn>)}
         </div>
@@ -322,7 +331,10 @@ export function HealthPanel({ ctx }: { ctx: PanelCtx }) {
     { ok: h.claude, name: "Claude Code CLI", fix: "Install dengan: irm https://claude.ai/install.ps1 | iex, lalu login dengan akun Claude Pro.", good: "Ditemukan. Pastikan login dengan akun langganan (cek /status)." },
     { ok: h.env, name: "File .env", fix: "Salin .env.example menjadi .env lalu isi YOUTUBE_API_KEY.", good: "Ada." },
     { ok: h.edgeTts, name: "edge-tts (suara Dara)", fix: "Jalankan sekali dari folder project: python -m pip install -r requirements.txt", good: "Terpasang." },
-    { ok: h.stockKey, name: "API key klip (Bima)", fix: "Daftar gratis di pexels.com/api, lalu isi PEXELS_API_KEY= di .env (PIXABAY_API_KEY opsional).", good: "Ada di .env." },
+    { ok: h.ffmpeg, name: "ffmpeg (Bima)", fix: "Jalankan di PowerShell: winget install Gyan.FFmpeg, lalu tutup dan buka lagi start_studio.bat.", good: "Ditemukan." },
+    { ok: h.stockKey, name: "API key stok video (Bima)", fix: "Daftar gratis di pexels.com/api, lalu isi PEXELS_API_KEY= di .env (PIXABAY_API_KEY opsional).", good: "Ada di .env." },
+    { ok: h.ytdlp, name: "yt-dlp (footage YouTube CC)", fix: "python -m pip install -r requirements.txt, lalu winget install DenoLand.Deno (dibutuhkan yt-dlp untuk YouTube).", good: "Terpasang." },
+    { ok: h.aiKey, name: "Gambar AI gratis (Cloudflare)", fix: "Isi CLOUDFLARE_ACCOUNT_ID dan CLOUDFLARE_API_TOKEN di .env (lihat SETUP.md).", good: "Ada di .env." },
     { ok: !!ctx.state.snapshot, name: "Data channel", fix: "Buka meja Steve lalu klik Ambil data terbaru.", good: `Data per ${ctx.state.snapshot?.snapshot_date}.` },
   ];
   return (<>

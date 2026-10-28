@@ -3,13 +3,13 @@ import path from "node:path";
 import { P, SLUG } from "@/lib/server/project";
 
 const TYPES: Record<string, string> = { "vo.mp3": "audio/mpeg", "captions.srt": "application/x-subrip; charset=utf-8", "words.json": "application/json; charset=utf-8" };
-const CLIP = /^aset\/\d{2}-(pexels|pixabay|manual)-[\w-]{1,40}\.mp4$/;
+const CLIP = /^aset\/(\d{2}-[a-c]\.mp4|lembar\/\d{2}\.jpg)$/;
 
 /** File hasil agent untuk satu video (audio, subtitle, timing, klip aset). Hanya nama file yang terdaftar. */
 export async function GET(req: Request) {
   if (!["127.0.0.1:3210", "localhost:3210"].includes(req.headers.get("host") ?? "")) return new Response("ditolak", { status: 403 });
   const q = new URL(req.url).searchParams, slug = q.get("slug") ?? "", file = q.get("file") ?? "";
-  const type = TYPES[file] ?? (CLIP.test(file) ? "video/mp4" : null);
+  const type = TYPES[file] ?? (CLIP.test(file) ? (file.endsWith(".jpg") ? "image/jpeg" : "video/mp4") : null);
   if (!SLUG.test(slug) || !type) return new Response("tidak ditemukan", { status: 404 });
   const full = path.join(P.videos, slug, ...file.split("/"));
   let size: number;
