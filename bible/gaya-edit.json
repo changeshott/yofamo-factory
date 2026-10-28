@@ -1,0 +1,38 @@
+{
+  "_catatan": "Gaya editan Kai (agent editor). Ubah di sini, berlaku untuk semua video berikutnya. Warna dalam hex RRGGBB.",
+  "font": "",
+  "subtitle": {
+    "ukuran": 92,
+    "warna": "FFFFFF",
+    "warna_aktif": "FF9A4D",
+    "garis": 7,
+    "jarak_bawah": 560,
+    "maks_kata": 3,
+    "huruf_besar": true,
+    "pop": true
+  },
+  "hook": {
+    "tampil": true,
+    "ukuran": 84,
+    "warna_teks": "141414",
+    "warna_kotak": "FF9A4D",
+    "jarak_atas": 260,
+    "maks_detik": 2.6
+  },
+  "gerak": {
+    "punch_zoom": 0.08,
+    "punch_detik": 0.28
+  },
+  "audio": {
+    "loudness_lufs": -14,
+    "musik": "acak",
+    "volume_musik_db": -20,
+    "whoosh": true,
+    "volume_whoosh_db": -16
+  },
+  "handle": {
+    "tampil": true,
+    "teks": "@yofamoo_technology",
+    "ukuran": 34
+  }
+}

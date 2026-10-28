@@ -47,6 +47,16 @@ async function command(job: JobName, arg: string): Promise<{ cmd: string; args: 
     const voiceArg = voice === "wanita" ? ["--voice", "id-ID-GadisNeural"] : [];
     return { cmd: py, args: ["agents/suara/buat_suara.py", slug, ...voiceArg] };
   }
+  if (job === "editor") {
+    if (!py) return "Python tidak ditemukan.";
+    if (!which("ffmpeg")) return "ffmpeg belum terpasang. Jalankan: winget install Gyan.FFmpeg";
+    if (!SLUG.test(arg)) return "Video tidak ditemukan.";
+    const rows = await pabrik<{ slug: string; status: string }[]>(["list", "--json"]);
+    const v = rows.find((r) => r.slug === arg);
+    if (!v) return "Video tidak ditemukan.";
+    if (v.status !== "aset" && v.status !== "draft") return "Video dirakit setelah visual dari Bima siap (status aset).";
+    return { cmd: py, args: ["agents/editor/rakit.py", arg] };
+  }
   let asetSlug = "";
   if (job === "aset") {
     const [slug, mode] = arg.split("|");
@@ -87,6 +97,7 @@ const LABEL: Record<JobName, string> = {
   penulis: "Raka menulis naskah",
   suara: "Dara membuat suara",
   aset: "Bima mencari klip",
+  editor: "Kai merakit video",
 };
 
 export async function startJob(job: JobName, arg = ""): Promise<{ ok: boolean; message: string }> {

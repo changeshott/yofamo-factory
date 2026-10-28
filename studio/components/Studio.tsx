@@ -15,7 +15,7 @@ const TITLES: Record<string, string> = {
   founder: "Meja Zona", queue: "Papan antrean video", analytics: "Analitik Shorts", reports: "Laporan Steve",
   bible: "Channel bible", activity: "Log kantor", health: "Cek sistem", server: "Server agent",
 };
-const JOB_TXT: Record<string, string> = { steve: "Steve menganalisis", fetch: "Steve mengambil data", check: "Cek koneksi YouTube", ide: "Nova mencari ide", penulis: "Raka menulis naskah", suara: "Dara membuat suara", aset: "Bima mencari klip" };
+const JOB_TXT: Record<string, string> = { steve: "Steve menganalisis", fetch: "Steve mengambil data", check: "Cek koneksi YouTube", ide: "Nova mencari ide", penulis: "Raka menulis naskah", suara: "Dara membuat suara", aset: "Bima mencari klip", editor: "Kai merakit video" };
 
 interface Toast { id: number; text: string; tone: "ok" | "err" | "info" }
 

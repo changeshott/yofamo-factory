@@ -57,7 +57,7 @@ Panjang 90–110 kata.
 - Rekaman sendiri taruh di `milik-saya/` dengan nama file deskriptif; selalu diprioritaskan.
 - Campuran ideal: ±60% footage, ±25% gambar AI, ±15% grafis (angka/pertanyaan). Hook selalu footage terkuat.
 - Video dengan gambar AI realistis: centang "konten diubah/sintetis" saat upload.
-- Gaya CapCut (font, caption, hook, adjustment, BGM) mengikuti project template.
+- Gaya editan (font, caption, hook, zoom, BGM) diatur di `bible/gaya-edit.json` dan dirakit Kai.
 
 ## Suara
 

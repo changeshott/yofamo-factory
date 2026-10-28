@@ -6,7 +6,7 @@ import { P, activity, envHas, hasModule, latestSnapshot, listFiles, pythonCmd, v
 import type { StudioState } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-const AGENTS = ["steve-analis", "ide-riset", "penulis", "suara", "aset", "editor-capcut", "upload"];
+const AGENTS = ["steve-analis", "ide-riset", "penulis", "suara", "aset", "editor", "upload"];
 
 export async function GET() {
   const py = pythonCmd();

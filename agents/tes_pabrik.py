@@ -162,6 +162,20 @@ def offline() -> None:
         if frames:
             f = vdir / "aset" / frames[0]["file"]
             cek("Bima: kartu grafis ter-render", ffprobe_size(f)[0] == 1080)
+        # Kai (mode uji)
+        run(tmp, "agents/pabrik.py", "set", slug, "aset")
+        (tmp / "musik").mkdir(exist_ok=True)
+        subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "sine=frequency=330:duration=12", str(tmp / "musik" / "uji.mp3")], check=False)
+        shutil.copy(ROOT / "bible" / "gaya-edit.json", tmp / "bible" / "gaya-edit.json") if (ROOT / "bible" / "gaya-edit.json").exists() else None
+        t0 = time.time()
+        r = run(tmp, "agents/editor/rakit.py", slug, "--uji")
+        fin = vdir / "export" / "final.mp4"
+        wd, ht, d = ffprobe_size(fin) if fin.exists() else (0, 0, 0)
+        cek("Kai: video final 1080x1920", r.returncode == 0 and (wd, ht) == (1080, 1920), f"{d:.1f} dtk, render {time.time() - t0:.0f} dtk" if fin.exists() else (r.stdout + r.stderr)[-300:])
+        cek("Kai: durasi final = durasi suara", abs(d - float(m.get("durasi") or 0)) < 0.15, f"{d:.2f} vs {m.get('durasi')}")
+        ar = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=codec_name", "-of", "csv=p=0", str(fin)], capture_output=True, text=True)
+        cek("Kai: ada audio AAC", "aac" in ar.stdout)
+        cek("Kai: subtitle & sampul dibuat", (vdir / "export" / "subtitle.ass").exists() and (vdir / "export" / "sampul.jpg").exists())
     except Exception:
         cek("tes tanpa internet berjalan sampai selesai", False, traceback.format_exc().strip().splitlines()[-1])
     finally:

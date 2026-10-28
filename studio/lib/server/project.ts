@@ -95,8 +95,8 @@ const LABEL: Record<VideoStatus, string> = {
   naskah: "Naskah siap",
   suara: "Suara siap",
   aset: "Aset siap",
-  draft: "Draft CapCut siap",
-  export: "Sudah di-export",
+  draft: "Video jadi, cek dulu",
+  export: "Siap upload",
   terbit: "Sudah terbit",
   ditolak: "Ditolak",
 };
@@ -108,8 +108,9 @@ export const MANUAL_MOVES: Partial<Record<VideoStatus, VideoStatus[]>> = {
   disetujui: ["ide"],
   naskah: ["disetujui", "export", "terbit"],
   suara: ["naskah", "export", "terbit"],
-  aset: ["suara", "export", "terbit"],
-  export: ["terbit"],
+  aset: ["suara", "terbit"],
+  draft: ["export", "aset"],
+  export: ["terbit", "draft"],
 };
 
 type Row = Omit<Video, "label" | "idea" | "script" | "moves">;
@@ -124,7 +125,14 @@ export async function videos(): Promise<Video[]> {
     moves: MANUAL_MOVES[r.status] ?? [],
     media: media(r.slug),
     aset: aset(r.slug),
+    final: final(r.slug),
   }));
+}
+
+function final(slug: string): Video["final"] {
+  const dir = path.join(P.videos, slug, "export");
+  const i = readJson<{ durasi?: number; musik?: string; dibuat?: string; uji?: boolean }>(path.join(dir, "info.json"));
+  return { ada: fs.existsSync(path.join(dir, "final.mp4")), durasi: i?.durasi ?? null, musik: i?.musik ?? null, dibuat: i?.dibuat ?? null, uji: !!i?.uji };
 }
 
 function aset(slug: string): Video["aset"] {

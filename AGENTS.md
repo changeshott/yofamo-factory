@@ -13,15 +13,17 @@ Pemilik: Zona. Semua jawaban dan laporan ditulis dalam **bahasa Indonesia**.
 | Raka | Penulis: naskah, judul, hook, deskripsi, tag → `script.json` | `/penulis <slug>` | aktif |
 | Dara | Suara: voice-over gratis (edge-tts) + timing kata + subtitle → `vo.mp3`, `words.json`, `captions.srt` | `/suara <slug>` | aktif |
 | Bima | Visual: 1–3 shot 1080x1920 per kalimat dari footage YouTube CC BY/NASA/Wikimedia Commons (Pexels/Pixabay opsional), gambar AI gratis (Cloudflare FLUX + Ken Burns), atau kartu grafis → `aset/NN-a.mp4`, `aset/manifest.json` | `/aset <slug>` | aktif |
-| (belum) | Editor CapCut (tulis file draft) | `/editor-capcut` | belum dibuat |
+| Kai | Editor: rakit video final (ffmpeg) — subtitle kata-per-kata, hook, punch zoom, whoosh, musik → `export/final.mp4` | `/editor <slug>` | aktif |
 | (belum) | Review & upload | `/upload` | belum dibuat |
 
-Setiap agent adalah satu skill Claude Code di `.claude/skills/`. Kalau diminta "panggil Steve/Nova/Raka/Dara/Bima", jalankan skill-nya.
+Setiap agent adalah satu skill Claude Code di `.claude/skills/`. Kalau diminta "panggil Steve/Nova/Raka/Dara/Bima/Kai", jalankan skill-nya.
 
-Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetujui di Studio Yofamo** (`disetujui`) → Raka (naskah, status `naskah`) → Dara (suara + subtitle, status `suara`) → Bima (klip, status `aset`) → Zona mengedit di CapCut dan upload manual.
+Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetujui di Studio Yofamo** (`disetujui`) → Raka (naskah, status `naskah`) → Dara (suara + subtitle, status `suara`) → Bima (klip, status `aset`) → Kai (video final, status `draft`) → **Zona menonton & menyetujui** (`export`) → upload manual (status `terbit`).
 
 ## Struktur folder
 
+- `bible/gaya-edit.json` — gaya editan Kai (font, warna subtitle, hook, zoom, musik).
+- `musik/`, `sfx/` — musik latar & efek suara bebas royalti milik Zona (tidak di-commit).
 - `bible/channel-bible.md` — aturan gaya & konten. **Wajib dibaca** sebelum membuat ide, naskah, atau menilai video.
 - `agents/<nama>/` — script Python milik tiap agent. Jalankan dari root project.
 - `insights/raw/` — data mentah statistik (JSON) dari script Steve. Jangan diedit manual.
@@ -56,6 +58,7 @@ python agents/penulis/cek_naskah.py <slug>  # validasi naskah
 python agents/suara/buat_suara.py <slug>    # Dara: vo.mp3 + words.json + captions.srt (gratis)
 python agents/aset/cari_aset.py semua <slug> # Bima cepat: cari + pilih otomatis + bentuk shot
 python agents/aset/cari_aset.py cari <slug>  # Bima: kandidat + lembar kontak (lalu pilihan.json → unduh)
+python agents/editor/rakit.py <slug>        # Kai: rakit export/final.mp4
 python agents/tes_pabrik.py [--online]     # tes seluruh pabrik (aman, di folder sementara)
 start_studio.bat                            # buka Studio Yofamo (Windows)
 cd studio && npm run dev                    # sama, manual (http://127.0.0.1:3210)

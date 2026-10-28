@@ -62,6 +62,7 @@ export interface Video {
   moves: VideoStatus[];
   media: { vo: boolean; srt: boolean; durasi: number | null; uji: boolean; suara: string | null };
   aset: AsetManifest | null;
+  final: { ada: boolean; durasi: number | null; musik: string | null; dibuat: string | null; uji: boolean };
 }
 
 export interface Klip {
@@ -73,7 +74,7 @@ export interface AsetManifest { _error?: string; dibuat?: string; uji?: boolean;
 
 export interface Activity { slug: string; dari: string | null; ke: string; waktu: string; judul_kerja: string | null }
 
-export type JobName = "fetch" | "check" | "steve" | "ide" | "penulis" | "suara" | "aset";
+export type JobName = "fetch" | "check" | "steve" | "ide" | "penulis" | "suara" | "aset" | "editor";
 export interface JobState {
   job: JobName | null;
   arg: string | null;

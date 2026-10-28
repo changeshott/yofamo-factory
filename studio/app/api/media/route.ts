@@ -3,7 +3,7 @@ import path from "node:path";
 import { P, SLUG } from "@/lib/server/project";
 
 const TYPES: Record<string, string> = { "vo.mp3": "audio/mpeg", "captions.srt": "application/x-subrip; charset=utf-8", "words.json": "application/json; charset=utf-8" };
-const CLIP = /^aset\/(\d{2}-[a-c]\.mp4|lembar\/\d{2}\.jpg)$/;
+const CLIP = /^(aset\/(\d{2}-[a-c]\.mp4|lembar\/\d{2}\.jpg)|export\/(final\.mp4|sampul\.jpg))$/;
 
 /** File hasil agent untuk satu video (audio, subtitle, timing, klip aset). Hanya nama file yang terdaftar. */
 export async function GET(req: Request) {

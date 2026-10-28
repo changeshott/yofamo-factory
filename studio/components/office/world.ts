@@ -4,11 +4,11 @@ import type { Look } from "./sprites";
 export const RW = 22, RD = 15, WALL = 112, T = 16;
 export const BW = 624, BH = 446, OX = 256, OY = 132;
 
-export type AgentId = "steve" | "nova" | "raka" | "dara" | "bima";
+export type AgentId = "steve" | "nova" | "raka" | "dara" | "bima" | "kai";
 export interface AgentDef {
   id: AgentId;
   skill: string;
-  job: "steve" | "ide" | "penulis" | "suara" | "aset";
+  job: "steve" | "ide" | "penulis" | "suara" | "aset" | "editor";
   name: string;
   role: string;
   about: string;
@@ -49,10 +49,15 @@ export const TEAM: AgentDef[] = [
     look: { skin: "#B97D57", hair: "#2A1D14", shirt: "#2FA59A", pants: "#34404F", accent: "#F4F1E8", style: "curly" },
     busy: { aset: "Memilih visual…" },
   },
+  {
+    id: "kai", skill: "editor", job: "editor", name: "Kai", role: "Editor video", desk: [9.2, 7.0], color: "#F2C94C",
+    about: "Merakit video final: shot Bima + suara Dara, subtitle kata-per-kata yang menyala, teks hook, punch zoom, whoosh, dan musik yang otomatis mengecil saat ada suara. Gratis, tanpa kuota Claude.",
+    look: { skin: "#E0AC86", hair: "#3B2A20", shirt: "#E3B23C", pants: "#2A2F3A", accent: "#1C1C1C", style: "short", glasses: true },
+    busy: { editor: "Merender video…" },
+  },
 ];
 
 export const FUTURE = [
-  { key: "editor-capcut", name: "Editor CapCut", role: "Tulis file draft CapCut", desk: [9.2, 7.0] as [number, number] },
   { key: "upload", name: "Upload", role: "Terbit terjadwal ke YouTube", desk: [13.0, 7.0] as [number, number] },
 ];
 

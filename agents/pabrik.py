@@ -35,8 +35,8 @@ STATUS_LABEL = {
     "naskah": "Naskah siap",
     "suara": "Suara siap",
     "aset": "Aset siap",
-    "draft": "Draft CapCut siap",
-    "export": "Sudah di-export",
+    "draft": "Video jadi, cek dulu",
+    "export": "Siap upload",
     "terbit": "Sudah terbit",
     "ditolak": "Ditolak",
 }
