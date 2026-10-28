@@ -6,6 +6,8 @@ Pemakaian (dari root project):
     python agents/pabrik.py list [--status STATUS] [--json]
     python agents/pabrik.py show <slug>
     python agents/pabrik.py set <slug> <status> [--note "catatan"]
+    python agents/pabrik.py history [--limit 40] --json   # riwayat (dipakai Studio)
+    python agents/pabrik.py week --json                   # jumlah terbit sejak Senin
 
 Status berurutan:
     ide → disetujui → naskah → suara → aset → draft → export → terbit
@@ -149,6 +151,8 @@ def main() -> None:
     p_list = sub.add_parser("list"); p_list.add_argument("--status"); p_list.add_argument("--json", action="store_true")
     p_show = sub.add_parser("show"); p_show.add_argument("slug")
     p_set = sub.add_parser("set"); p_set.add_argument("slug"); p_set.add_argument("status"); p_set.add_argument("--note", default="")
+    p_hist = sub.add_parser("history"); p_hist.add_argument("--limit", type=int, default=40); p_hist.add_argument("--json", action="store_true")
+    p_week = sub.add_parser("week"); p_week.add_argument("--json", action="store_true")
     args = ap.parse_args()
 
     try:
@@ -170,6 +174,12 @@ def main() -> None:
                 sys.exit(f"[pabrik] tidak ditemukan: {args.slug}")
             files = sorted(p.name for p in (VIDEOS / args.slug).glob("*")) if (VIDEOS / args.slug).exists() else []
             print(json.dumps({**v, "files": files}, ensure_ascii=False, indent=2))
+        elif args.cmd == "history":
+            print(json.dumps(history(args.limit), ensure_ascii=False))
+        elif args.cmd == "week":
+            from datetime import date, timedelta
+            monday = date.today() - timedelta(days=date.today().weekday())
+            print(json.dumps({"since": monday.isoformat(), "published": published_since(monday.isoformat())}))
         elif args.cmd == "set":
             v = set_status(args.slug, args.status, args.note)
             print(f"[pabrik] {v['slug']} → {v['status']}")

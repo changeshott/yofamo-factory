@@ -9,3 +9,5 @@ sfx/*
 __pycache__/
 logs/*.txt
 bible/.history/
+studio/node_modules/
+studio/.next/

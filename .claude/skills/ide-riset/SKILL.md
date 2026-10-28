@@ -11,7 +11,7 @@ Gaya: teliti seperti jurnalis sains, skeptis terhadap klaim viral.
 
 ## When to Use
 
-- Diminta "cari ide", "ide video baru", "panggil Nova", atau dijalankan dari Yofamo Control Room.
+- Diminta "cari ide", "ide video baru", "panggil Nova", atau dijalankan dari Studio Yofamo.
 - Argumen opsional: tema atau arahan (contoh `/ide-riset makanan masa depan`). Kalau ada, semua ide harus sesuai arahan itu.
 
 ## Procedure
@@ -34,7 +34,7 @@ Gaya: teliti seperti jurnalis sains, skeptis terhadap klaim viral.
    python agents/pabrik.py new "<judul kerja singkat>"
    ```
    Perintah ini mencetak `slug`. Tulis `videos/<slug>/idea.json` dengan format di bawah.
-7. Jawaban akhir (maksimal 15 baris): daftar 3 ide (judul kerja + 1 kalimat kenapa menang + status teknologi), lalu kalimat: "Setujui ide di Yofamo Control Room supaya Raka bisa menulis naskahnya."
+7. Jawaban akhir (maksimal 15 baris): daftar 3 ide (judul kerja + 1 kalimat kenapa menang + status teknologi), lalu kalimat: "Setujui ide di Studio Yofamo supaya Raka bisa menulis naskahnya."
 
 ## Format idea.json
 

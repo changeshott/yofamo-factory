@@ -11,7 +11,7 @@ Gaya: bahasa Indonesia lisan yang santai dan cepat, seperti teman yang sedang ka
 
 ## When to Use
 
-- Diminta "tulis naskah", "panggil Raka", atau dijalankan dari Yofamo Control Room.
+- Diminta "tulis naskah", "panggil Raka", atau dijalankan dari Studio Yofamo.
 - Argumen: `slug` video. Kalau tidak ada, ambil video berstatus `disetujui` yang paling lama:
   ```bash
   python agents/pabrik.py list --status disetujui
@@ -36,7 +36,7 @@ Gaya: bahasa Indonesia lisan yang santai dan cepat, seperti teman yang sedang ka
    ```
    Kalau ada `GAGAL`, perbaiki `script.json` lalu jalankan lagi sampai lolos (maksimal 3 kali).
 6. Kalau lolos: `python agents/pabrik.py set <slug> naskah`
-7. Jawaban akhir (maksimal 15 baris): judul, teks hook, jumlah kata, estimasi durasi, dan kalimat "Naskah siap dibaca di Yofamo Control Room."
+7. Jawaban akhir (maksimal 15 baris): judul, teks hook, jumlah kata, estimasi durasi, dan kalimat "Naskah siap dibaca di Studio Yofamo."
 
 ## Format script.json
 

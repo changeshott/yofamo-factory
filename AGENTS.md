@@ -18,7 +18,7 @@ Pemilik: Zona. Semua jawaban dan laporan ditulis dalam **bahasa Indonesia**.
 
 Setiap agent adalah satu skill Claude Code di `.claude/skills/`. Kalau diminta "panggil Steve/Nova/Raka", jalankan skill-nya.
 
-Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetujui di Control Room** (`disetujui`) → Raka (naskah, status `naskah`) → Zona merekam/mengedit di CapCut dan upload manual.
+Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetujui di Studio Yofamo** (`disetujui`) → Raka (naskah, status `naskah`) → Zona merekam/mengedit di CapCut dan upload manual.
 
 ## Struktur folder
 
@@ -28,7 +28,7 @@ Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetu
 - `insights/YYYY-Www.md` — laporan mingguan Steve (contoh `2026-W44.md`).
 - `videos/<slug>/` — semua file satu video: `idea.json`, `script.json`, `vo.mp3`, `words.json`, `aset/`, `manifest.json`, `export/`.
 - `state.db` — SQLite antrean & status tiap video. Diakses hanya lewat `python agents/pabrik.py`.
-- `dashboard/` — halaman kontrol lokal (server Python + index.html).
+- `studio/` — Studio Yofamo: kantor virtual lokal (Next.js + TypeScript + Tailwind). Membaca file project dan menjalankan agent lewat `claude -p`.
 - `logs/` — log setiap tugas yang dijalankan.
 
 ## Aturan kerja
@@ -38,8 +38,8 @@ Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetu
 - Jangan pernah menghapus file di `insights/` atau `videos/`. Tulis file baru.
 - Jangan mengupload, menghapus, atau mengubah apa pun di YouTube. Steve hanya **membaca** data publik.
 - API key ada di `.env` (dibaca script). Jangan menampilkan isi `.env` di chat atau laporan.
-- Ringkasan akhir agent: maksimal sekitar 15 baris, poin terpenting dulu. Laporan dan log dibaca Zona lewat Yofamo Control Room (`dashboard/`).
-- Jangan mengubah file di `dashboard/` kecuali diminta.
+- Ringkasan akhir agent: maksimal sekitar 15 baris, poin terpenting dulu. Laporan dan log dibaca Zona lewat Studio Yofamo (`studio/`).
+- Jangan mengubah file di `studio/` kecuali diminta.
 - Status video hanya diubah lewat `agents/pabrik.py`. Agent tidak boleh menyetujui ide sendiri; persetujuan selalu dari Zona.
 - Hanya script di `agents/` yang boleh dijalankan. Jangan meng-install paket atau menjalankan perintah lain tanpa diminta.
 
@@ -50,5 +50,6 @@ python agents/steve/fetch_stats.py          # ambil statistik terbaru → insigh
 python agents/steve/fetch_stats.py --check  # cek API key & koneksi saja
 python agents/pabrik.py list                # lihat antrean video
 python agents/penulis/cek_naskah.py <slug>  # validasi naskah
-python dashboard/server.py                  # buka Yofamo Control Room di browser
+start_studio.bat                            # buka Studio Yofamo (Windows)
+cd studio && npm run dev                    # sama, manual (http://127.0.0.1:3210)
 ```

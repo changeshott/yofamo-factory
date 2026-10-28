@@ -1,0 +1,276 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import type { StudioState, Video, VideoStatus } from "@/lib/types";
+import { api, cleanTitle, dec, daysSince, fmt, md, short, when } from "@/lib/format";
+import { Btn, Copy, CopyBtn, H3, Muted, Pill } from "./ui";
+import { FUTURE, TEAM, type AgentDef } from "./office/world";
+
+export interface PanelCtx {
+  state: StudioState;
+  run: (job: string, arg?: string) => Promise<void>;
+  move: (slug: string, status: VideoStatus) => Promise<void>;
+  open: (id: string) => void;
+  target: number;
+  setTarget: (n: number) => void;
+}
+
+const busy = (s: StudioState) => s.job.status === "running";
+const STATUS_TXT = { idle: "Siap", running: "Bekerja", ok: "Selesai", error: "Gagal", stopped: "Dihentikan" } as const;
+
+/* ---------------------------------------------------------------- log */
+export function LogView({ name, live }: { name: string | null; live?: boolean }) {
+  const [text, setText] = useState("");
+  useEffect(() => {
+    if (!name) return;
+    let stop = false;
+    const load = () => api<{ text: string }>(`/api/log?name=${encodeURIComponent(name)}`).then((r) => !stop && setText(r.text || "(log masih kosong)")).catch(() => {});
+    load();
+    const t = live ? setInterval(load, 2500) : undefined;
+    return () => { stop = true; if (t) clearInterval(t); };
+  }, [name, live]);
+  if (!name) return null;
+  return <pre className="mt-3 max-h-80 overflow-auto rounded-lg border border-line bg-ink-950 p-2.5 font-mono text-[12.5px] leading-relaxed whitespace-pre-wrap break-words text-[#C9D6E4]">{text}</pre>;
+}
+
+/* ---------------------------------------------------------------- agent */
+export function AgentPanel({ def, ctx }: { def: AgentDef; ctx: PanelCtx }) {
+  const { state } = ctx, j = state.job, mine = j.job && def.busy[j.job], st = mine ? j.status : "idle";
+  const [theme, setTheme] = useState("");
+  const [log, setLog] = useState<string | null>(mine ? j.log : null);
+  useEffect(() => { if (mine && j.log) setLog(j.log); }, [mine, j.log]);
+  const logs = state.logs.filter((l) => l.name.startsWith(def.job + "-") || (def.id === "steve" && l.name.startsWith("fetch-"))).slice(0, 6);
+  const noClaude = !state.health.claude;
+  return (
+    <div>
+      <p>{def.about}</p>
+      <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+        <dt className="text-muted">Status</dt>
+        <dd className="flex items-center gap-2"><Pill tone={st === "idle" ? "default" : st}>{STATUS_TXT[st]}</Pill>{mine && j.arg && <span className="text-muted">{j.arg}</span>}</dd>
+        <dt className="text-muted">Skill</dt><dd><code className="rounded bg-ink-950 px-1.5">/{def.skill}</code></dd>
+      </dl>
+      <H3>Tugas</H3>
+      {def.id === "steve" && (<>
+        <div className="flex flex-wrap gap-2">
+          <Btn tone="primary" disabled={busy(state) || noClaude} onClick={() => ctx.run("steve")}>Jalankan Steve</Btn>
+          <Btn disabled={busy(state)} onClick={() => ctx.run("fetch")}>Ambil data terbaru</Btn>
+        </div>
+        <Muted className="mt-2">Ambil data tidak memakai kuota Claude. Jalankan Steve memakai kuota Pro (model Sonnet).</Muted>
+      </>)}
+      {def.id === "nova" && (<>
+        <label className="text-sm text-muted" htmlFor="theme">Arahan tema (opsional)</label>
+        <input id="theme" value={theme} onChange={(e) => setTheme(e.target.value)} maxLength={120} placeholder="misalnya makanan masa depan"
+          className="mt-1 w-full rounded-lg border border-line bg-ink-950 px-3 py-2 text-sm placeholder:text-faint" />
+        <div className="mt-2.5"><Btn tone="primary" disabled={busy(state) || noClaude} onClick={() => ctx.run("ide", theme)}>Cari 3 ide</Btn></div>
+        <Muted className="mt-2">Nova membaca banyak halaman web, jadi ini tugas paling boros kuota. Satu putaran cukup untuk beberapa hari.</Muted>
+      </>)}
+      {def.id === "raka" && (() => {
+        const ok = state.videos.filter((v) => v.status === "disetujui");
+        return ok.length ? (
+          <ul className="divide-y divide-line">{ok.map((v) => (
+            <li key={v.slug} className="flex items-center justify-between gap-3 py-2 text-sm"><span>{v.judul_kerja}</span>
+              <Btn size="sm" tone="primary" disabled={busy(state) || noClaude} onClick={() => ctx.run("penulis", v.slug)}>Tulis naskah</Btn></li>))}
+          </ul>
+        ) : (<><Muted>Belum ada ide yang disetujui. Setujui ide Nova di meja Zona dulu.</Muted><Btn className="mt-2" onClick={() => ctx.open("founder")}>Ke meja Zona</Btn></>);
+      })()}
+      {noClaude && <Muted className="mt-2 text-signal">Perintah claude tidak ditemukan, jadi tugas AI belum bisa dijalankan.</Muted>}
+      <H3>Pekerjaan terakhir</H3>
+      {logs.length ? (
+        <ul className="divide-y divide-line text-sm">{logs.map((l) => (
+          <li key={l.name} className="flex justify-between gap-3 py-2"><button className="text-left text-circuit hover:underline" onClick={() => setLog(l.name)}>{l.name.replace(/\.txt$/, "")}</button><span className="shrink-0 text-faint">{when(l.modified)}</span></li>))}
+        </ul>
+      ) : <Muted>Belum pernah bekerja dari kantor ini.</Muted>}
+      <LogView name={log} live={!!log && log === j.log && j.status === "running"} />
+    </div>
+  );
+}
+
+export function FuturePanel({ k }: { k: string }) {
+  const f = FUTURE.find((x) => x.key === k)!;
+  return (<>
+    <p>Meja ini disiapkan untuk agent <strong>{f.name}</strong>: {f.role}. Agent-nya belum dibuat, jadi mejanya masih berisi kardus.</p>
+    <Muted className="mt-2">Begitu skill <code>/{f.key}</code> ada di <code>.claude/skills</code>, pos ini menyala di Studio.</Muted>
+  </>);
+}
+
+/* ---------------------------------------------------------------- video */
+const MOVE: Record<string, string> = { disetujui: "Setujui ide", ditolak: "Tolak", ide: "Kembalikan ke ide", export: "Sudah di-export", terbit: "Tandai terbit" };
+const STEP: Record<string, string> = { ide: "bg-signal/20 text-signal", disetujui: "bg-circuit/15 text-circuit", naskah: "bg-leaf/15 text-leaf", terbit: "bg-signal text-[#24140A]", ditolak: "text-faint line-through" };
+
+export function VideoCard({ v, ctx, defaultOpen }: { v: Video; ctx: PanelCtx; defaultOpen?: boolean }) {
+  const i = v.idea, sc = v.script;
+  const words = (sc?.narasi ?? []).reduce((n, x) => n + String(x.kalimat ?? "").split(/\s+/).filter(Boolean).length, 0);
+  return (
+    <details className="group my-2 rounded-lg border border-line bg-ink-800 open:border-ink-600" open={defaultOpen}>
+      <summary className="grid cursor-pointer list-none grid-cols-[auto_1fr_auto] items-center gap-3 px-3 py-2.5 [&::-webkit-details-marker]:hidden">
+        <span className={`rounded px-2 py-1 font-pixel text-[11px] leading-none whitespace-nowrap ${STEP[v.status] ?? "bg-ink-700 text-muted"}`}>{v.label}</span>
+        <span><strong className="block text-sm leading-snug">{v.judul_kerja}</strong><small className="text-xs text-faint">{when(v.diubah)}</small></span>
+        <span className="text-faint transition group-open:rotate-90" aria-hidden>›</span>
+      </summary>
+      <div className="border-t border-line px-3 pb-3">
+        {i?._error && <Muted className="mt-2">{i._error}</Muted>}
+        {i && !i._error && (<>
+          <h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Ide dari Nova</h4>
+          <p className="font-pixel text-lg leading-tight font-bold text-signal">{i.hook_ide}</p>
+          <p className="mt-1 text-sm">{i.kenapa_menang}</p>
+          <Muted className="mt-1">{i.kategori ?? "–"} · {i.status_teknologi ?? "–"}{i.risiko ? ` · Risiko: ${i.risiko}` : ""}</Muted>
+          {!!i.fakta?.length && (<>
+            <h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Fakta & sumber</h4>
+            <ul className="list-disc space-y-1 pl-5 text-sm">{i.fakta.map((f, k) => <li key={k}>{f.klaim} <a className="text-circuit hover:underline" href={f.sumber_url} target="_blank" rel="noopener noreferrer">{f.sumber_nama ?? "sumber"}</a></li>)}</ul>
+          </>)}
+        </>)}
+        {sc && !sc._error && (<>
+          <Copy label="Judul" text={sc.judul ?? ""} />
+          <h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Teks hook di layar</h4>
+          <p className="font-pixel text-lg leading-tight font-bold text-signal">{sc.hook_teks}</p>
+          <h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Naskah ({words} kata, ±{Math.round(words / 2.6)} detik)</h4>
+          <ol className="list-decimal space-y-1.5 pl-5 text-sm">{(sc.narasi ?? []).map((n, k) => <li key={k}>{n.kalimat}<span className="block text-[13px] text-faint">Visual: {n.visual}</span></li>)}</ol>
+          <div className="mt-2"><CopyBtn label="Salin naskah" text={(sc.narasi ?? []).map((n) => n.kalimat).join(" ")} /></div>
+          <Copy label="Deskripsi" text={sc.deskripsi ?? ""} />
+          <Copy label="Tag" text={(sc.tag ?? []).join(", ")} />
+          {sc.catatan_editor && (<><h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Catatan editor</h4><p className="text-sm">{sc.catatan_editor}</p></>)}
+        </>)}
+        {!i && !sc && <Muted className="mt-2">Belum ada file untuk video ini.</Muted>}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {v.status === "disetujui" && <Btn size="sm" tone="primary" disabled={busy(ctx.state) || !ctx.state.health.claude} onClick={() => ctx.run("penulis", v.slug)}>Tulis naskah dengan Raka</Btn>}
+          {v.moves.map((m) => <Btn key={m} size="sm" tone={m === "disetujui" && v.status === "ide" ? "primary" : "ghost"} onClick={() => ctx.move(v.slug, m)}>{v.status === "naskah" && m === "disetujui" ? "Minta tulis ulang" : MOVE[m]}</Btn>)}
+        </div>
+      </div>
+    </details>
+  );
+}
+
+export function QueuePanel({ ctx }: { ctx: PanelCtx }) {
+  const order = ["ide", "naskah", "disetujui", "export", "terbit", "ditolak"];
+  const vids = [...ctx.state.videos].sort((a, b) => order.indexOf(a.status) - order.indexOf(b.status));
+  if (!vids.length) return (<><Muted>Antrean masih kosong. Minta Nova mencari ide dulu.</Muted><Btn className="mt-3" tone="primary" onClick={() => ctx.open("agent:nova")}>Ke meja Nova</Btn></>);
+  return <>{vids.map((v) => <VideoCard key={v.slug} v={v} ctx={ctx} />)}</>;
+}
+
+export function FounderPanel({ ctx }: { ctx: PanelCtx }) {
+  const { state, target } = ctx, v = state.videos, ideas = v.filter((x) => x.status === "ide"), ready = v.filter((x) => x.status === "naskah");
+  const wk = state.week.published, lu = state.snapshot?.videos.reduce((a, x) => (x.published > a ? x.published : a), ""), gap = lu ? daysSince(lu) : null;
+  return (<>
+    <H3>Target minggu ini</H3>
+    <p className="text-sm">{wk} dari {target} video terbit sejak Senin.</p>
+    <div className="mt-2 h-3 overflow-hidden rounded-sm border border-line bg-ink-950" role="progressbar" aria-label="Target terbit minggu ini" aria-valuemin={0} aria-valuemax={target} aria-valuenow={wk}>
+      <i className="block h-full bg-[repeating-linear-gradient(90deg,var(--color-leaf)_0_8px,#5BBE86_8px_10px)]" style={{ width: `${Math.min(100, (wk / target) * 100)}%` }} />
+    </div>
+    <div className="mt-2.5 flex flex-wrap items-center gap-3 text-sm">
+      <label className="text-muted" htmlFor="tgt">Target per minggu</label>
+      <select id="tgt" value={target} onChange={(e) => ctx.setTarget(+e.target.value)} className="rounded-lg border border-line bg-ink-950 px-2 py-1.5">{[1, 2, 3, 4, 5, 7, 10, 14].map((n) => <option key={n}>{n}</option>)}</select>
+      {gap != null && <span className={gap > 7 ? "text-signal" : "text-muted"}>Upload terakhir {gap} hari lalu.</span>}
+    </div>
+    <H3>Perlu keputusanmu ({ideas.length})</H3>
+    {ideas.length ? ideas.map((x) => <VideoCard key={x.slug} v={x} ctx={ctx} />) : <Muted>Tidak ada ide yang menunggu.</Muted>}
+    <H3>Siap direkam & upload ({ready.length})</H3>
+    {ready.length ? ready.map((x) => <VideoCard key={x.slug} v={x} ctx={ctx} />) : <Muted>Belum ada naskah siap.</Muted>}
+    <H3>Langkah cepat</H3>
+    <div className="flex flex-wrap gap-2"><Btn onClick={() => ctx.open("agent:nova")}>Minta ide ke Nova</Btn><Btn onClick={() => ctx.open("reports")}>Laporan Steve</Btn><Btn onClick={() => ctx.open("health")}>Cek sistem</Btn></div>
+  </>);
+}
+
+/* ---------------------------------------------------------------- analitik */
+export function AnalyticsPanel({ ctx }: { ctx: PanelCtx }) {
+  const s = ctx.state.snapshot;
+  const [filter, setFilter] = useState<"all" | "menang" | "rata-rata" | "lemah">("all");
+  const [sort, setSort] = useState<{ k: "title" | "views" | "vs_median" | "views_per_day" | "published"; d: 1 | -1 }>({ k: "published", d: -1 });
+  const rows = useMemo(() => !s ? [] : s.videos.filter((v) => filter === "all" || v.tier === filter).sort((a, b) => ((a[sort.k] ?? 0) > (b[sort.k] ?? 0) ? 1 : (a[sort.k] ?? 0) < (b[sort.k] ?? 0) ? -1 : 0) * sort.d), [s, filter, sort]);
+  if (!s?.videos.length) return (<><Muted>Belum ada data. Buka meja Steve lalu klik Ambil data terbaru.</Muted><Btn className="mt-3" onClick={() => ctx.open("agent:steve")}>Ke meja Steve</Btn></>);
+  const vids = [...s.videos].sort((a, b) => a.published.localeCompare(b.published)), W = 480, H = 220, pl = 34, pb = 22, pt = 8, n = vids.length;
+  const max = Math.max(...vids.map((v) => v.views)) * 1.08, med = s.summary.median_views, step = (W - pl) / n, bw = Math.max(3, Math.min(22, step * 0.7)), y = (v: number) => pt + (H - pt - pb) * (1 - v / max);
+  const col = { menang: "#FF9A4D", "rata-rata": "#47B5FF", lemah: "#5A7393" } as const;
+  const th = (k: typeof sort.k, l: string, num = false) => (
+    <th className={`border-b border-line px-1.5 py-1.5 font-bold whitespace-nowrap text-muted ${num ? "text-right" : "text-left"}`} aria-sort={sort.k === k ? (sort.d > 0 ? "ascending" : "descending") : "none"}>
+      <button onClick={() => setSort({ k, d: sort.k === k ? (-sort.d as 1 | -1) : k === "title" ? 1 : -1 })}>{l}{sort.k === k ? (sort.d > 0 ? " ↑" : " ↓") : ""}</button></th>);
+  return (<>
+    <Muted>{fmt(s.summary.videos)} video, median {fmt(Math.round(med))} views. Data per {s.snapshot_date}. Klik batang untuk membuka videonya.</Muted>
+    <div className="mt-2 rounded-lg border border-line bg-ink-800 p-2.5">
+      <div className="mb-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
+        <span><i className="mr-1.5 inline-block size-2.5 rounded-sm bg-signal align-[-1px]" />Menang ≥ 1,5× median</span>
+        <span><i className="mr-1.5 inline-block size-2.5 rounded-sm bg-circuit align-[-1px]" />Rata-rata</span>
+        <span><i className="mr-1.5 inline-block size-2.5 rounded-sm bg-[#5A7393] align-[-1px]" />Lemah ≤ 0,75×</span>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full" role="img" aria-label={`Views ${n} Shorts, median ${Math.round(med)}`}>
+        {[0, max / 2].map((t) => <g key={t}><line x1={pl} x2={W} y1={y(t)} y2={y(t)} stroke="#2A4868" /><text x={pl - 5} y={y(t) + 4} fill="#66809D" fontSize="10" textAnchor="end">{short(t)}</text></g>)}
+        {vids.map((v, i) => <a key={v.id} href={v.url} target="_blank" rel="noopener noreferrer"><rect x={pl + i * step + (step - bw) / 2} y={y(v.views)} width={bw} height={H - pb - y(v.views)} rx="2" fill={col[v.tier]}><title>{`${cleanTitle(v.title)}: ${fmt(v.views)} views`}</title></rect></a>)}
+        <line x1={pl} x2={W} y1={y(med)} y2={y(med)} stroke="#ECF2F8" strokeDasharray="4 4" />
+        <text x={W - 2} y={y(med) - 4} fill="#ECF2F8" fontSize="10" textAnchor="end">median {short(med)}</text>
+        <text x={pl} y={H - 6} fill="#66809D" fontSize="10">{vids[0].published}</text><text x={W} y={H - 6} fill="#66809D" fontSize="10" textAnchor="end">{vids[n - 1].published}</text>
+      </svg>
+    </div>
+    <H3>Semua video</H3>
+    <div className="mb-2 flex flex-wrap gap-1.5" role="group" aria-label="Saring video">
+      {([["all", "Semua"], ["menang", "Menang"], ["rata-rata", "Rata-rata"], ["lemah", "Lemah"]] as const).map(([k, l]) => (
+        <button key={k} aria-pressed={filter === k} onClick={() => setFilter(k)} className={`rounded-md border px-2.5 py-1 text-[13px] ${filter === k ? "border-circuit text-ink-50" : "border-line text-muted"}`}>{l}</button>))}
+    </div>
+    <table className="w-full border-collapse text-[13px]">
+      <thead><tr>{th("title", "Video")}{th("views", "Views", true)}{th("vs_median", "× med", true)}{th("views_per_day", "/hari", true)}{th("published", "Terbit", true)}</tr></thead>
+      <tbody>{rows.map((v) => (
+        <tr key={v.id} className="border-b border-line align-top">
+          <td className="px-1.5 py-2"><a className="hover:text-circuit" href={v.url} target="_blank" rel="noopener noreferrer">{cleanTitle(v.title)}</a><br />
+            <span className={`mt-1 inline-block rounded px-1.5 py-0.5 font-pixel text-[11px] ${v.tier === "menang" ? "bg-signal/20 text-signal" : v.tier === "lemah" ? "bg-[#5A7393]/30 text-[#B9C7D8]" : "bg-circuit/15 text-circuit"}`}>{v.tier}</span></td>
+          <td className="px-1.5 py-2 text-right tabular-nums">{fmt(v.views)}</td><td className="px-1.5 py-2 text-right tabular-nums">{dec(v.vs_median)}</td>
+          <td className="px-1.5 py-2 text-right tabular-nums">{fmt(v.views_per_day)}</td><td className="px-1.5 py-2 text-right tabular-nums">{v.published.slice(5)}</td>
+        </tr>))}</tbody>
+    </table>
+  </>);
+}
+
+/* ---------------------------------------------------------------- laporan, bible, log, sistem */
+export function ReportsPanel({ ctx }: { ctx: PanelCtx }) {
+  const list = ctx.state.reports, [name, setName] = useState(list[0]?.name ?? ""), [html, setHtml] = useState("Memuat…");
+  useEffect(() => { if (name) api<{ text: string }>(`/api/report?name=${encodeURIComponent(name)}`).then((r) => setHtml(md(r.text))).catch((e) => setHtml(String(e.message))); }, [name]);
+  if (!list.length) return (<><Muted>Belum ada laporan. Buka meja Steve lalu klik Jalankan Steve.</Muted><Btn className="mt-3" tone="primary" onClick={() => ctx.open("agent:steve")}>Ke meja Steve</Btn></>);
+  return (<>
+    <div className="flex items-center gap-2 text-sm"><label className="text-muted" htmlFor="rep">Minggu</label>
+      <select id="rep" value={name} onChange={(e) => setName(e.target.value)} className="rounded-lg border border-line bg-ink-950 px-2 py-1.5">{list.map((r) => <option key={r.name} value={r.name}>{r.name.replace(".md", "")}</option>)}</select></div>
+    <div className="prose-studio mt-3" dangerouslySetInnerHTML={{ __html: html }} />
+  </>);
+}
+
+export function BiblePanel() {
+  const [text, setText] = useState<string | null>(null), [msg, setMsg] = useState("");
+  useEffect(() => { api<{ text: string }>("/api/bible").then((r) => setText(r.text)).catch((e) => setMsg(e.message)); }, []);
+  return (<>
+    <Muted>Aturan yang dibaca semua agent. Versi lama tersimpan otomatis di <code>bible/.history</code>.</Muted>
+    <textarea value={text ?? "Memuat…"} onChange={(e) => setText(e.target.value)} disabled={text === null} spellCheck={false} aria-label="Isi channel bible"
+      className="mt-2 min-h-[60vh] w-full resize-y rounded-lg border border-line bg-ink-950 p-3 font-mono text-[13px] leading-relaxed" />
+    <div className="mt-2.5 flex items-center gap-3"><Btn tone="primary" disabled={text === null} onClick={async () => { try { setMsg((await api("/api/bible", { text })).message); } catch (e) { setMsg((e as Error).message); } }}>Simpan bible</Btn><span className="text-sm text-muted" role="status">{msg}</span></div>
+  </>);
+}
+
+const EVT: Record<string, string> = { disetujui: "Zona menyetujui", ditolak: "Zona menolak", naskah: "Raka menyelesaikan naskah", suara: "Suara siap:", aset: "Aset siap:", draft: "Draft CapCut siap:", export: "Di-export:", terbit: "Terbit:", ide: "Dikembalikan ke ide:" };
+const JOBN: Record<string, string> = { steve: "Steve membuat laporan", fetch: "Steve mengambil data", check: "Cek koneksi YouTube", ide: "Nova mencari ide", penulis: "Raka menulis naskah" };
+export function ActivityPanel({ ctx }: { ctx: PanelCtx }) {
+  const [log, setLog] = useState<string | null>(null);
+  const ev = [
+    ...ctx.state.activity.map((r) => ({ t: r.waktu, key: `a${r.slug}${r.waktu}${r.ke}`, node: <span>{r.dari === null ? "Nova mengusulkan ide" : EVT[r.ke] ?? r.ke} <strong>{r.judul_kerja ?? r.slug}</strong></span> })),
+    ...ctx.state.logs.map((l) => ({ t: l.modified, key: `l${l.name}`, node: <span>{JOBN[l.name.split("-")[0]] ?? l.name} · <button className="text-circuit hover:underline" onClick={() => setLog(l.name)}>lihat log</button></span> })),
+  ].sort((a, b) => b.t.localeCompare(a.t)).slice(0, 40);
+  if (!ev.length) return <Muted>Kantor masih sepi. Aktivitas agent dan keputusanmu akan muncul di sini.</Muted>;
+  return (<>
+    <ul className="divide-y divide-line text-sm">{ev.map((e) => <li key={e.key} className="flex justify-between gap-3 py-2">{e.node}<span className="shrink-0 text-faint">{when(e.t)}</span></li>)}</ul>
+    <LogView name={log} />
+  </>);
+}
+
+export function HealthPanel({ ctx }: { ctx: PanelCtx }) {
+  const h = ctx.state.health;
+  const rows = [
+    { ok: h.python, name: "Python", fix: "Install Python 3.11+ dari python.org dan centang 'Add python.exe to PATH'." , good: `Ditemukan (${h.pythonCmd}).` },
+    { ok: h.claude, name: "Claude Code CLI", fix: "Install dengan: irm https://claude.ai/install.ps1 | iex, lalu login dengan akun Claude Pro.", good: "Ditemukan. Pastikan login dengan akun langganan (cek /status)." },
+    { ok: h.env, name: "File .env", fix: "Salin .env.example menjadi .env lalu isi YOUTUBE_API_KEY.", good: "Ada." },
+    { ok: !!ctx.state.snapshot, name: "Data channel", fix: "Buka meja Steve lalu klik Ambil data terbaru.", good: `Data per ${ctx.state.snapshot?.snapshot_date}.` },
+  ];
+  return (<>
+    <ul className="space-y-2">{rows.map((r) => (
+      <li key={r.name} className="rounded-lg border border-line bg-ink-800 p-3 text-sm">
+        <div className="flex items-center gap-2 font-pixel"><span className={`size-2.5 rounded-sm ${r.ok ? "bg-leaf" : "bg-bad"}`} aria-hidden />{r.name}<span className="sr-only">{r.ok ? "beres" : "bermasalah"}</span></div>
+        <p className="mt-1 text-muted">{r.ok ? r.good : r.fix}</p>
+      </li>))}</ul>
+    <div className="mt-3"><Btn disabled={busy(ctx.state) || !h.env} onClick={() => ctx.run("check")}>Uji koneksi YouTube</Btn></div>
+  </>);
+}
+
+export const agentById = (id: string) => TEAM.find((t) => t.id === id);

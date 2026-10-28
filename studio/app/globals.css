@@ -1,0 +1,50 @@
+@import "tailwindcss";
+@import "@fontsource/pixelify-sans/500.css";
+@import "@fontsource/pixelify-sans/700.css";
+@import "@fontsource/atkinson-hyperlegible/400.css";
+@import "@fontsource/atkinson-hyperlegible/700.css";
+
+@theme {
+  --font-pixel: "Pixelify Sans", "Segoe UI", system-ui, sans-serif;
+  --font-sans: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+
+  --color-ink-950: #08121f;
+  --color-ink-900: #0e1b2e;
+  --color-ink-800: #13243b;
+  --color-ink-700: #1a3050;
+  --color-ink-600: #22406a;
+  --color-ink-50: #ecf2f8;
+  --color-line: #2a4868;
+  --color-muted: #97aac0;
+  --color-faint: #66809d;
+  --color-circuit: #47b5ff;
+  --color-signal: #ff9a4d;
+  --color-leaf: #6fd29a;
+  --color-gold: #f2c94c;
+  --color-bad: #f07178;
+}
+
+html, body { height: 100%; }
+body { background: var(--color-ink-900); color: var(--color-ink-50); }
+:focus-visible { outline: 2px solid var(--color-circuit); outline-offset: 2px; }
+
+.bubble::after {
+  content: ""; position: absolute; left: 50%; bottom: -8px; margin-left: -5px;
+  border: 5px solid transparent; border-top-color: #1a2638;
+}
+
+/* isi markdown (laporan Steve) */
+.prose-studio { font-size: 14px; line-height: 1.6; }
+.prose-studio h1 { font: 700 18px/1.3 var(--font-pixel); margin: 0 0 8px; }
+.prose-studio h2 { font: 700 16px/1.3 var(--font-pixel); margin: 18px 0 6px; }
+.prose-studio h3 { font-weight: 700; margin: 14px 0 6px; }
+.prose-studio p { margin: 0 0 8px; }
+.prose-studio ul, .prose-studio ol { padding-left: 20px; margin: 0 0 8px; list-style: revert; }
+.prose-studio table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 6px 0 10px; }
+.prose-studio th, .prose-studio td { border-bottom: 1px solid var(--color-line); padding: 5px 6px; text-align: left; vertical-align: top; }
+.prose-studio th { color: var(--color-muted); }
+.prose-studio code { background: var(--color-ink-950); padding: 1px 4px; border-radius: 3px; }
+.prose-studio a { color: var(--color-circuit); }
+.prose-studio blockquote { border-left: 3px solid var(--color-line); padding-left: 10px; color: var(--color-muted); }
+
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }

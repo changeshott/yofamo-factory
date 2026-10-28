@@ -1,5 +1,5 @@
 # Jalankan Steve (Claude Code, kuota langganan Pro). Dipanggil manual atau dari Task Scheduler.
-# Hasil laporan dan log tampil di Yofamo Control Room (python dashboard/server.py).
+# Hasil laporan dan log tampil di Studio Yofamo (start_studio.bat).
 Set-Location -Path $PSScriptRoot
 
 $stamp = Get-Date -Format "yyyy-MM-dd_HHmmss"

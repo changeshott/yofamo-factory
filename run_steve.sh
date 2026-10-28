@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Jalankan Steve (Claude Code, kuota langganan). Mac/Linux, manual atau dari crontab.
-# Hasil laporan dan log tampil di Yofamo Control Room (python3 dashboard/server.py).
+# Hasil laporan dan log tampil di Studio Yofamo (start_studio.bat).
 set -u
 cd "$(dirname "$0")"
 export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
