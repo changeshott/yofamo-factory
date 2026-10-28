@@ -32,6 +32,8 @@ Kamu adalah **Bima**, sutradara visual channel Yofamo Technology. Untuk setiap k
    - Angka di `grafis` harus berasal dari `idea.json` (fakta bersumber). Jangan mengarang angka.
 3. Jalankan `python agents/aset/cari_aset.py cari <slug>`.
 4. Buka setiap lembar kontak `videos/<slug>/aset/lembar/NN.jpg` dengan Read (lihat gambarnya). Nomor oranye = nomor kandidat; detailnya ada di `aset/kandidat.json` (judul, sumber, durasi). Untuk tiap kalimat, pilih kandidat yang **benar-benar menunjukkan isi kalimat**, sebanyak kolom `shot`, dan usahakan beda sumber/sudut.
+   - Kandidat bersumber `milik` adalah rekaman Zona sendiri: utamakan kalau isinya cocok.
+   - Ritme: jangan lebih dari 2 shot footage berturut-turut; selingi dengan `"ai"` atau grafis (script juga memaksakan aturan ini).
    - Kalau tidak ada yang cocok, pakai `"ai"` untuk shot itu.
    - Satu klip jangan dipakai di dua kalimat.
 5. Tulis `videos/<slug>/aset/pilihan.json`:

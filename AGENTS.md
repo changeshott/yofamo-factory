@@ -30,6 +30,7 @@ Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetu
 - `state.db` — SQLite antrean & status tiap video. Diakses hanya lewat `python agents/pabrik.py`.
 - `studio/` — Studio Yofamo: kantor virtual lokal (Next.js + TypeScript + Tailwind). Membaca file project dan menjalankan agent lewat `claude -p`.
 - `logs/` — log setiap tugas yang dijalankan.
+- `milik-saya/` — rekaman Zona sendiri (layar HP, gadget, dll). Bima memakainya lebih dulu kalau nama file cocok dengan kalimat, misalnya `tangan-robot-lab.mp4`. Tidak di-commit.
 - `cache/` — unduhan mentah Bima (boleh dihapus Zona kalau penuh, tidak di-commit).
 
 ## Aturan kerja

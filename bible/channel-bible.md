@@ -53,6 +53,8 @@ Panjang 90–110 kata.
 - Ganti visual tiap 1,5–3 detik.
 - Tanpa watermark atau logo channel lain.
 - Sumber visual: footage YouTube Creative Commons (CC BY), NASA, Wikimedia Commons (PD/CC0/CC BY), Pexels/Pixabay bila ada key; gambar AI (FLUX via Cloudflare, digerakkan halus); kartu grafis buatan sendiri. Lisensi dicatat di `aset/manifest.json`, kredit CC BY masuk deskripsi.
+- Ritme: maksimal 2 shot footage berturut-turut, lalu selingan gambar AI bergerak atau animasi grafis. Suara asli klip tidak pernah dipakai; hanya voice-over Dara.
+- Rekaman sendiri taruh di `milik-saya/` dengan nama file deskriptif; selalu diprioritaskan.
 - Campuran ideal: ±60% footage, ±25% gambar AI, ±15% grafis (angka/pertanyaan). Hook selalu footage terkuat.
 - Video dengan gambar AI realistis: centang "konten diubah/sintetis" saat upload.
 - Gaya CapCut (font, caption, hook, adjustment, BGM) mengikuti project template.

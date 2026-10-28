@@ -45,6 +45,9 @@ import sumber  # noqa: E402
 ROOT = Path(__file__).resolve().parents[2]
 VIDEOS = ROOT / "videos"
 CACHE = ROOT / "cache" / "aset"
+MILIK = ROOT / "milik-saya"      # rekaman Zona sendiri: prioritas tertinggi
+VIDEO_EXT = {".mp4", ".mov", ".mkv", ".webm", ".m4v"}
+MAX_FOOTAGE_BERUNTUN = 2         # setelah 2 shot footage berturut-turut, wajib selingan AI/animasi
 FIXTURE = Path(__file__).with_name("contoh_respon.json")
 SHOT_MAX = 3.0          # bible: ganti visual tiap 1,5–3 detik
 MAX_BYTES = 300 * 1024 * 1024
@@ -175,7 +178,35 @@ def search_all(query: str, english: bool) -> list[dict]:
     return out
 
 
+def tokens(text: str) -> set[str]:
+    return {t for t in re.findall(r"[a-z0-9]+", text.lower()) if len(t) >= 3}
+
+
+def own_matches(texts: list[str]) -> list[dict]:
+    """Cocokkan nama file di milik-saya/ dengan kata kunci & kolom visual (nama file sebaiknya deskriptif)."""
+    if not MILIK.is_dir():
+        return []
+    want = set().union(*(tokens(t) for t in texts)) if texts else set()
+    scored = []
+    for f in MILIK.rglob("*"):
+        if f.suffix.lower() in VIDEO_EXT and f.is_file():
+            score = len(tokens(f.stem.replace("-", " ").replace("_", " ")) & want)
+            if score:
+                scored.append((score, f))
+    out = []
+    for score, f in sorted(scored, key=lambda x: -x[0])[:4]:
+        out.append(sumber.kandidat(sumber="milik", id=f.stem[:60], judul=f.name, pembuat="Zona", gambar=f"file:{f}",
+                                   durasi=gerak.duration(f), lisensi="milik Zona", unduh=str(f), url_halaman=""))
+    return out
+
+
 def fetch_thumb(url: str, dest: Path, label: str) -> bool:
+    if url.startswith("file:"):
+        try:
+            gerak.ff("-ss", "1", "-i", url[5:], "-frames:v", "1", "-vf", "scale=480:-2", str(dest))
+            return True
+        except RuntimeError:
+            return False
     if UJI:
         gerak.placeholder(dest, label, "0x2A4A6B", "480x270" if "yt" in label or "nasa" in label else "270x480")
         return True
@@ -201,6 +232,9 @@ def cmd_cari(slug: str) -> None:
                  "shot": n_shot, "kandidat": [], "lembar": None}
         if p["jenis"] == "footage":
             seen, cands = set(), []
+            for c in own_matches(p["kata"] + [narasi[i].get("visual", ""), narasi[i]["kalimat"]]):
+                seen.add((c["sumber"], c["id"]))
+                cands.append({**c, "kueri": "milik-saya"})
             for q in p["kata"]:
                 for c in search_all(q, p["inggris"]):
                     if (c["sumber"], c["id"]) not in seen:
@@ -301,7 +335,7 @@ def yt_segment(c: dict, need: float, used: list[tuple[float, float]]) -> tuple[P
 
 def raw_footage(c: dict, need: float, seg: int, used: list) -> tuple[Path, float]:
     """Kembalikan (file mentah, detik mulai dipotong)."""
-    if UJI:
+    if UJI and c["sumber"] != "milik":
         p = cache_path(f"uji-{c['sumber']}-{c['id']}.mp4")
         if not p.exists():
             size = "1280x720" if c["sumber"] in ("youtube", "nasa", "wikimedia") else "720x1280"
@@ -309,6 +343,10 @@ def raw_footage(c: dict, need: float, seg: int, used: list) -> tuple[Path, float
         return p, min(seg * (need + 0.5), max(0.0, gerak.duration(p) - need))
     if c["sumber"] == "youtube":
         return yt_segment(c, need, used)
+    if c["sumber"] == "milik":
+        p = Path(c["unduh"])
+        d = gerak.duration(p)
+        return p, max(0.0, min(0.5 + seg * (need + 0.5), d - need)) if d > need else 0.0
     url = sumber.nasa_file(c["id"]) if c["sumber"] == "nasa" else c["unduh"]
     ext = Path(urllib.parse.urlparse(url).path).suffix.lower() if c["sumber"] == "wikimedia" else ".mp4"
     p = http_download(url, cache_path(f"{c['sumber']}-{c['id']}{ext if ext in ('.webm', '.ogv', '.mp4', '.mpg', '.mpeg') else '.mp4'}"))
@@ -364,6 +402,7 @@ def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
     old = {(k["i"], k["potong"]): k for k in read_json(aset / "manifest.json", {}).get("klip", [])}
     klip, kurang = [], []
     taken = {(k.get("sumber"), k.get("id")) for (ii, _), k in old.items() if ii + 1 not in ulang and k.get("jenis") == "footage"}
+    streak = 0                                   # jumlah shot footage berturut-turut
     for p, span in zip(plan, spans):
         i = p["i"]
         e = entries.get(i, {"kandidat": [], "jenis": p["jenis"]})
@@ -380,9 +419,12 @@ def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
             keep = old.get((i, s))
             if (i + 1) not in ulang and keep and keep.get("file") == name and out.exists() and abs(keep["durasi"] - dur) < 0.05 and keep.get("uji") == UJI:
                 klip.append(keep)
+                streak = streak + 1 if keep.get("jenis") == "footage" else 0
                 continue
             meta = None
             want = choice[s] if s < len(choice) else (choice[s % len(choice)] if choice else "ai")
+            if want not in ("ai", "grafis") and streak >= MAX_FOOTAGE_BERUNTUN and i > 0:
+                want = "ai"                      # selingan supaya ritme tidak monoton
             tries = [want] + [q for q in queue if q != want] + ["ai"]
             for t in tries:
                 try:
@@ -422,6 +464,7 @@ def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
             rec = {"i": i, "potong": s, "file": name, "mulai": round(bounds[s], 3), "selesai": round(bounds[s + 1], 3),
                    "durasi": dur, "kalimat": narasi[i]["kalimat"], "uji": UJI, **meta}
             klip.append(rec)
+            streak = streak + 1 if rec["jenis"] == "footage" else 0
             log(f"{i + 1:02}{letter}. {rec['jenis']:<8} {rec['sumber']:<15} {dur:.1f} dtk")
 
     klip.sort(key=lambda k: (k["i"], k["potong"]))

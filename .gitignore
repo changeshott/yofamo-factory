@@ -12,3 +12,5 @@ bible/.history/
 studio/node_modules/
 studio/.next/
 cache/
+milik-saya/*
+!milik-saya/.gitkeep
