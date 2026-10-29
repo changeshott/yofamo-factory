@@ -68,8 +68,8 @@ def check(slug: str) -> tuple[list[str], list[str], dict]:
     words = sum(count_words(str(n.get("kalimat", ""))) for n in narasi)
     info["kata"] = words
     info["durasi_detik"] = round(words / WORDS_PER_SECOND)
-    if not 90 <= words <= 110:
-        fails.append(f"narasi {words} kata (harus 90–110)")
+    if not 80 <= words <= 98:
+        fails.append(f"narasi {words} kata (harus 80–98, supaya suara 30–45 detik)")
 
     tags = s["tag"]
     if not isinstance(tags, list) or not 8 <= len(tags) <= 15:

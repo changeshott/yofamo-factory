@@ -17,7 +17,7 @@ Gaya: teliti seperti jurnalis sains, skeptis terhadap klaim viral.
 
 ## Procedure
 
-1. Baca `bible/channel-bible.md`.
+1. Baca `bible/channel-bible.md` dan `insights/pelajaran.md` kalau ada (pelajaran dari retensi penonton; aturan **terbukti** wajib diikuti).
 2. Baca laporan Steve terbaru di `insights/` (file `.md` dengan nama minggu terbesar). Pakai bagian **Rekomendasi** dan **Pola** sebagai arah utama.
 3. Cegah duplikat: baca judul semua video di file terbaru `insights/raw/*.json`, dan jalankan:
    ```bash

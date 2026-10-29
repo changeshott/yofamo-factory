@@ -33,13 +33,13 @@ IDEA = {
     "visual_tersedia": "Video demo", "risiko": "Prototipe",
 }
 NARASI = [
-    ("Robot ini bisa ngerasain sakit beneran, dan ini bukan film fiksi ilmiah sama sekali.", "close-up tangan robot disentuh jarum"),
-    ("Ilmuwan bikin kulit buatan yang tipis banget, lentur, dan penuh sensor kecil di dalamnya.", "lembar kulit buatan ditarik pelan"),
-    ("Setiap sensor mengubah tekanan jadi sinyal listrik, mirip saraf di kulit kita sendiri.", "animasi sinyal mengalir dari ujung jari"),
-    ("Kalau ditekan terlalu keras, robotnya langsung menarik tangan, persis seperti refleks manusia.", "robot menarik tangan dari benda tajam"),
+    ("Robot ini bisa ngerasain sakit beneran, dan ini bukan film fiksi ilmiah.", "close-up tangan robot disentuh jarum"),
+    ("Ilmuwan bikin kulit buatan yang tipis, lentur, dan penuh sensor kecil di dalamnya.", "lembar kulit buatan ditarik pelan"),
+    ("Setiap sensor mengubah tekanan jadi sinyal listrik, mirip saraf di kulit kita.", "animasi sinyal mengalir dari ujung jari"),
+    ("Kalau ditekan terlalu keras, robotnya langsung menarik tangan, seperti refleks manusia.", "robot menarik tangan dari benda tajam"),
     ("Tujuannya bukan bikin robot menderita, tapi bikin tangan palsu yang bisa merasakan lagi.", "tangan prostetik memegang gelas"),
     ("Bayangin pengguna tangan palsu bisa ngerasain hangatnya genggaman orang yang mereka sayang.", "dua tangan saling menggenggam"),
-    ("Teknologinya masih di laboratorium, jadi belum dijual bebas di mana pun saat ini.", "ruang laboratorium dengan peneliti"),
+    ("Teknologinya masih di laboratorium, jadi belum dijual bebas di mana pun.", "ruang laboratorium dengan peneliti"),
     ("Jadi kalau robot bisa ngerasain sakit, kira-kira dia juga bisa ngerasa sedih nggak ya?", "wajah robot menatap kamera"),
 ]
 SCRIPT = {
@@ -176,6 +176,22 @@ def offline() -> None:
         ar = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=codec_name", "-of", "csv=p=0", str(fin)], capture_output=True, text=True)
         cek("Kai: ada audio AAC", "aac" in ar.stdout)
         cek("Kai: subtitle & sampul dibuat", (vdir / "export" / "subtitle.ass").exists() and (vdir / "export" / "sampul.jpg").exists())
+
+        # Rara (QC otomatis): rusak satu shot dengan klip hitam → harus terdeteksi dan diganti
+        target = next(k for k in kl if k["jenis"] != "grafis")
+        subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-f", "lavfi", "-i", f"color=black:s=1080x1920:r=30:d={target['durasi']:.3f}",
+                        "-pix_fmt", "yuv420p", str(vdir / "aset" / target["file"])], check=False)
+        t0 = time.time()
+        r = run(tmp, "agents/qc/periksa.py", "otomatis", slug, "--uji")
+        q = json.loads((vdir / "export" / "qc.json").read_text(encoding="utf-8")) if (vdir / "export" / "qc.json").exists() else {}
+        cek("Rara: shot hitam terdeteksi & diganti", r.returncode == 0 and q.get("putaran", 0) >= 1 and not q.get("ganti_otomatis"),
+            f"{q.get('putaran')} putaran, {time.time() - t0:.0f} dtk" if q else (r.stdout + r.stderr)[-300:])
+        cek("Rara: lembar frame dibuat", bool(q.get("lembar")) and all((vdir / x).exists() for x in q.get("lembar", [])))
+
+        # Kontrol Zona: hapus video
+        r = run(tmp, "agents/pabrik.py", "hapus", slug, "--ya")
+        rows = json.loads(run(tmp, "agents/pabrik.py", "list", "--json").stdout or "[]")
+        cek("Hapus video: catatan & folder hilang", r.returncode == 0 and not vdir.exists() and not any(x["slug"] == slug for x in rows))
     except Exception:
         cek("tes tanpa internet berjalan sampai selesai", False, traceback.format_exc().strip().splitlines()[-1])
     finally:

@@ -15,10 +15,11 @@ function scriptTools(...scripts: string[]): string[] {
   return out;
 }
 const TOOLS = {
-  steve: scriptTools("agents/steve/fetch_stats.py"),
+  steve: scriptTools("agents/steve/fetch_stats.py", "agents/steve/analitik.py"),
   ide: [...scriptTools("agents/pabrik.py"), "WebSearch", "WebFetch"],
   penulis: scriptTools("agents/pabrik.py", "agents/penulis/cek_naskah.py"),
   aset: scriptTools("agents/pabrik.py", "agents/aset/cari_aset.py"),
+  qc: scriptTools("agents/pabrik.py", "agents/qc/periksa.py"),
 };
 
 type Store = { state: JobState; child: ChildProcess | null };
@@ -57,6 +58,25 @@ async function command(job: JobName, arg: string): Promise<{ cmd: string; args: 
     if (v.status !== "aset" && v.status !== "draft") return "Video dirakit setelah visual dari Bima siap (status aset).";
     return { cmd: py, args: ["agents/editor/rakit.py", arg] };
   }
+  if (job === "qc" || job === "upload") {
+    if (!py) return "Python tidak ditemukan.";
+    const [slug, opsi = ""] = arg.split("|");
+    if (!SLUG.test(slug ?? "")) return "Video tidak ditemukan.";
+    const rows = await pabrik<{ slug: string; status: string }[]>(["list", "--json"]);
+    const v = rows.find((r) => r.slug === slug);
+    if (!v) return "Video tidak ditemukan.";
+    if (job === "qc") {
+      if (v.status !== "draft") return "Rara memeriksa video yang sudah dirakit Kai (status: video jadi).";
+      if (opsi === "otomatis") return { cmd: py, args: ["agents/qc/periksa.py", "otomatis", slug] };
+      const claude = which("claude");
+      if (!claude) return "Perintah 'claude' tidak ditemukan.";
+      return { cmd: claude, args: ["-p", `/qc ${slug}`, "--model", "sonnet", "--max-turns", "60", "--allowedTools", ...TOOLS.qc] };
+    }
+    if (v.status !== "export") return "Hanya video yang sudah kamu setujui (Siap upload) yang boleh diupload.";
+    if (opsi && !/^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(opsi)) return "Format jadwal tidak valid.";
+    return { cmd: py, args: ["agents/upload/unggah.py", "unggah", slug, ...(opsi ? ["--jadwal", opsi] : [])] };
+  }
+  if (job === "login") return py ? { cmd: py, args: ["agents/upload/unggah.py", "login"] } : "Python tidak ditemukan.";
   if (job === "produksi") {
     if (!py) return "Python tidak ditemukan.";
     if (!which("ffmpeg")) return "ffmpeg belum terpasang. Jalankan: winget install Gyan.FFmpeg";
@@ -108,6 +128,9 @@ const LABEL: Record<JobName, string> = {
   aset: "Bima mencari klip",
   editor: "Kai merakit video",
   produksi: "Produksi video",
+  qc: "Rara memeriksa video",
+  upload: "Uli mengunggah ke YouTube",
+  login: "Menghubungkan YouTube",
 };
 
 export async function startJob(job: JobName, arg = ""): Promise<{ ok: boolean; message: string }> {
@@ -128,6 +151,7 @@ export async function startJob(job: JobName, arg = ""): Promise<{ ok: boolean; m
     windowsHide: true,
     shell: isCmd, // .cmd di Windows butuh shell; argumen sudah disaring
     env: agentEnv(),
+    detached: process.platform !== "win32", // supaya Hentikan juga mematikan proses anak (claude, ffmpeg)
   });
   store.child = child;
   store.state = { job, arg: arg || null, status: "running", started: localIso(), finished: null, log: logName };
@@ -139,10 +163,48 @@ export async function startJob(job: JobName, arg = ""): Promise<{ ok: boolean; m
     fs.closeSync(out);
     store.child = null;
     if (store.state.log === logName) store.state = { ...store.state, status: store.state.status === "stopped" ? "stopped" : status, finished: localIso() };
+    // antrean produksi: lanjut ke permintaan berikutnya (kecuali dihentikan Zona)
+    if (store.state.status !== "stopped") setTimeout(() => { void nextInQueue(); }, 1500);
   };
   child.on("error", (err) => done("error", `Gagal menjalankan: ${err.message}`));
   child.on("exit", (code) => done(code === 0 ? "ok" : "error", code === 0 ? undefined : `Selesai dengan kode ${code}`));
   return { ok: true, message: "Dimulai." };
+}
+
+/* ------------------------------------------------------------ antrean produksi */
+export interface QueueItem { id: string; teks: string; suara: string; visual: string; dibuat: string }
+const QFILE = () => path.join(P.produksi, "antrean.json");
+
+export function readQueue(): QueueItem[] {
+  try { return JSON.parse(fs.readFileSync(QFILE(), "utf8")) as QueueItem[]; } catch { return []; }
+}
+function writeQueue(q: QueueItem[]) {
+  fs.mkdirSync(P.produksi, { recursive: true });
+  fs.writeFileSync(QFILE(), JSON.stringify(q, null, 2));
+}
+export async function enqueue(teks: string, suara: string, visual: string): Promise<{ ok: boolean; message: string }> {
+  const clean = teks.replace(/[^\p{L}\p{N}\s,.\-?!]/gu, "").trim().slice(0, 200);
+  if (clean.length < 3) return { ok: false, message: "Tulis dulu mau video tentang apa." };
+  const q = readQueue();
+  if (q.length >= 20) return { ok: false, message: "Antrean penuh (maksimal 20)." };
+  q.push({ id: `${Date.now()}`, teks: clean, suara: suara === "wanita" ? "wanita" : "pria", visual: visual === "cepat" ? "cepat" : "teliti", dibuat: localIso() });
+  writeQueue(q);
+  if (store.state.status !== "running") { await nextInQueue(); return { ok: true, message: "Produksi dimulai." }; }
+  return { ok: true, message: `Masuk antrean (urutan ${q.length}).` };
+}
+export function dequeue(id: string): boolean {
+  const q = readQueue(), n = q.filter((x) => x.id !== id);
+  writeQueue(n);
+  return n.length !== q.length;
+}
+async function nextInQueue() {
+  if (store.state.status === "running") return;
+  const q = readQueue();
+  const it = q.shift();
+  if (!it) return;
+  writeQueue(q);
+  const r = await startJob("produksi", `${it.suara}|${it.visual}|${it.teks}`);
+  if (!r.ok) { fs.appendFileSync(path.join(P.logs, "antrean-gagal.txt"), `${localIso()} ${it.teks}: ${r.message}\n`); setTimeout(() => { void nextInQueue(); }, 1000); }
 }
 
 export function stopJob(): { ok: boolean; message: string } {
@@ -150,6 +212,8 @@ export function stopJob(): { ok: boolean; message: string } {
   store.state = { ...store.state, status: "stopped" };
   if (process.platform === "win32" && store.child.pid) {
     spawn("taskkill", ["/pid", String(store.child.pid), "/T", "/F"], { windowsHide: true });
+  } else if (store.child.pid) {
+    try { process.kill(-store.child.pid, "SIGTERM"); } catch { store.child.kill(); }
   } else store.child.kill();
   return { ok: true, message: "Tugas dihentikan." };
 }

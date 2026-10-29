@@ -102,3 +102,15 @@ python agents/tes_pabrik.py --online
 ```
 
 Semua baris harus `OK`. Kalau ada `GAGAL`, kirim seluruh keluarannya ke Claude.
+
+## Upload otomatis & data retensi (Uli + Steve v2)
+
+Gratis, tapi perlu satu kali menyiapkan OAuth di Google Cloud (project yang sama dengan YouTube API key boleh):
+
+1. https://console.cloud.google.com → pilih project → **APIs & Services → Library** → aktifkan **YouTube Data API v3** dan **YouTube Analytics API**.
+2. **OAuth consent screen**: User type *External*, isi nama aplikasi (misalnya "Yofamo Studio") dan email-mu, lalu di **Test users** tambahkan email akun YouTube-mu.
+3. **Credentials → Create credentials → OAuth client ID** → Application type **Desktop app** → Create → **Download JSON**.
+4. Simpan file itu sebagai `rahasia\client_secret.json` di folder project (buat folder `rahasia` kalau belum ada). Jangan pernah dikirim ke siapa pun.
+5. `python -m pip install -r requirements.txt`, buka Studio → meja **Uli** → **Hubungkan YouTube** → login di browser yang terbuka → izinkan.
+
+Catatan: project yang belum diaudit YouTube hanya bisa upload **private**. Uli mengunggah private (bisa dengan jadwal); kamu mengubahnya ke publik di YouTube Studio. Kuota API gratis cukup untuk ±6 upload per hari.

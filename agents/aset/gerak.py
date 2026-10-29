@@ -70,6 +70,18 @@ def loop_to(src: Path, out: Path, dur: float) -> None:
     ff("-i", str(src), "-filter_complex", vf, *ENC, str(out))
 
 
+def cek_shot(path: Path) -> tuple[float, float]:
+    """Persentase durasi yang hitam/gelap dan yang beku (tidak bergerak). Dipakai Bima & QC Rara."""
+    import re as _re
+    r = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "info", "-i", str(path), "-an", "-vf",
+                        "blackdetect=d=0.25:pix_th=0.12:pic_th=0.92,freezedetect=n=-55dB:d=0.7", "-f", "null", "-"],
+                       capture_output=True, text=True, encoding="utf-8", errors="replace")
+    total = duration(path) or 1.0
+    black = sum(float(x) for x in _re.findall(r"black_duration:\s*([\d.]+)", r.stderr))
+    frz = sum(float(x) for x in _re.findall(r"freeze_duration:\s*([\d.]+)", r.stderr))
+    return min(1.0, black / total), min(1.0, frz / total)
+
+
 # ------------------------------------------------------------------ gambar AI → video
 def kenburns(img: Path, out: Path, dur: float, seed: int) -> None:
     """Gerak kamera halus (zoom + geser dengan easing) supaya gambar diam terasa hidup, bukan slideshow kaku."""

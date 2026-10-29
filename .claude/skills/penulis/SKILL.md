@@ -12,6 +12,7 @@ Gaya: bahasa Indonesia lisan yang santai dan cepat, seperti teman yang sedang ka
 ## When to Use
 
 - Diminta "tulis naskah", "panggil Raka", atau dijalankan dari Studio Yofamo.
+- **Mode pangkas** (`/penulis <slug> --pangkas <detik>`): dijalankan otomatis kalau suara Dara lebih dari 45 detik. Status boleh `naskah` atau `suara`. Baca `script.json` yang ada, pangkas menjadi ±{(45 / detik) × jumlah kata sekarang, dikurangi 5} kata dengan membuang kata/kalimat yang paling tidak penting (hook, fakta utama, dan penutup loop tetap). Jangan menambah fakta. Validasi seperti biasa, lalu `python agents/pabrik.py set <slug> naskah --note "dipangkas Raka"`.
 - Argumen: `slug` video. Kalau tidak ada, ambil video berstatus `disetujui` yang paling lama:
   ```bash
   python agents/pabrik.py list --status disetujui
@@ -20,15 +21,15 @@ Gaya: bahasa Indonesia lisan yang santai dan cepat, seperti teman yang sedang ka
 
 ## Procedure
 
-1. Pastikan status video `disetujui` (`python agents/pabrik.py show <slug>`). Kalau bukan, berhenti.
-2. Baca `bible/channel-bible.md` dan `videos/<slug>/idea.json`.
+1. Pastikan status video `disetujui` (`python agents/pabrik.py show <slug>`). Kalau bukan, berhenti (kecuali mode pangkas: `naskah` atau `suara`).
+2. Baca `bible/channel-bible.md` dan `insights/pelajaran.md` kalau ada (pelajaran dari retensi penonton; aturan **terbukti** wajib diikuti) dan `videos/<slug>/idea.json`.
 3. Tulis naskah mengikuti struktur bible:
    1. **Hook (0–2 detik)**: klaim kaget atau pertanyaan "beneran?!".
    2. Apa itu (1 kalimat).
    3. Cara kerja singkat (1–2 kalimat).
    4. Fakta paling mengejutkan.
    5. Penutup yang nyambung ke kalimat pembuka supaya terasa loop.
-   Total **90–110 kata**. Setiap fakta harus ada di `idea.json`. Jangan menambah fakta baru.
+   Total **80–98 kata** (suara ±2,3 kata/detik → 35–43 detik). Setiap fakta harus ada di `idea.json`. Jangan menambah fakta baru.
 4. Tulis `videos/<slug>/script.json` dengan format di bawah.
 5. Validasi:
    ```bash
@@ -52,11 +53,13 @@ Gaya: bahasa Indonesia lisan yang santai dan cepat, seperti teman yang sedang ka
   "deskripsi": "2–3 kalimat ringkas + baris 'Sumber:' berisi URL dari idea.json + 3–5 hashtag",
   "tag": ["teknologi", "kulit buatan", "robot", "…"],
   "sumber": ["https://…", "https://…"],
-  "catatan_editor": "Bagian yang perlu diperhatikan editor, misalnya angka yang harus muncul di layar"
+  "catatan_editor": "Bagian yang perlu diperhatikan editor, misalnya angka yang harus muncul di layar",
+  "suasana": "misterius"
 }
 ```
 
 - `judul`: klaim HURUF KAPITAL + pertanyaan/kalimat kaget, diakhiri tepat `#Shorts #Teknologi`, maksimal 100 karakter.
+- `suasana`: satu dari `tegang`, `ceria`, `misterius`, `epik`, `haru`. Dipakai Kai untuk memilih musik.
 - `hook_teks`: teks besar di layar 2 detik pertama, maksimal 6 kata.
 - `narasi`: 6–12 kalimat. Setiap kalimat punya `visual` yang konkret dan bisa dicari (benda, aksi, close-up), bukan "gambar keren".
 - `tag`: 8–15 tag huruf kecil, tanpa `#`.

@@ -8,19 +8,20 @@ Pemilik: Zona. Semua jawaban dan laporan ditulis dalam **bahasa Indonesia**.
 
 | Nama | Peran | Skill | Status |
 | --- | --- | --- | --- |
-| Steve | Analis: membaca statistik channel, menemukan pola topik/hook yang menang | `/steve-analis` | aktif |
+| Steve | Analis: statistik publik + retensi YouTube Analytics (`analitik.py`), menulis `insights/pelajaran.md` yang dibaca Nova/Raka/Bima | `/steve-analis` | aktif |
 | Nova | Ide & riset: 3 ide bersumber per putaran → `videos/<slug>/idea.json` | `/ide-riset [tema]` | aktif |
 | Raka | Penulis: naskah, judul, hook, deskripsi, tag → `script.json` | `/penulis <slug>` | aktif |
 | Dara | Suara: voice-over gratis (edge-tts) + timing kata + subtitle → `vo.mp3`, `words.json`, `captions.srt` | `/suara <slug>` | aktif |
 | Bima | Visual: 1–3 shot 1080x1920 per kalimat dari footage YouTube CC BY/NASA/Wikimedia Commons (Pexels/Pixabay opsional), gambar AI gratis (Cloudflare FLUX + Ken Burns), atau kartu grafis → `aset/NN-a.mp4`, `aset/manifest.json` | `/aset <slug>` | aktif |
-| Kai | Editor: rakit video final (ffmpeg) — subtitle kata-per-kata, hook, punch zoom, whoosh, musik → `export/final.mp4` | `/editor <slug>` | aktif |
-| (belum) | Review & upload | `/upload` | belum dibuat |
+| Kai | Editor: rakit video final (ffmpeg) — subtitle kata-per-kata, hook, punch zoom, whoosh, musik per suasana → `export/final.mp4` | `/editor <slug>` | aktif |
+| Rara | QC: cek otomatis (gelap/beku/durasi/LUFS/porsi AI) + lihat frame tiap shot, tolak yang jelek → Bima ganti → Kai rakit ulang (maks 2 putaran) → `export/qc.json`, `qc_review.json` | `/qc <slug>` | aktif |
+| Uli | Upload: video `export` → YouTube **private** (+ jadwal, kredit, label konten sintetis) → `export/upload.json` | `/upload <slug>` | aktif |
 
-Setiap agent adalah satu skill Claude Code di `.claude/skills/`. Kalau diminta "panggil Steve/Nova/Raka/Dara/Bima/Kai", jalankan skill-nya.
+Setiap agent adalah satu skill Claude Code di `.claude/skills/`. Kalau diminta "panggil Steve/Nova/Raka/Dara/Bima/Kai/Rara/Uli", jalankan skill-nya.
 
-Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetujui di Studio Yofamo** (`disetujui`) → Raka (naskah, status `naskah`) → Dara (suara + subtitle, status `suara`) → Bima (klip, status `aset`) → Kai (video final, status `draft`) → **Zona menonton & menyetujui** (`export`) → upload manual (status `terbit`).
+Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetujui di Studio Yofamo** (`disetujui`) → Raka (naskah, status `naskah`) → Dara (suara + subtitle, status `suara`) → Bima (klip, status `aset`) → Kai (video final, status `draft`) → Rara (QC + perbaikan) → **Zona menonton & menyetujui** (`export`) → Uli (upload private) → Zona menayangkan di YouTube Studio → `terbit` → Steve membaca retensi → `insights/pelajaran.md` → putaran berikutnya lebih baik.
 
-**Jalur cepat — tombol "+ Buat video" di Studio** (`agents/produser.py`): Zona menulis topik → Nova membuat 1 ide tentang topik itu (tetap 2 sumber) → ide otomatis disetujui karena Zona sendiri yang meminta → Raka → Dara → Bima → Kai → video `draft` yang tetap harus ditonton dan disetujui Zona. Kemajuan di `produksi/<id>.json`.
+**Jalur cepat — tombol "+ Buat video" di Studio** (`agents/produser.py`): Zona menulis topik → Nova membuat 1 ide tentang topik itu (tetap 2 sumber) → ide otomatis disetujui karena Zona sendiri yang meminta → Raka → Dara (durasi di luar 28–45 dtk diperbaiki otomatis: percepat suara atau Raka memangkas) → Bima → Kai → Rara → video `draft` yang tetap harus ditonton dan disetujui Zona. Beberapa permintaan bisa diantrekan (`produksi/antrean.json`). Kemajuan di `produksi/<id>.json`.
 
 ## Struktur folder
 
@@ -36,6 +37,8 @@ Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetu
 - `logs/` — log setiap tugas yang dijalankan.
 - `produksi/` — catatan kemajuan tiap permintaan "Buat video" (tidak di-commit).
 - `milik-saya/` — rekaman Zona sendiri (layar HP, gadget, dll). Bima memakainya lebih dulu kalau nama file cocok dengan kalimat, misalnya `tangan-robot-lab.mp4`. Tidak di-commit.
+- `rahasia/` — OAuth client & token YouTube (tidak pernah di-commit, jangan dibaca/ditampilkan agent).
+- `insights/pelajaran.md` — aturan hasil belajar dari retensi penonton (ditulis Steve).
 - `cache/` — unduhan mentah Bima (boleh dihapus Zona kalau penuh, tidak di-commit).
 
 ## Aturan kerja
@@ -44,7 +47,8 @@ Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetu
 - Satu video sedikit (< 5) bukan pola. Sebut sebagai "dugaan" sampai ada minimal 5 video pendukung.
 - Jangan pernah menghapus file di `insights/` atau `videos/`. Tulis file baru.
 - Klip hanya dari sumber berlisensi bebas: YouTube **Creative Commons (CC BY)** lewat script Bima, NASA, Wikimedia Commons (hanya PD/CC0/CC BY), Pexels, Pixabay, gambar AI, atau milik Zona. Jangan pernah mengambil video YouTube biasa, TikTok, film, atau berita.
-- Jangan mengupload, menghapus, atau mengubah apa pun di YouTube. Steve hanya **membaca** data publik.
+- Hanya Uli yang boleh mengupload, hanya video berstatus `export` (sudah disetujui Zona), dan selalu **private**. Tidak ada agent yang menghapus atau mengubah video yang sudah ada di YouTube. Steve hanya **membaca** data.
+- Menghapus hasil (video, log, laporan) hanya dilakukan Zona lewat panel Kelola di Studio (`pabrik.py hapus`). Agent tidak pernah menghapus.
 - API key ada di `.env` (dibaca script). Jangan menampilkan isi `.env` di chat atau laporan.
 - Ringkasan akhir agent: maksimal sekitar 15 baris, poin terpenting dulu. Laporan dan log dibaca Zona lewat Studio Yofamo (`studio/`).
 - Jangan mengubah file di `studio/` kecuali diminta.
@@ -63,6 +67,9 @@ python agents/aset/cari_aset.py semua <slug> # Bima cepat: cari + pilih otomatis
 python agents/aset/cari_aset.py cari <slug>  # Bima: kandidat + lembar kontak (lalu pilihan.json → unduh)
 python agents/editor/rakit.py <slug>        # Kai: rakit export/final.mp4
 python agents/produser.py "topik"           # satu permintaan → video jadi (semua agent berurutan)
+python agents/qc/periksa.py otomatis <slug> # Rara cepat: cek + ganti shot gelap/beku
+python agents/upload/unggah.py login        # Uli: hubungkan YouTube (sekali)
+python agents/steve/analitik.py             # Steve v2: retensi per video
 python agents/tes_pabrik.py [--online]     # tes seluruh pabrik (aman, di folder sementara)
 start_studio.bat                            # buka Studio Yofamo (Windows)
 cd studio && npm run dev                    # sama, manual (http://127.0.0.1:3210)

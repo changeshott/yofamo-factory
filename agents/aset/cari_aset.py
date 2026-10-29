@@ -379,10 +379,15 @@ def ai_image(prompt: str) -> Path:
 FRAMING = ["medium shot", "extreme close-up detail", "wide establishing shot, different angle"]
 
 
-def ai_prompt(p: dict, kalimat: str, shot: int = 0) -> str:
+GAYA = ["dramatic lighting", "soft studio lighting", "moody neon lighting", "natural daylight"]
+
+
+def ai_prompt(p: dict, kalimat: str, shot: int = 0, varian: int = 0) -> str:
+    """varian > 0 dipakai saat QC menolak gambar sebelumnya: sudut & cahaya diganti supaya hasilnya beda."""
     base = p["prompt_ai"] or p["kata"][0]
-    return (f"{base}. {FRAMING[shot % len(FRAMING)]}, vertical cinematic shot, photorealistic, dramatic lighting, "
-            f"shallow depth of field, high detail, no text, no watermark, no logo")
+    return (f"{base}. {FRAMING[(shot + varian) % len(FRAMING)]}, vertical cinematic shot, photorealistic, "
+            f"{GAYA[varian % len(GAYA)]}, shallow depth of field, high detail. Clean image with absolutely no letters, "
+            f"no words, no numbers, no signs, no screens with writing, no captions, no labels, no watermark, no logo")
 
 
 def auto_pick(entry: dict, n: int, taken: set) -> list:
@@ -409,8 +414,15 @@ def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
         if not picks:
             log("aset/pilihan.json kosong, memakai pilihan otomatis")
     old = {(k["i"], k["potong"]): k for k in read_json(aset / "manifest.json", {}).get("klip", [])}
+    # shot yang ditolak QC Rara (atau Zona): kandidat footage itu tidak dipakai lagi, gambar AI dibuat ulang dengan variasi lain
+    tolak = read_json(aset / "tolak.json", {}).get("tolak", [])
+    ditolak = {(str(t.get("sumber")), str(t.get("id"))) for t in tolak if t.get("jenis") == "footage"}
+    varian_ai = {}
+    for t in tolak:
+        if t.get("jenis") == "ai":
+            varian_ai[(t.get("i"), t.get("potong"))] = varian_ai.get((t.get("i"), t.get("potong")), 0) + 1
     klip, kurang = [], []
-    taken = {(k.get("sumber"), k.get("id")) for (ii, _), k in old.items() if ii + 1 not in ulang and k.get("jenis") == "footage"}
+    taken = {(k.get("sumber"), k.get("id")) for (ii, _), k in old.items() if ii + 1 not in ulang and k.get("jenis") == "footage"} | ditolak
     streak = 0                                   # jumlah shot footage berturut-turut
     for p, span in zip(plan, spans):
         i = p["i"]
@@ -418,7 +430,9 @@ def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
         n = shots_for(span, p["jenis"])
         bounds = [span[0] + (span[1] - span[0]) * k / n for k in range(n + 1)]
         choice = picks.get(i) or (["grafis"] if p["jenis"] == "grafis" else ["ai"] * n if p["jenis"] == "ai" else auto_pick(e, n, taken))
-        queue = [c for c in choice] + [k + 1 for k in range(len(e["kandidat"])) if k + 1 not in choice]
+        bad = {k + 1 for k, c in enumerate(e["kandidat"]) if (str(c["sumber"]), str(c["id"])) in ditolak}
+        choice = [c for c in choice if c not in bad] or (["ai"] * n if p["jenis"] != "grafis" else ["grafis"])
+        queue = [c for c in choice] + [k + 1 for k in range(len(e["kandidat"])) if k + 1 not in choice and k + 1 not in bad]
         used_segments: dict[str, list] = {}
         for s in range(n):
             letter = "abc"[s]
@@ -441,7 +455,7 @@ def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
                         gerak.grafis(p["grafis"], out, dur)
                         meta = {"jenis": "grafis", "sumber": "grafis", "judul": p["grafis"].get("teks") or p["grafis"].get("label", ""), "lisensi": "buatan sendiri"}
                     elif t == "ai":
-                        prompt = ai_prompt(p, narasi[i]["kalimat"], s)
+                        prompt = ai_prompt(p, narasi[i]["kalimat"], s, varian_ai.get((i, s), 0))
                         img = ai_image(prompt)
                         gerak.kenburns(img, out, dur, seed=i * 7 + s)
                         meta = {"jenis": "ai", "sumber": "cloudflare-flux", "judul": prompt, "lisensi": "gambar AI (konten sintetis)"}
@@ -459,6 +473,10 @@ def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
                             tmp.unlink(missing_ok=True)
                         else:
                             gerak.normalize(raw, out, start, dur)
+                        gelap, beku = gerak.cek_shot(out)
+                        if gelap > 0.35 or beku > 0.7:
+                            taken.add((c["sumber"], c["id"]))
+                            raise RuntimeError(f"klip {'gelap' if gelap > 0.35 else 'diam/beku'} ({max(gelap, beku):.0%}), cari yang lain")
                         meta = {"jenis": "footage", **{k: c[k] for k in ("sumber", "id", "judul", "url_halaman", "pembuat", "lisensi", "kueri")},
                                 "sumber_mulai": round(start, 2), "kandidat_no": int(t)}
                         taken.add((c["sumber"], c["id"]))

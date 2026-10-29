@@ -4,11 +4,11 @@ import type { Look } from "./sprites";
 export const RW = 22, RD = 15, WALL = 112, T = 16;
 export const BW = 624, BH = 446, OX = 256, OY = 132;
 
-export type AgentId = "steve" | "nova" | "raka" | "dara" | "bima" | "kai";
+export type AgentId = "steve" | "nova" | "raka" | "dara" | "bima" | "kai" | "rara" | "uli";
 export interface AgentDef {
   id: AgentId;
   skill: string;
-  job: "steve" | "ide" | "penulis" | "suara" | "aset" | "editor";
+  job: "steve" | "ide" | "penulis" | "suara" | "aset" | "editor" | "qc" | "upload";
   name: string;
   role: string;
   about: string;
@@ -55,11 +55,21 @@ export const TEAM: AgentDef[] = [
     look: { skin: "#E0AC86", hair: "#3B2A20", shirt: "#E3B23C", pants: "#2A2F3A", accent: "#1C1C1C", style: "short", glasses: true },
     busy: { editor: "Merender video…" },
   },
+  {
+    id: "rara", skill: "qc", job: "qc", name: "Rara", role: "Quality control", desk: [13.0, 7.0], color: "#F07178",
+    about: "Menonton setiap video sebelum sampai ke kamu: mencari shot gelap, beku, tidak sesuai kalimat, atau gambar AI dengan teks rusak. Shot jelek ditolak, Bima mengganti, Kai merakit ulang (maks 2 putaran), lalu memberi skor.",
+    look: { skin: "#F1C7A5", hair: "#5A2E1E", shirt: "#E05A66", pants: "#2B2B3A", accent: "#F4F1E8", style: "long", glasses: true },
+    busy: { qc: "Memeriksa video…" },
+  },
+  {
+    id: "uli", skill: "upload", job: "upload", name: "Uli", role: "Upload YouTube", desk: [16.8, 7.0], color: "#82AAFF",
+    about: "Mengunggah video yang sudah kamu setujui ke YouTube sebagai PRIVATE (bisa dijadwalkan), lengkap dengan judul, deskripsi, kredit, tag, dan label konten sintetis. Tidak pernah menyentuh video lain di channel.",
+    look: { skin: "#C68E6A", hair: "#121212", shirt: "#4E7BD9", pants: "#30323D", accent: "#F4F1E8", style: "cap" },
+    busy: { upload: "Mengunggah…", login: "Menghubungkan YouTube…" },
+  },
 ];
 
-export const FUTURE = [
-  { key: "upload", name: "Upload", role: "Terbit terjadwal ke YouTube", desk: [13.0, 7.0] as [number, number] },
-];
+export const FUTURE: { key: string; name: string; role: string; desk: [number, number] }[] = [];
 
 export const FOUNDER = {
   name: "Zona",

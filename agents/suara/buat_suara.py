@@ -31,7 +31,7 @@ if __name__ == "__main__":
 ROOT = Path(__file__).resolve().parents[2]
 VIDEOS = ROOT / "videos"
 DEFAULT_VOICE = "id-ID-ArdiNeural"
-DEFAULT_RATE = "+10%"
+DEFAULT_RATE = "+15%"
 TICKS = 10_000_000  # edge-tts memakai satuan 100 ns
 
 
@@ -166,7 +166,7 @@ def main() -> None:
     (folder / "captions.srt").write_text(captions(words), encoding="utf-8")
 
     print(f"[dara] durasi {durasi:.1f} detik, {len(words)} kata bertiming, {len(data['kalimat'])} kalimat")
-    if durasi < 28 or durasi > 47:
+    if durasi < 28 or durasi > 45:
         print(f"[dara] PERHATIAN: durasi di luar target 30–45 detik. Pertimbangkan minta Raka menulis ulang.")
     if args.uji:
         print("[dara] selesai (uji)")

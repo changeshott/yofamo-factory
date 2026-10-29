@@ -63,6 +63,8 @@ export interface Video {
   media: { vo: boolean; srt: boolean; durasi: number | null; uji: boolean; suara: string | null };
   aset: AsetManifest | null;
   final: { ada: boolean; durasi: number | null; musik: string | null; dibuat: string | null; uji: boolean };
+  qc: { skor: number | null; lolos: boolean | null; catatan: string; saran: string[]; masalah: string[]; putaran: number; lembar: string[]; porsi: Record<string, number> | null } | null;
+  upload: { videoId: string; url: string; studio: string; waktu: string; jadwal: string | null } | null;
 }
 
 export interface Klip {
@@ -74,7 +76,7 @@ export interface AsetManifest { _error?: string; dibuat?: string; uji?: boolean;
 
 export interface Activity { slug: string; dari: string | null; ke: string; waktu: string; judul_kerja: string | null }
 
-export type JobName = "fetch" | "check" | "steve" | "ide" | "penulis" | "suara" | "aset" | "editor" | "produksi";
+export type JobName = "fetch" | "check" | "steve" | "ide" | "penulis" | "suara" | "aset" | "editor" | "produksi" | "qc" | "upload" | "login";
 export interface JobState {
   job: JobName | null;
   arg: string | null;
@@ -102,5 +104,6 @@ export interface StudioState {
   agents: { key: string; ready: boolean }[];
   job: JobState;
   produksi: Produksi[];
-  health: { env: boolean; claude: boolean; python: boolean; pythonCmd: string; edgeTts: boolean; stockKey: boolean; ffmpeg: boolean; ytdlp: boolean; aiKey: boolean };
+  antrean: { id: string; teks: string; suara: string; visual: string; dibuat: string }[];
+  health: { env: boolean; claude: boolean; python: boolean; pythonCmd: string; edgeTts: boolean; stockKey: boolean; ffmpeg: boolean; ytdlp: boolean; aiKey: boolean; google: boolean; ytClient: boolean; ytLogin: boolean };
 }

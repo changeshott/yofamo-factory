@@ -1,3 +1,6 @@
 # Paket Python untuk agent pabrik (pasang sekali: python -m pip install -r requirements.txt)
 edge-tts==7.3.1
 yt-dlp[default]==2026.10.26
+google-api-python-client==2.201.0
+google-auth-oauthlib==1.5.0
+google-auth-httplib2==0.4.4

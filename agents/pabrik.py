@@ -8,6 +8,7 @@ Pemakaian (dari root project):
     python agents/pabrik.py set <slug> <status> [--note "catatan"]
     python agents/pabrik.py history [--limit 40] --json   # riwayat (dipakai Studio)
     python agents/pabrik.py week --json                   # jumlah terbit sejak Senin
+    python agents/pabrik.py hapus <slug> --ya             # HANYA dari Studio atas perintah Zona: hapus video + filenya
 
 Status berurutan:
     ide → disetujui → naskah → suara → aset → draft → export → terbit
@@ -144,6 +145,23 @@ def read_json(slug: str, name: str) -> dict | None:
         return {"_error": f"{name} bukan JSON yang valid"}
 
 
+def delete(slug: str) -> dict:
+    """Hapus catatan + folder satu video. Hanya dipanggil Studio atas perintah Zona."""
+    import shutil
+    if not re.fullmatch(r"[a-z0-9-]{3,80}", slug):
+        raise ValueError("slug tidak valid")
+    with connect() as con:
+        n = con.execute("DELETE FROM videos WHERE slug = ?", (slug,)).rowcount
+        con.execute("DELETE FROM riwayat WHERE slug = ?", (slug,))
+    folder = VIDEOS / slug
+    ada = folder.is_dir()
+    if ada:
+        shutil.rmtree(folder)
+    if not n and not ada:
+        raise ValueError(f"tidak ditemukan: {slug}")
+    return {"slug": slug, "catatan": bool(n), "folder": ada}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Antrean video pabrik Yofamo")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -153,6 +171,7 @@ def main() -> None:
     p_set = sub.add_parser("set"); p_set.add_argument("slug"); p_set.add_argument("status"); p_set.add_argument("--note", default="")
     p_hist = sub.add_parser("history"); p_hist.add_argument("--limit", type=int, default=40); p_hist.add_argument("--json", action="store_true")
     p_week = sub.add_parser("week"); p_week.add_argument("--json", action="store_true")
+    p_del = sub.add_parser("hapus"); p_del.add_argument("slug"); p_del.add_argument("--ya", action="store_true")
     args = ap.parse_args()
 
     try:
@@ -180,6 +199,10 @@ def main() -> None:
             from datetime import date, timedelta
             monday = date.today() - timedelta(days=date.today().weekday())
             print(json.dumps({"since": monday.isoformat(), "published": published_since(monday.isoformat())}))
+        elif args.cmd == "hapus":
+            if not args.ya:
+                sys.exit("[pabrik] tambahkan --ya untuk benar-benar menghapus (tidak bisa dibatalkan)")
+            print(json.dumps(delete(args.slug)))
         elif args.cmd == "set":
             v = set_status(args.slug, args.status, args.note)
             print(f"[pabrik] {v['slug']} → {v['status']}")

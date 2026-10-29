@@ -20,7 +20,20 @@ export const P = {
   env: path.join(ROOT, ".env"),
   pabrik: path.join(ROOT, "agents", "pabrik.py"),
   produksi: path.join(ROOT, "produksi"),
+  cache: path.join(ROOT, "cache"),
+  rahasia: path.join(ROOT, "rahasia"),
 };
+
+/** Ukuran folder/file (byte), untuk panel Kelola hasil. */
+export function sizeOf(p: string): number {
+  try {
+    const st = fs.statSync(p);
+    if (!st.isDirectory()) return st.size;
+    return fs.readdirSync(p).reduce((n, f) => n + sizeOf(path.join(p, f)), 0);
+  } catch {
+    return 0;
+  }
+}
 
 export const SAFE_FILE = /^[\w.\-]+$/;
 export const SLUG = /^[a-z0-9-]{3,80}$/;
@@ -190,7 +203,18 @@ export async function videos(): Promise<Video[]> {
     media: media(r.slug),
     aset: aset(r.slug),
     final: final(r.slug),
+    qc: qc(r.slug),
+    upload: readJson<NonNullable<Video["upload"]>>(path.join(P.videos, r.slug, "export", "upload.json")),
   }));
+}
+
+function qc(slug: string): Video["qc"] {
+  const dir = path.join(P.videos, slug, "export");
+  const q = readJson<{ masalah?: string[]; putaran?: number; lembar?: string[]; porsi?: Record<string, number> }>(path.join(dir, "qc.json"));
+  const r = readJson<{ skor?: number; lolos?: boolean; catatan?: string; saran_zona?: string[] }>(path.join(dir, "qc_review.json"));
+  if (!q && !r) return null;
+  return { skor: r?.skor ?? null, lolos: r?.lolos ?? null, catatan: r?.catatan ?? "", saran: r?.saran_zona ?? [], masalah: q?.masalah ?? [],
+    putaran: q?.putaran ?? 0, lembar: (q?.lembar ?? []).filter((x) => /^export\/qc\/lembar-\d+\.jpg$/.test(x)), porsi: q?.porsi ?? null };
 }
 
 function final(slug: string): Video["final"] {

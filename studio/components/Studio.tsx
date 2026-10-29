@@ -8,14 +8,14 @@ import { drawAvatar } from "./office/sprites";
 import { FOUNDER, TEAM } from "./office/world";
 import { Btn } from "./ui";
 import {
-  ActivityPanel, AgentPanel, AnalyticsPanel, BiblePanel, FounderPanel, FuturePanel, GaleriPanel, HealthPanel, ProduksiPanel, QueuePanel, ReportsPanel, agentById, type PanelCtx,
+  ActivityPanel, AgentPanel, AnalyticsPanel, BiblePanel, FounderPanel, FuturePanel, GaleriPanel, HealthPanel, KelolaPanel, ProduksiPanel, QueuePanel, ReportsPanel, agentById, type PanelCtx,
 } from "./panels";
 
 const TITLES: Record<string, string> = {
   founder: "Meja Zona", queue: "Papan antrean video", analytics: "Analitik Shorts", reports: "Laporan Steve",
-  bible: "Channel bible", activity: "Log kantor", health: "Cek sistem", server: "Server agent", produksi: "Buat video", galeri: "Galeri video",
+  bible: "Channel bible", activity: "Log kantor", health: "Cek sistem", server: "Server agent", produksi: "Buat video", galeri: "Galeri video", kelola: "Kelola hasil",
 };
-const JOB_TXT: Record<string, string> = { steve: "Steve menganalisis", fetch: "Steve mengambil data", check: "Cek koneksi YouTube", ide: "Nova mencari ide", penulis: "Raka menulis naskah", suara: "Dara membuat suara", aset: "Bima mencari klip", editor: "Kai merakit video", produksi: "Produksi video" };
+const JOB_TXT: Record<string, string> = { steve: "Steve menganalisis", fetch: "Steve mengambil data", check: "Cek koneksi YouTube", ide: "Nova mencari ide", penulis: "Raka menulis naskah", suara: "Dara membuat suara", aset: "Bima mencari klip", editor: "Kai merakit video", produksi: "Produksi video", qc: "Rara memeriksa video", upload: "Uli mengunggah", login: "Menghubungkan YouTube" };
 
 interface Toast { id: number; text: string; tone: "ok" | "err" | "info" }
 
@@ -25,6 +25,8 @@ export default function Studio() {
   const [panel, setPanel] = useState<string | null>(null);
   const [target, setTargetState] = useState(3);
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [konfirmasi, setKonfirmasi] = useState<{ judul: string; aksi: () => Promise<void> } | null>(null);
+  const [kelolaTick, setKelolaTick] = useState(0);
   const prevJob = useRef<string>("");
   const avatar = useRef<HTMLCanvasElement>(null);
   const closeBtn = useRef<HTMLButtonElement>(null);
@@ -89,7 +91,14 @@ export default function Studio() {
   const look = agent?.look ?? (panel === "founder" ? FOUNDER.look : null);
   useEffect(() => { if (avatar.current && look) drawAvatar(avatar.current, look, agent?.id ?? "zona"); }, [look, agent]);
 
-  const ctx: PanelCtx | null = state ? { state, run, move, open, target, setTarget, stop } : null;
+  const hapus = useCallback((jenis: string, nama: string, judul: string, laporan = false) => {
+    setKonfirmasi({ judul, aksi: async () => {
+      try { toast((await api<{ message: string }>("/api/hapus", { jenis, nama, laporan })).message, "ok"); }
+      catch (e) { toast((e as Error).message, "err"); }
+      setKelolaTick((n) => n + 1); refresh();
+    } });
+  }, [refresh, toast]);
+  const ctx: PanelCtx | null = state ? { state, run, move, open, target, setTarget, stop, hapus, kelolaTick } : null;
   const busyKey = state?.job.job === "produksi" ? activeStage(state) : state?.job.job ?? "";
   const prodStage = state?.job.job === "produksi" ? state.produksi[0]?.tahap.find((t) => t.status === "jalan")?.nama : null;
   const inbox = state ? state.videos.filter((v) => v.status === "ide" || v.status === "draft").length : 0;
@@ -147,6 +156,7 @@ export default function Studio() {
           <span className="mx-1 w-px shrink-0 bg-line" aria-hidden />
           <DockBtn onClick={() => open("galeri")}>Galeri</DockBtn>
           <DockBtn onClick={() => open("queue")}>Antrean</DockBtn>
+          <DockBtn onClick={() => open("kelola")}>Kelola</DockBtn>
           <DockBtn onClick={() => open("analytics")}>Analitik</DockBtn>
           <DockBtn onClick={() => open("reports")}>Laporan</DockBtn>
           <DockBtn onClick={() => open("bible")}>Bible</DockBtn>
@@ -155,6 +165,19 @@ export default function Studio() {
         </div>
       </nav>
 
+      {konfirmasi && (
+        <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4" role="alertdialog" aria-modal="true" aria-labelledby="konf-judul">
+          <div className="w-full max-w-sm rounded-xl border border-bad/50 bg-ink-800 p-5 shadow-2xl">
+            <h2 id="konf-judul" className="font-pixel text-lg font-bold text-bad">Hapus permanen?</h2>
+            <p className="mt-2 text-[15px]">{konfirmasi.judul}</p>
+            <p className="mt-1 text-sm text-muted">File yang dihapus tidak bisa dikembalikan.</p>
+            <div className="mt-4 flex justify-end gap-2">
+              <Btn autoFocus onClick={() => setKonfirmasi(null)}>Batal</Btn>
+              <Btn tone="danger" onClick={async () => { const k = konfirmasi; setKonfirmasi(null); await k.aksi(); }}>Ya, hapus</Btn>
+            </div>
+          </div>
+        </div>
+      )}
       {/* toast */}
       <div className="pointer-events-none absolute top-3 left-1/2 z-30 flex -translate-x-1/2 flex-col items-center gap-2" role="status" aria-live="polite">
         {toasts.map((t) => (
@@ -179,6 +202,7 @@ export default function Studio() {
             : panel === "queue" ? <QueuePanel ctx={ctx} />
             : panel === "produksi" ? <ProduksiPanel ctx={ctx} />
             : panel === "galeri" ? <GaleriPanel ctx={ctx} />
+            : panel === "kelola" ? <KelolaPanel ctx={ctx} />
             : panel === "analytics" ? <AnalyticsPanel ctx={ctx} />
             : panel === "reports" ? <ReportsPanel ctx={ctx} />
             : panel === "bible" ? <BiblePanel />

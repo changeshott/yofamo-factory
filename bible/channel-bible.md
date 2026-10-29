@@ -35,7 +35,7 @@ Hindari atau batasi:
 4. Fakta paling mengejutkan.
 5. Penutup yang nyambung ke kalimat pembuka (supaya terasa loop).
 
-Panjang 90–110 kata.
+Panjang 80–98 kata (suara Ardi +15% ≈ 2,3 kata/detik → 35–43 detik). Video pertama: 101 kata = 46,8 detik, kepanjangan.
 
 ## Judul
 
@@ -61,4 +61,4 @@ Panjang 90–110 kata.
 
 ## Suara
 
-- `id-ID-ArdiNeural`, sedikit lebih cepat dari normal.
+- `id-ID-ArdiNeural`, kecepatan +15%. Durasi di luar 28–45 detik diperbaiki otomatis (lihat produser).

@@ -81,7 +81,9 @@ def groups(words: list[dict], sentence_starts: list[float], max_words: int) -> l
     return out
 
 
-def build_ass(words: list[dict], kalimat: list[dict], hook: str, total: float, st: dict, family: str) -> str:
+def build_ass(words: list[dict], kalimat: list[dict], hook: str, total: float, st: dict, family: str,
+              senyap: list[tuple[float, float]] | None = None) -> str:
+    """senyap: rentang waktu kartu grafis; subtitle disembunyikan di sana supaya tidak bertabrakan dengan teks kartu."""
     sub, hk, hd = st["subtitle"], st["hook"], st["handle"]
     white, act = ass_color(sub.get("warna", "FFFFFF")), ass_color(sub.get("warna_aktif", "FF9A4D"))
     head = f"""[Script Info]
@@ -111,7 +113,11 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     upper = sub.get("huruf_besar", True)
     starts = [k["mulai"] for k in kalimat[1:]]
     gs = groups(words, starts, int(sub.get("maks_kata", 3)))
+    sepi = senyap or []
     for gi, g in enumerate(gs):
+        mid = (g[0]["mulai"] + g[-1]["selesai"]) / 2
+        if any(a <= mid < b for a, b in sepi):
+            continue
         limit = gs[gi + 1][0]["mulai"] if gi + 1 < len(gs) else total      # jangan tumpang tindih dengan grup berikutnya
         texts = [clean(w["kata"]).upper() if upper else clean(w["kata"]) for w in g]
         for j, w in enumerate(g):
@@ -124,8 +130,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
 
 # ------------------------------------------------------------------ audio pendukung
-def pick_music(slug: str, mode: str) -> Path | None:
-    files = sorted(f for f in (ROOT / "musik").glob("*") if f.suffix.lower() in AUDIO_EXT)
+def pick_music(slug: str, mode: str, suasana: str = "") -> Path | None:
+    """Pilih lagu dari musik/. Kalau naskah punya 'suasana' (tegang/ceria/misterius/epik/haru), utamakan
+    lagu di musik/<suasana>/ atau yang namanya mengandung kata itu."""
+    semua = sorted(f for f in (ROOT / "musik").rglob("*") if f.suffix.lower() in AUDIO_EXT)
+    cocok = [f for f in semua if suasana and (suasana in f.parent.name.lower() or suasana in f.stem.lower())] if suasana else []
+    files = cocok or semua
     if not files or mode == "tidak":
         return None
     if mode not in ("acak", ""):
@@ -186,7 +196,8 @@ def main() -> None:
     out_dir = vdir / "export"
     out_dir.mkdir(exist_ok=True)
     ass = out_dir / "subtitle.ass"
-    ass.write_text(build_ass(words["kata"], words.get("kalimat", []), script.get("hook_teks", ""), total, st, family), encoding="utf-8")
+    senyap = [(k["mulai"], k["selesai"]) for k in man["klip"] if k.get("jenis") == "grafis"]
+    ass.write_text(build_ass(words["kata"], words.get("kalimat", []), script.get("hook_teks", ""), total, st, family, senyap), encoding="utf-8")
 
     # ---- input
     args: list[str] = []
@@ -198,7 +209,7 @@ def main() -> None:
     else:
         args += ["-i", str(vdir / "vo.mp3")]
     idx_vo = n
-    music = pick_music(a.slug, str(st["audio"].get("musik", "acak")))
+    music = pick_music(a.slug, str(st["audio"].get("musik", "acak")), str(script.get("suasana", "")).lower().strip())
     idx = n + 1
     idx_bgm = idx_wh = None
     if music:

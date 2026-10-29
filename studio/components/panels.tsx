@@ -14,6 +14,8 @@ export interface PanelCtx {
   target: number;
   setTarget: (n: number) => void;
   stop: () => Promise<void>;
+  hapus: (jenis: string, nama: string, judul: string, laporan?: boolean) => void;
+  kelolaTick: number;
 }
 
 const busy = (s: StudioState) => s.job.status === "running";
@@ -90,6 +92,35 @@ export function AgentPanel({ def, ctx }: { def: AgentDef; ctx: PanelCtx }) {
           <Muted className="mt-2">Gratis, tidak memakai kuota Claude. Butuh internet.</Muted>
         </>);
       })()}
+      {def.id === "rara" && (() => {
+        const ok = state.videos.filter((v) => v.status === "draft");
+        return (<>
+          {ok.length ? (
+            <ul className="divide-y divide-line">{ok.map((v) => (
+              <li key={v.slug} className="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"><span>{v.judul_kerja}<small className="block text-faint">{v.qc?.skor != null ? `skor ${v.qc.skor}/10` : v.qc ? "sudah dicek otomatis" : "belum diperiksa"}</small></span>
+                <span className="flex gap-2">
+                  <Btn size="sm" tone="primary" disabled={busy(state) || noClaude} onClick={() => ctx.run("qc", v.slug)}>Periksa teliti</Btn>
+                  <Btn size="sm" disabled={busy(state)} onClick={() => ctx.run("qc", `${v.slug}|otomatis`)}>Cepat</Btn>
+                </span></li>))}
+            </ul>
+          ) : <Muted>Belum ada video jadi yang menunggu diperiksa.</Muted>}
+          <Muted className="mt-2">Periksa teliti: Rara melihat frame tiap shot (kuota Claude) dan mengganti shot yang tidak sesuai, teks rusak, atau jelek. Cepat: hanya cek otomatis (gelap/beku/durasi/suara), tanpa kuota. Di Buat video, Rara selalu jalan otomatis.</Muted>
+        </>);
+      })()}
+      {def.id === "uli" && (() => {
+        const h = state.health, ok = state.videos.filter((v) => v.status === "export");
+        return (<>
+          <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+            <dt className="text-muted">Paket Google</dt><dd>{h.google ? "terpasang" : "belum (pip install -r requirements.txt)"}</dd>
+            <dt className="text-muted">OAuth client</dt><dd>{h.ytClient ? "ada" : "belum: rahasia/client_secret.json (lihat SETUP.md)"}</dd>
+            <dt className="text-muted">YouTube</dt><dd>{h.ytLogin ? "terhubung" : "belum terhubung"}</dd>
+          </dl>
+          <Btn className="mt-2" size="sm" disabled={busy(state) || !h.google || !h.ytClient} onClick={() => ctx.run("login")}>{h.ytLogin ? "Hubungkan ulang YouTube" : "Hubungkan YouTube"}</Btn>
+          <H3>Siap upload ({ok.length})</H3>
+          {ok.length ? ok.map((v) => <VideoCard key={v.slug} v={v} ctx={ctx} />) : <Muted>Belum ada video yang kamu setujui.</Muted>}
+          <Muted className="mt-2">Upload selalu PRIVATE. Project Google Cloud yang belum diaudit YouTube memang hanya boleh private; kamu mengubahnya ke publik/terjadwal di YouTube Studio. Kuota API ±6 upload per hari.</Muted>
+        </>);
+      })()}
       {def.id === "kai" && (() => {
         const ok = state.videos.filter((v) => v.status === "aset" || v.status === "draft");
         return (<>
@@ -122,7 +153,7 @@ export function AgentPanel({ def, ctx }: { def: AgentDef; ctx: PanelCtx }) {
           <Muted className="mt-2">Siapkan visual: Bima merencanakan tiap kalimat, melihat kandidat satu per satu, lalu memilih yang paling cocok (memakai kuota Claude, paling akurat). Cepat: pilih otomatis tanpa kuota.</Muted>
         </>);
       })()}
-      {noClaude && def.id !== "dara" && <Muted className="mt-2 text-signal">Perintah claude tidak ditemukan, jadi tugas AI belum bisa dijalankan.</Muted>}
+      {noClaude && !["dara", "kai", "uli"].includes(def.id) && <Muted className="mt-2 text-signal">Perintah claude tidak ditemukan, jadi tugas AI belum bisa dijalankan.</Muted>}
       <H3>Pekerjaan terakhir</H3>
       {logs.length ? (
         <ul className="divide-y divide-line text-sm">{logs.map((l) => (
@@ -199,6 +230,18 @@ export function VideoCard({ v, ctx, defaultOpen }: { v: Video; ctx: PanelCtx; de
           </div>
           {v.status === "draft" && <Muted className="mt-1">Tonton dulu sampai habis. Kalau sudah pas, klik Setujui video. Kalau ada shot yang kurang cocok, ganti di Bima lalu rakit ulang.</Muted>}
         </>)}
+        {v.qc && (<>
+          <h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Pemeriksaan Rara{v.qc.putaran ? ` · ${v.qc.putaran} putaran perbaikan` : ""}</h4>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            {v.qc.skor != null && <span className={`rounded px-2 py-1 font-pixel ${v.qc.skor >= 8 ? "bg-leaf/20 text-leaf" : v.qc.skor >= 6 ? "bg-gold/20 text-gold" : "bg-bad/20 text-bad"}`}>Skor {v.qc.skor}/10</span>}
+            {v.qc.porsi && <span className="text-muted">footage {Math.round((v.qc.porsi.footage ?? 0) * 100)}% · AI {Math.round((v.qc.porsi.ai ?? 0) * 100)}% · grafis {Math.round((v.qc.porsi.grafis ?? 0) * 100)}%</span>}
+          </div>
+          {v.qc.catatan && <p className="mt-1 text-sm">{v.qc.catatan}</p>}
+          {[...v.qc.masalah, ...v.qc.saran].map((m, k) => <Muted key={k} className="text-signal">• {m}</Muted>)}
+          {v.qc.lembar.map((l) => <a key={l} href={`/api/media?slug=${v.slug}&file=${l}`} target="_blank" rel="noopener noreferrer"><img alt="Frame tiap shot" loading="lazy" className="mt-2 w-full rounded-md border border-line" src={`/api/media?slug=${v.slug}&file=${l}&v=${encodeURIComponent(v.final.dibuat ?? "")}`} /></a>)}
+        </>)}
+        {v.status === "export" && (<UploadBox v={v} ctx={ctx} />)}
+        {v.upload && (<p className="mt-3 text-sm">Sudah diupload (private): <a className="text-circuit hover:underline" href={v.upload.studio} target="_blank" rel="noopener noreferrer">buka di YouTube Studio</a>{v.upload.jadwal ? ` · tayang ${v.upload.jadwal.replace("T", " ")} WIB` : ""}</p>)}
         {v.aset && !v.aset._error && !!v.aset.klip?.length && (() => {
           const kl = v.aset.klip!, n = (j: string) => kl.filter((k) => k.jenis === j).length;
           return (<>
@@ -225,8 +268,10 @@ export function VideoCard({ v, ctx, defaultOpen }: { v: Video; ctx: PanelCtx; de
         <div className="mt-3 flex flex-wrap gap-2">
           {(v.status === "naskah" || v.status === "suara") && <Btn size="sm" tone="primary" disabled={busy(ctx.state) || !ctx.state.health.edgeTts} onClick={() => ctx.run("suara", v.slug)}>{v.media.vo ? "Buat ulang suara" : "Buat suara (gratis)"}</Btn>}
           {(v.status === "suara" || v.status === "aset") && <Btn size="sm" tone="primary" disabled={busy(ctx.state) || !ctx.state.health.claude || !ctx.state.health.stockKey || !ctx.state.health.ffmpeg} onClick={() => ctx.run("aset", v.slug)}>{v.aset?.klip?.length ? "Siapkan ulang visual" : "Siapkan visual dengan Bima"}</Btn>}
+          {v.status === "draft" && <Btn size="sm" disabled={busy(ctx.state) || !ctx.state.health.claude} onClick={() => ctx.run("qc", v.slug)}>Periksa dengan Rara</Btn>}
           {(v.status === "aset" || v.status === "draft") && <Btn size="sm" tone="primary" disabled={busy(ctx.state) || !ctx.state.health.ffmpeg} onClick={() => ctx.run("editor", v.slug)}>{v.final.ada ? "Rakit ulang dengan Kai" : "Rakit video dengan Kai"}</Btn>}
           {v.status === "disetujui" && <Btn size="sm" tone="primary" disabled={busy(ctx.state) || !ctx.state.health.claude} onClick={() => ctx.run("penulis", v.slug)}>Tulis naskah dengan Raka</Btn>}
+          <Btn size="sm" tone="danger" className="ml-auto" onClick={() => ctx.hapus("video", v.slug, `Video "${v.judul_kerja}" beserta ide, naskah, suara, klip, dan video finalnya.`)}>Hapus video</Btn>
           {v.moves.map((m) => <Btn key={m} size="sm" tone={(m === "disetujui" && v.status === "ide") || (m === "export" && v.status === "draft") ? "primary" : "ghost"} onClick={() => ctx.move(v.slug, m)}>{(v.status === "naskah" || v.status === "suara") && m === "disetujui" ? "Minta tulis ulang" : MOVE[m]}</Btn>)}
         </div>
       </div>
@@ -364,6 +409,7 @@ export function HealthPanel({ ctx }: { ctx: PanelCtx }) {
     { ok: h.stockKey, name: "API key sumber klip (Bima)", fix: "Login gratis di pixabay.com, buka pixabay.com/api/docs, salin key-nya ke PIXABAY_API_KEY= di .env. (Pexels sedang menutup pendaftaran API key baru.)", good: "Ada di .env." },
     { ok: h.ytdlp, name: "yt-dlp (footage YouTube CC)", fix: "python -m pip install -r requirements.txt, lalu winget install DenoLand.Deno (dibutuhkan yt-dlp untuk YouTube).", good: "Terpasang." },
     { ok: h.aiKey, name: "Gambar AI gratis (Cloudflare)", fix: "Isi CLOUDFLARE_ACCOUNT_ID dan CLOUDFLARE_API_TOKEN di .env (lihat SETUP.md).", good: "Ada di .env." },
+    { ok: h.google && h.ytClient && h.ytLogin, name: "Upload & analitik YouTube (Uli, Steve v2)", fix: !h.google ? "python -m pip install -r requirements.txt" : !h.ytClient ? "Buat OAuth client (Desktop) di Google Cloud, simpan sebagai rahasia/client_secret.json (lihat SETUP.md)." : "Buka meja Uli lalu klik Hubungkan YouTube.", good: "Terhubung." },
     { ok: !!ctx.state.snapshot, name: "Data channel", fix: "Buka meja Steve lalu klik Ambil data terbaru.", good: `Data per ${ctx.state.snapshot?.snapshot_date}.` },
   ];
   return (<>
@@ -377,7 +423,7 @@ export function HealthPanel({ ctx }: { ctx: PanelCtx }) {
 }
 
 /* ---------------------------------------------------------------- buat video */
-const TAHAP_AGENT: Record<string, string> = { nova: "nova", raka: "raka", dara: "dara", bima: "bima", kai: "kai" };
+const TAHAP_AGENT: Record<string, string> = { nova: "nova", raka: "raka", dara: "dara", bima: "bima", kai: "kai", rara: "rara" };
 const PROD_TONE = { berjalan: "running", selesai: "ok", gagal: "error", terhenti: "stopped" } as const;
 const PROD_TXT = { berjalan: "Sedang dibuat", selesai: "Video jadi", gagal: "Gagal", terhenti: "Terhenti" } as const;
 const IDE = ["Robot yang bisa merasakan sakit", "Baju yang bisa mengganti warna sendiri", "Daging hasil printer 3D", "Lensa kontak yang bisa merekam video"];
@@ -409,19 +455,60 @@ function Stepper({ p }: { p: Produksi }) {
   );
 }
 
+function UploadBox({ v, ctx }: { v: Video; ctx: PanelCtx }) {
+  const [jadwal, setJadwal] = useState("");
+  const h = ctx.state.health;
+  if (v.upload) return null;
+  const siap = h.google && h.ytClient && h.ytLogin;
+  return (
+    <div className="mt-3 rounded-lg border border-[#82AAFF]/40 bg-[#82AAFF]/5 p-3 text-sm">
+      <strong className="font-pixel">Upload ke YouTube (private)</strong>
+      <label className="mt-2 flex flex-wrap items-center gap-2"><span className="text-muted">Jadwal tayang (opsional, WIB)</span>
+        <input type="datetime-local" value={jadwal} onChange={(e) => setJadwal(e.target.value)} className="rounded-md border border-line bg-ink-950 px-2 py-1" /></label>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <Btn size="sm" tone="primary" disabled={busy(ctx.state) || !siap} onClick={() => ctx.run("upload", `${v.slug}${jadwal ? `|${jadwal.slice(0, 16)}` : ""}`)}>Upload dengan Uli</Btn>
+        {!siap && <Btn size="sm" onClick={() => ctx.open("agent:uli")}>Siapkan koneksi YouTube</Btn>}
+      </div>
+      {v.aset?.pakai_ai && <Muted className="mt-1">Label &quot;konten sintetis&quot; dicentang otomatis karena ada gambar AI.</Muted>}
+    </div>
+  );
+}
+
 export function ProduksiPanel({ ctx }: { ctx: PanelCtx }) {
   const { state } = ctx;
   const [teks, setTeks] = useState("");
   const [suara, setSuara] = useState<"pria" | "wanita">("pria");
   const [visual, setVisual] = useState<"teliti" | "cepat">("teliti");
+  const [err, setErr] = useState("");
   const list = state.produksi;
   const cur = list[0]?.status === "berjalan" ? list[0] : null;
   const h = state.health;
   const kurang = [!h.python && "Python", !h.claude && "Claude Code", !h.ffmpeg && "ffmpeg", !h.edgeTts && "edge-tts"].filter(Boolean);
   const vidOf = (p: Produksi) => (p.slug ? state.videos.find((v) => v.slug === p.slug) : undefined);
-  const go = () => ctx.run("produksi", `${suara}|${visual}|${teks}`);
+  const go = async () => {
+    setErr("");
+    try { await api("/api/antrean", { aksi: "tambah", teks, suara, visual }); setTeks(""); } catch (e) { setErr((e as Error).message); }
+    ctx.open("produksi");
+  };
+  const antre = state.antrean;
   return (<>
-    {!cur && (<>
+    {cur && (<>
+      <H3>Sedang dibuat</H3>
+      <p className="text-[15px]">&ldquo;{cur.permintaan}&rdquo;</p>
+      <Muted>Mulai {when(cur.dibuat)} · {durasi(cur.dibuat, null)} · suara {cur.opsi.suara}, visual {cur.opsi.visual}</Muted>
+      <Stepper p={cur} />
+      <div className="mt-3 flex gap-2"><Btn size="sm" tone="danger" onClick={() => ctx.stop()}>Hentikan produksi</Btn><Btn size="sm" onClick={() => ctx.open("activity")}>Log kantor</Btn></div>
+      <LogView name={state.job.job === "produksi" ? state.job.log : null} live={state.job.status === "running"} />
+    </>)}
+    {antre.length > 0 && (<>
+      <H3>Antrean ({antre.length})</H3>
+      <ol className="divide-y divide-line">{antre.map((q, k) => (
+        <li key={q.id} className="flex items-center justify-between gap-2 py-2 text-sm"><span>{k + 1}. &ldquo;{q.teks}&rdquo; <small className="text-faint">{q.suara} · {q.visual}</small></span>
+          <Btn size="sm" tone="ghost" onClick={async () => { await api("/api/antrean", { aksi: "hapus", id: q.id }).catch(() => {}); ctx.open("produksi"); }}>Batal</Btn></li>))}
+      </ol>
+    </>)}
+    {(<>
+      {cur && <H3>Tambah permintaan</H3>}
       <label htmlFor="minta" className="font-pixel text-sm text-muted">Mau video tentang apa?</label>
       <textarea id="minta" value={teks} onChange={(e) => setTeks(e.target.value)} maxLength={200} rows={3}
         placeholder="Contoh: robot yang bisa merasakan sakit"
@@ -437,20 +524,13 @@ export function ProduksiPanel({ ctx }: { ctx: PanelCtx }) {
           <select value={visual} onChange={(e) => setVisual(e.target.value as "teliti" | "cepat")} className="rounded-lg border border-line bg-ink-950 px-2 py-2">
             <option value="teliti">Teliti (Bima memilih satu per satu)</option><option value="cepat">Cepat (pilih otomatis)</option></select></label>
       </div>
-      <Btn tone="primary" className="mt-3 w-full justify-center py-3 text-base" disabled={busy(state) || teks.trim().length < 3 || kurang.length > 0} onClick={go}>Buat video</Btn>
+      <Btn tone="primary" className="mt-3 w-full justify-center py-3 text-base" disabled={teks.trim().length < 3 || kurang.length > 0} onClick={go}>{busy(state) ? "Tambah ke antrean" : "Buat video"}</Btn>
       {kurang.length > 0 && <Muted className="mt-2 text-signal">Belum siap: {kurang.join(", ")}. <button className="underline" onClick={() => ctx.open("health")}>Cek sistem</button></Muted>}
-      {busy(state) && state.job.job !== "produksi" && <Muted className="mt-2">Tunggu tugas yang sedang berjalan selesai dulu.</Muted>}
-      <Muted className="mt-2">Nova meriset 1 ide sesuai permintaanmu (tetap wajib 2 sumber), lalu Raka, Dara, Bima, dan Kai bekerja berurutan. Perkiraan 15–30 menit; memakai kuota Claude Pro untuk ide, naskah, dan visual teliti. Hasilnya muncul di sini dan di Galeri. Kamu tetap menonton dan menyetujui video sebelum di-upload.</Muted>
+      {err && <Muted className="mt-2 text-bad">{err}</Muted>}
+      {busy(state) && <Muted className="mt-2">Kantor sedang bekerja; permintaanmu masuk antrean dan dikerjakan berurutan otomatis (bisa ditinggal tidur).</Muted>}
+      <Muted className="mt-2">Nova meriset 1 ide sesuai permintaanmu (tetap wajib 2 sumber), lalu Raka, Dara, Bima, dan Kai bekerja berurutan, dan Rara memeriksa serta memperbaiki shot yang jelek. Perkiraan 15–35 menit; memakai kuota Claude Pro untuk ide, naskah, dan visual teliti. Hasilnya muncul di sini dan di Galeri. Kamu tetap menonton dan menyetujui video sebelum di-upload.</Muted>
     </>)}
 
-    {cur && (<>
-      <H3>Sedang dibuat</H3>
-      <p className="text-[15px]">&ldquo;{cur.permintaan}&rdquo;</p>
-      <Muted>Mulai {when(cur.dibuat)} · {durasi(cur.dibuat, null)} · suara {cur.opsi.suara}, visual {cur.opsi.visual}</Muted>
-      <Stepper p={cur} />
-      <div className="mt-3 flex gap-2"><Btn size="sm" tone="danger" onClick={() => ctx.stop()}>Hentikan produksi</Btn><Btn size="sm" onClick={() => ctx.open("activity")}>Log kantor</Btn></div>
-      <LogView name={state.job.job === "produksi" ? state.job.log : null} live={state.job.status === "running"} />
-    </>)}
 
     {list.filter((p) => p !== cur).length > 0 && <H3>Permintaan sebelumnya</H3>}
     {list.filter((p) => p !== cur).map((p, i) => {
@@ -462,6 +542,10 @@ export function ProduksiPanel({ ctx }: { ctx: PanelCtx }) {
             <Pill tone={PROD_TONE[p.status]}>{PROD_TXT[p.status]}</Pill>
           </div>
           <Muted>{when(p.dibuat)}{p.selesai ? ` · ${durasi(p.dibuat, p.selesai)}` : ""}{p.opsi.uji ? " · uji" : ""}</Muted>
+          <div className="mt-1 flex flex-wrap gap-2">
+            <Btn size="sm" tone="ghost" onClick={() => ctx.hapus("produksi", p.id, `Catatan permintaan "${p.permintaan}" (videonya tetap ada).`)}>Hapus catatan</Btn>
+            {v && <Btn size="sm" tone="danger" onClick={() => ctx.hapus("video", v.slug, `Video "${v.judul_kerja}" dan semua filenya.`)}>Hapus videonya</Btn>}
+          </div>
           {p.status !== "selesai" && <><Stepper p={p} />{p.pesan && <Muted className="mt-1">{p.pesan}</Muted>}</>}
           {v && <VideoCard v={v} ctx={ctx} defaultOpen={i === 0 && p.status === "selesai"} />}
         </section>);
@@ -487,8 +571,52 @@ export function GaleriPanel({ ctx }: { ctx: PanelCtx }) {
             <strong className="line-clamp-2 text-[13px] leading-snug">{v.judul_kerja}</strong>
             <small className="text-faint">{v.label} · {v.final.durasi?.toFixed(0)} dtk</small>
           </button>
+          <button onClick={() => ctx.hapus("video", v.slug, `Video "${v.judul_kerja}" dan semua filenya.`)} className="block w-full border-t border-line px-2.5 py-1.5 text-left text-xs text-bad hover:bg-bad/10">Hapus</button>
         </li>))}
       </ul>)}
+  </>);
+}
+
+/* ---------------------------------------------------------------- kelola hasil */
+type Kelola = { videos: { slug: string; bytes: number }[]; logs: { name: string; modified: string; bytes: number }[]; laporan: { name: string; modified: string }[]; cache: number; total: number };
+const mb = (b: number) => (b >= 1e9 ? `${(b / 1e9).toFixed(1)} GB` : b >= 1e6 ? `${(b / 1e6).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1e3))} KB`);
+
+export function KelolaPanel({ ctx }: { ctx: PanelCtx }) {
+  const [d, setD] = useState<Kelola | null>(null);
+  const [lapor, setLapor] = useState(false);
+  useEffect(() => { api<Kelola>("/api/kelola").then(setD).catch(() => setD(null)); }, [ctx.kelolaTick, ctx.state.videos.length, ctx.state.produksi.length]);
+  if (!d) return <Muted>Memuat…</Muted>;
+  const judul = (slug: string) => ctx.state.videos.find((v) => v.slug === slug)?.judul_kerja ?? slug;
+  const row = "flex items-center justify-between gap-3 py-2 text-sm";
+  return (<>
+    <p className="text-[15px]">Semua hasil karyawanmu memakai <strong>{mb(d.total)}</strong>.</p>
+    <Muted>Hapus permanen, tidak bisa dibatalkan. Bible, gaya edit, musik, dan rekaman milik-saya tidak pernah ikut terhapus.</Muted>
+
+    <H3>Video ({d.videos.length})</H3>
+    {d.videos.length ? <ul className="divide-y divide-line">{d.videos.map((v) => (
+      <li key={v.slug} className={row}><span className="min-w-0"><span className="block truncate">{judul(v.slug)}</span><small className="text-faint">{ctx.state.videos.find((x) => x.slug === v.slug)?.label ?? "tanpa catatan"} · {mb(v.bytes)}</small></span>
+        <Btn size="sm" tone="danger" onClick={() => ctx.hapus("video", v.slug, `Video "${judul(v.slug)}" dan semua filenya (${mb(v.bytes)}).`)}>Hapus</Btn></li>))}</ul> : <Muted>Tidak ada.</Muted>}
+
+    <H3>Catatan produksi ({ctx.state.produksi.length})</H3>
+    {ctx.state.produksi.length ? <ul className="divide-y divide-line">{ctx.state.produksi.map((p) => (
+      <li key={p.id} className={row}><span className="min-w-0 truncate">&ldquo;{p.permintaan}&rdquo; <small className="text-faint">{when(p.dibuat)}</small></span>
+        <Btn size="sm" tone="ghost" disabled={p.status === "berjalan"} onClick={() => ctx.hapus("produksi", p.id, `Catatan permintaan "${p.permintaan}".`)}>Hapus</Btn></li>))}</ul> : <Muted>Tidak ada.</Muted>}
+
+    <H3>Laporan Steve ({d.laporan.length})</H3>
+    {d.laporan.length ? <ul className="divide-y divide-line">{d.laporan.map((r) => (
+      <li key={r.name} className={row}><span>{r.name.replace(/\.md$/, "")} <small className="text-faint">{when(r.modified)}</small></span>
+        <Btn size="sm" tone="ghost" onClick={() => ctx.hapus("laporan", r.name, `Laporan Steve ${r.name}.`)}>Hapus</Btn></li>))}</ul> : <Muted>Tidak ada.</Muted>}
+
+    <H3>Log ({d.logs.length}) · Cache {mb(d.cache)}</H3>
+    <div className="flex flex-wrap gap-2">
+      <Btn size="sm" disabled={!d.logs.length} onClick={() => ctx.hapus("log", "*", `Semua ${d.logs.length} log kerja.`)}>Hapus semua log</Btn>
+      <Btn size="sm" disabled={!d.cache} onClick={() => ctx.hapus("cache", "", `Cache unduhan Bima (${mb(d.cache)}). Video yang sudah jadi tidak terpengaruh.`)}>Kosongkan cache</Btn>
+    </div>
+
+    <H3>Mulai dari nol</H3>
+    <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={lapor} onChange={(e) => setLapor(e.target.checked)} /> Ikut hapus laporan Steve</label>
+    <Btn tone="danger" className="mt-2" disabled={busy(ctx.state)} onClick={() => ctx.hapus("semua", "", `SEMUA hasil: ${d.videos.length} video, catatan produksi, log, dan cache${lapor ? ", plus laporan Steve" : ""}.`, lapor)}>Hapus semua hasil</Btn>
+    {busy(ctx.state) && <Muted className="mt-1">Hentikan tugas yang sedang berjalan dulu.</Muted>}
   </>);
 }
 

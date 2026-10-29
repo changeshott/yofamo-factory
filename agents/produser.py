@@ -39,6 +39,7 @@ TAHAP = [
     ("dara", "suara", "Dara membuat suara"),
     ("bima", "aset", "Bima menyiapkan visual"),
     ("kai", "editor", "Kai merakit video"),
+    ("rara", "qc", "Rara memeriksa kualitas"),
 ]
 
 
@@ -70,7 +71,7 @@ class Catatan:
     def tahap(self, kunci: str, status: str, catatan: str = "") -> None:
         t = next(x for x in self.d["tahap"] if x["kunci"] == kunci)
         t["status"] = status
-        if status == "jalan":
+        if status == "jalan" and not t["mulai"]:
             t["mulai"] = now()
         if status in ("ok", "gagal"):
             t["selesai"] = now()
@@ -83,6 +84,13 @@ class Catatan:
         self.d.update(status=status, pesan=pesan, selesai=now())
         self.save()
         print(f"\n[produser] {status.upper()}: {pesan}", flush=True)
+
+
+def rj(p: Path) -> dict:
+    try:
+        return json.loads(p.read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError):
+        return {}
 
 
 def now() -> str:
@@ -181,6 +189,22 @@ def main() -> None:
             cat.tahap("dara", "gagal", "Suara gagal dibuat (cek internet / edge-tts).")
             return cat.akhir("gagal", "Berhenti di tahap suara.")
         w = json.loads((ROOT / "videos" / slug / "words.json").read_text(encoding="utf-8"))
+        # kontrol durasi: target 30–45 detik. Percepat/perlambat suara dulu; kalau masih kepanjangan, Raka memangkas.
+        d = float(w.get("durasi") or 0)
+        if not a.uji and (d > 45 or d < 28):
+            rate = round((1.15 * d / 42 - 1) * 100)
+            if d > 45 and rate > 28:
+                cat.tahap("dara", "jalan", f"{d:.1f} dtk kepanjangan, Raka memangkas naskah")
+                pabrik("set", slug, "naskah", "--note", f"suara {d:.1f} dtk, dipangkas")
+                claude(f"/penulis {slug} --pangkas {d:.0f}", tools("agents/pabrik.py", "agents/penulis/cek_naskah.py"), 20 * 60)
+                rate = 15
+            rate = max(0, min(28, rate))
+            cat.tahap("dara", "jalan", f"{d:.1f} dtk di luar target, rekam ulang kecepatan +{rate}%")
+            jalan([PY, "agents/suara/buat_suara.py", slug, *voice, "--rate", f"+{rate}%"], 10 * 60)
+            w = json.loads((ROOT / "videos" / slug / "words.json").read_text(encoding="utf-8"))
+            if videos().get(slug) != "suara":
+                cat.tahap("dara", "gagal", "Rekam ulang gagal.")
+                return cat.akhir("gagal", "Berhenti di tahap suara.")
         cat.tahap("dara", "ok", f"{w.get('durasi')} detik")
 
         # 5. Bima
@@ -210,7 +234,24 @@ def main() -> None:
             cat.tahap("kai", "gagal", "Video gagal dirakit. Cek log.")
             return cat.akhir("gagal", "Berhenti di tahap rakit.")
         cat.tahap("kai", "ok", "export/final.mp4")
-        cat.akhir("selesai", "Video jadi. Tonton lalu setujui di Studio.")
+
+        # 7. Rara (QC): periksa, ganti shot jelek, rakit ulang (maks 2 putaran)
+        cat.tahap("rara", "jalan")
+        if a.uji or a.visual == "cepat":
+            jalan([PY, "agents/qc/periksa.py", "otomatis", slug, *(["--uji"] if a.uji else [])], 40 * 60)
+        else:
+            claude(f"/qc {slug}", tools("agents/pabrik.py", "agents/qc/periksa.py"), 60 * 60)
+        q = rj(ROOT / "videos" / slug / "export" / "qc.json")
+        rv = rj(ROOT / "videos" / slug / "export" / "qc_review.json")
+        info = []
+        if rv.get("skor") is not None:
+            info.append(f"skor {rv['skor']}/10")
+        if q.get("putaran"):
+            info.append(f"{q['putaran']} putaran perbaikan")
+        if q.get("masalah"):
+            info.append(f"{len(q['masalah'])} catatan")
+        cat.tahap("rara", "ok", ", ".join(info) or "lolos pemeriksaan otomatis")
+        cat.akhir("selesai", "Video jadi dan sudah diperiksa Rara. Tonton lalu setujui di Studio.")
     except Exception as err:  # jangan sampai catatan tertinggal 'berjalan'
         for t in cat.d["tahap"]:
             if t["status"] == "jalan":
