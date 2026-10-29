@@ -423,10 +423,10 @@ export function HealthPanel({ ctx }: { ctx: PanelCtx }) {
 }
 
 /* ---------------------------------------------------------------- buat video */
-const TAHAP_AGENT: Record<string, string> = { nova: "nova", raka: "raka", dara: "dara", bima: "bima", kai: "kai", rara: "rara" };
+const TAHAP_AGENT: Record<string, string> = { steve: "steve", nova: "nova", raka: "raka", dara: "dara", bima: "bima", kai: "kai", rara: "rara" };
 const PROD_TONE = { berjalan: "running", selesai: "ok", gagal: "error", terhenti: "stopped" } as const;
 const PROD_TXT = { berjalan: "Sedang dibuat", selesai: "Video jadi", gagal: "Gagal", terhenti: "Terhenti" } as const;
-const IDE = ["Robot yang bisa merasakan sakit", "Baju yang bisa mengganti warna sendiri", "Daging hasil printer 3D", "Lensa kontak yang bisa merekam video"];
+const TEMA = ["makanan", "pakaian", "kesehatan", "rumah", "HP & gadget", "game", "transportasi", "energi"];
 
 function durasi(a: string | null, b: string | null): string {
   if (!a) return "";
@@ -503,17 +503,18 @@ export function ProduksiPanel({ ctx }: { ctx: PanelCtx }) {
     {antre.length > 0 && (<>
       <H3>Antrean ({antre.length})</H3>
       <ol className="divide-y divide-line">{antre.map((q, k) => (
-        <li key={q.id} className="flex items-center justify-between gap-2 py-2 text-sm"><span>{k + 1}. &ldquo;{q.teks}&rdquo; <small className="text-faint">{q.suara} · {q.visual}</small></span>
+        <li key={q.id} className="flex items-center justify-between gap-2 py-2 text-sm"><span>{k + 1}. {q.teks ? <>&ldquo;{q.teks}&rdquo;</> : "Topik dipilih tim"} <small className="text-faint">{q.suara} · {q.visual}</small></span>
           <Btn size="sm" tone="ghost" onClick={async () => { await api("/api/antrean", { aksi: "hapus", id: q.id }).catch(() => {}); ctx.open("produksi"); }}>Batal</Btn></li>))}
       </ol>
     </>)}
     {(<>
       {cur && <H3>Tambah permintaan</H3>}
-      <label htmlFor="minta" className="font-pixel text-sm text-muted">Mau video tentang apa?</label>
-      <textarea id="minta" value={teks} onChange={(e) => setTeks(e.target.value)} maxLength={200} rows={3}
-        placeholder="Contoh: robot yang bisa merasakan sakit"
+      <p className="text-[15px]">Tim yang memilih topiknya: Steve memperbarui daftar video channel, lalu Nova mencari teknologi nyata yang paling berpotensi menang dan <strong>belum pernah dibahas</strong> di channel.</p>
+      <label htmlFor="minta" className="mt-3 block font-pixel text-sm text-muted">Arahan tema (opsional)</label>
+      <textarea id="minta" value={teks} onChange={(e) => setTeks(e.target.value)} maxLength={200} rows={2}
+        placeholder="Kosongkan saja supaya tim bebas memilih. Atau beri arah, misalnya: kesehatan"
         className="mt-1.5 w-full resize-none rounded-lg border border-line bg-ink-950 px-3 py-2.5 text-[15px] placeholder:text-faint focus:border-signal focus:outline-none" />
-      <div className="mt-1.5 flex flex-wrap gap-1.5">{IDE.map((x) => (
+      <div className="mt-1.5 flex flex-wrap gap-1.5">{TEMA.map((x) => (
         <button key={x} onClick={() => setTeks(x)} className="rounded-full border border-line px-2.5 py-1 text-xs text-muted hover:border-signal hover:text-signal">{x}</button>))}
       </div>
       <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
@@ -524,11 +525,11 @@ export function ProduksiPanel({ ctx }: { ctx: PanelCtx }) {
           <select value={visual} onChange={(e) => setVisual(e.target.value as "teliti" | "cepat")} className="rounded-lg border border-line bg-ink-950 px-2 py-2">
             <option value="teliti">Teliti (Bima memilih satu per satu)</option><option value="cepat">Cepat (pilih otomatis)</option></select></label>
       </div>
-      <Btn tone="primary" className="mt-3 w-full justify-center py-3 text-base" disabled={teks.trim().length < 3 || kurang.length > 0} onClick={go}>{busy(state) ? "Tambah ke antrean" : "Buat video"}</Btn>
+      <Btn tone="primary" className="mt-3 w-full justify-center py-3 text-base" disabled={kurang.length > 0} onClick={go}>{busy(state) ? "Tambah ke antrean" : teks.trim() ? "Buat video dengan arahan ini" : "Buat video (tim pilih topik)"}</Btn>
       {kurang.length > 0 && <Muted className="mt-2 text-signal">Belum siap: {kurang.join(", ")}. <button className="underline" onClick={() => ctx.open("health")}>Cek sistem</button></Muted>}
       {err && <Muted className="mt-2 text-bad">{err}</Muted>}
       {busy(state) && <Muted className="mt-2">Kantor sedang bekerja; permintaanmu masuk antrean dan dikerjakan berurutan otomatis (bisa ditinggal tidur).</Muted>}
-      <Muted className="mt-2">Nova meriset 1 ide sesuai permintaanmu (tetap wajib 2 sumber), lalu Raka, Dara, Bima, dan Kai bekerja berurutan, dan Rara memeriksa serta memperbaiki shot yang jelek. Perkiraan 15–35 menit; memakai kuota Claude Pro untuk ide, naskah, dan visual teliti. Hasilnya muncul di sini dan di Galeri. Kamu tetap menonton dan menyetujui video sebelum di-upload.</Muted>
+      <Muted className="mt-2">Nova memilih 1 topik baru (dicek tidak mirip video lama, wajib 2 sumber), lalu Raka, Dara, Bima, dan Kai bekerja berurutan, dan Rara memeriksa serta memperbaiki shot yang jelek. Perkiraan 15–35 menit; memakai kuota Claude Pro untuk ide, naskah, dan visual teliti. Hasilnya muncul di sini dan di Galeri. Kamu tetap menonton dan menyetujui video sebelum di-upload.</Muted>
     </>)}
 
 

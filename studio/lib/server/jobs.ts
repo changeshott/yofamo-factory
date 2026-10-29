@@ -16,7 +16,7 @@ function scriptTools(...scripts: string[]): string[] {
 }
 const TOOLS = {
   steve: scriptTools("agents/steve/fetch_stats.py", "agents/steve/analitik.py"),
-  ide: [...scriptTools("agents/pabrik.py"), "WebSearch", "WebFetch"],
+  ide: [...scriptTools("agents/pabrik.py", "agents/ide/cek_topik.py"), "WebSearch", "WebFetch"],
   penulis: scriptTools("agents/pabrik.py", "agents/penulis/cek_naskah.py"),
   aset: scriptTools("agents/pabrik.py", "agents/aset/cari_aset.py"),
   qc: scriptTools("agents/pabrik.py", "agents/qc/periksa.py"),
@@ -82,9 +82,8 @@ async function command(job: JobName, arg: string): Promise<{ cmd: string; args: 
     if (!which("ffmpeg")) return "ffmpeg belum terpasang. Jalankan: winget install Gyan.FFmpeg";
     const [suara, visual, ...rest] = arg.split("|");
     const teks = rest.join(" ").replace(/[^\p{L}\p{N}\s,.\-?!]/gu, "").trim().slice(0, 200);
-    if (teks.length < 3) return "Tulis dulu mau video tentang apa.";
     if (!which("claude")) return "Perintah 'claude' tidak ditemukan. Install Claude Code CLI dulu.";
-    return { cmd: py, args: ["agents/produser.py", teks, "--suara", suara === "wanita" ? "wanita" : "pria", "--visual", visual === "cepat" ? "cepat" : "teliti", ...(process.env.YOFAMO_UJI === "1" ? ["--uji"] : [])] };
+    return { cmd: py, args: ["agents/produser.py", ...(teks.length >= 3 ? [teks] : []), "--suara", suara === "wanita" ? "wanita" : "pria", "--visual", visual === "cepat" ? "cepat" : "teliti", ...(process.env.YOFAMO_UJI === "1" ? ["--uji"] : [])] };
   }
   let asetSlug = "";
   if (job === "aset") {
@@ -184,7 +183,6 @@ function writeQueue(q: QueueItem[]) {
 }
 export async function enqueue(teks: string, suara: string, visual: string): Promise<{ ok: boolean; message: string }> {
   const clean = teks.replace(/[^\p{L}\p{N}\s,.\-?!]/gu, "").trim().slice(0, 200);
-  if (clean.length < 3) return { ok: false, message: "Tulis dulu mau video tentang apa." };
   const q = readQueue();
   if (q.length >= 20) return { ok: false, message: "Antrean penuh (maksimal 20)." };
   q.push({ id: `${Date.now()}`, teks: clean, suara: suara === "wanita" ? "wanita" : "pria", visual: visual === "cepat" ? "cepat" : "teliti", dibuat: localIso() });

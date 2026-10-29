@@ -33,8 +33,9 @@ os.environ["PATH"] = os.pathsep.join([str(Path(PY).parent), str(Path(PY).parent 
 os.environ.setdefault("YOFAMO_PYTHON", PY)  # cadangan kalau shell Claude menyusun ulang PATH (lihat agents/pakai_python.py)
 
 TAHAP = [
-    ("nova", "ide", "Nova meriset ide"),
-    ("setuju", "", "Ide disetujui (permintaanmu)"),
+    ("steve", "fetch", "Steve memperbarui daftar video channel"),
+    ("nova", "ide", "Nova memilih & meriset topik baru"),
+    ("setuju", "", "Ide disetujui (tombol Buat video-mu)"),
     ("raka", "penulis", "Raka menulis naskah"),
     ("dara", "suara", "Dara membuat suara"),
     ("bima", "aset", "Bima menyiapkan visual"),
@@ -128,33 +129,59 @@ def claude(prompt: str, allowed: list[str], timeout: int) -> int:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Produser: permintaan → video jadi")
-    ap.add_argument("permintaan")
+    ap.add_argument("permintaan", nargs="?", default="", help="arahan tema (opsional). Kosong = tim memilih topik sendiri")
     ap.add_argument("--suara", choices=["pria", "wanita"], default="pria")
     ap.add_argument("--visual", choices=["teliti", "cepat"], default="teliti")
     ap.add_argument("--id", default="")
     ap.add_argument("--uji", action="store_true", help="tanpa Claude & internet: data contoh, untuk mengetes alur")
     a = ap.parse_args()
     teks = re.sub(r"[^\w\s,.\-?!]", "", a.permintaan, flags=re.UNICODE).strip()[:200]
+    judul_req = teks if len(teks) >= 3 else "Topik dipilih tim"
     if len(teks) < 3:
-        sys.exit("[produser] permintaan terlalu pendek")
+        teks = ""
     pid = a.id if re.fullmatch(r"[\w-]{3,40}", a.id or "") else datetime.now().strftime("%Y%m%d-%H%M%S")
-    cat = Catatan(pid, teks, {"suara": a.suara, "visual": a.visual, "uji": a.uji})
+    cat = Catatan(pid, judul_req, {"suara": a.suara, "visual": a.visual, "uji": a.uji})
     slug = ""
     try:
-        # 1. Nova
-        cat.tahap("nova", "jalan")
-        before = videos()
+        # 0. Steve: daftar video channel terbaru, supaya Nova tidak mengulang topik lama
+        cat.tahap("steve", "jalan")
         if a.uji:
-            sys.path.insert(0, str(ROOT / "agents"))
-            import tes_pabrik as fx
-            pabrik("new", fx.IDEA["judul_kerja"])
+            cat.tahap("steve", "ok", "mode uji: memakai snapshot yang ada")
+        elif jalan([PY, "agents/steve/fetch_stats.py"], 5 * 60) == 0:
+            cat.tahap("steve", "ok", "daftar video channel terbaru")
         else:
-            claude(f"/ide-riset --permintaan {teks}", tools("agents/pabrik.py", web=True), 40 * 60)
-        new = [s for s, st in videos().items() if s not in before and st == "ide"]
-        if not new:
-            cat.tahap("nova", "gagal", "Nova tidak membuat ide (topik tidak bisa diverifikasi dengan 2 sumber, atau melanggar bible). Coba topik yang lebih spesifik.")
+            cat.tahap("steve", "ok", "gagal mengambil data baru; memakai snapshot terakhir")
+
+        # 1. Nova: tim memilih topik (arahan Zona hanya arah), wajib belum pernah dibahas
+        cat.tahap("nova", "jalan")
+        sys.path.insert(0, str(ROOT / "agents"))
+        slug = ""
+        for coba in range(2):
+            before = videos()
+            if a.uji:
+                import tes_pabrik as fx
+                pabrik("new", fx.IDEA["judul_kerja"])
+            else:
+                extra = "" if coba == 0 else " (percobaan ke-2: ide sebelumnya ditolak karena duplikat topik lama, pilih teknologi lain)"
+                claude(f"/ide-riset --otomatis {teks}{extra}".strip(), tools("agents/pabrik.py", "agents/ide/cek_topik.py", web=True), 40 * 60)
+            new = [x for x, st in videos().items() if x not in before and st == "ide"]
+            if not new:
+                break
+            cand = sorted(new)[-1]
+            for extra_slug in sorted(new)[:-1]:  # mode otomatis = 1 ide; sisanya ditolak supaya antrean bersih
+                pabrik("set", extra_slug, "ditolak", "--note", "kelebihan ide di mode otomatis")
+            jk = json.loads((ROOT / "videos" / cand / "idea.json").read_text(encoding="utf-8-sig")).get("judul_kerja", cand) if (ROOT / "videos" / cand / "idea.json").exists() else cand
+            dup = subprocess.run([PY, "agents/ide/cek_topik.py", jk, "--abaikan", cand], cwd=ROOT, capture_output=True, text=True, encoding="utf-8")
+            if dup.returncode == 2 and not a.uji:
+                print(dup.stdout, flush=True)
+                pabrik("set", cand, "ditolak", "--note", "duplikat topik yang sudah ada di channel")
+                cat.tahap("nova", "jalan", f"'{jk}' ternyata mirip video lama, cari topik lain")
+                continue
+            slug = cand
+            break
+        if not slug:
+            cat.tahap("nova", "gagal", "Nova tidak menemukan topik baru yang lolos verifikasi 2 sumber dan belum pernah dibahas. Coba lagi, atau beri arahan tema.")
             return cat.akhir("gagal", "Berhenti di tahap ide.")
-        slug = sorted(new)[-1]
         cat.d["slug"] = slug
         if a.uji:
             (ROOT / "videos" / slug).mkdir(parents=True, exist_ok=True)
@@ -164,7 +191,7 @@ def main() -> None:
 
         # 2. disetujui oleh permintaan Zona
         cat.tahap("setuju", "jalan")
-        pabrik("set", slug, "disetujui", "--note", f"disetujui lewat permintaan Zona: {teks[:80]}")
+        pabrik("set", slug, "disetujui", "--note", f"disetujui lewat tombol Buat video Zona{(': ' + teks[:80]) if teks else ' (topik dipilih tim)'}")
         cat.tahap("setuju", "ok")
 
         # 3. Raka
