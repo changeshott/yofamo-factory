@@ -185,6 +185,11 @@ def offline() -> None:
 # ------------------------------------------------------------------ tes koneksi sungguhan
 def online() -> None:
     print("\n== Tes koneksi sungguhan (memakai .env, tidak mengubah project) ==")
+    import importlib.util
+    kurang = [m for m in ("edge_tts", "yt_dlp") if importlib.util.find_spec(m) is None]
+    cek("Python punya paket pabrik", not kurang,
+        sys.executable if not kurang else f"{sys.executable} tidak punya {', '.join(kurang)} — pakai Python lain "
+        f"atau jalankan: \"{sys.executable}\" -m pip install -r requirements.txt")
     sys.path.insert(0, str(ROOT / "agents" / "aset"))
     env_file = ROOT / ".env"
     if env_file.exists():
@@ -220,7 +225,7 @@ def online() -> None:
         try:
             if not (acc and tok):
                 raise ValueError("CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN belum diisi")
-            img = sumber.flux_image("macro photo of a robotic hand, studio light, no text", acc, tok, 7)
+            img = sumber.flux_image("macro photo of a robotic hand, studio light, no text", acc, tok)
             cek("Cloudflare FLUX (gambar AI)", len(img) > 10_000, f"{len(img) // 1024} KB")
         except Exception as e:
             cek("Cloudflare FLUX (gambar AI)", False, f"{type(e).__name__}: {e}"[:200])
@@ -253,7 +258,7 @@ def online() -> None:
             wd, ht, d = ffprobe_size(got[0]) if got else (0, 0, 0)
             cek("yt-dlp (potong 3 detik video CC)", bool(got) and d > 1, f"{wd}x{ht}, {d:.1f} dtk")
         except Exception as e:
-            cek("yt-dlp (potong 3 detik video CC)", False, f"{type(e).__name__}: {e}"[:200] + " (sudah install Deno?)")
+            cek("yt-dlp (potong 3 detik video CC)", False, f"{type(e).__name__}: {e}"[:200] + ("" if isinstance(e, ImportError) else " (sudah install Deno?)"))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

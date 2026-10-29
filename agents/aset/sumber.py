@@ -166,11 +166,13 @@ def pixabay(query: str, key: str) -> list[dict]:
 
 
 # ------------------------------------------------------------------ Cloudflare Workers AI (gambar)
-def flux_image(prompt: str, account: str, token: str, seed: int) -> bytes:
-    """FLUX.1 schnell gratis ±170 gambar/hari (10.000 neuron). Mengembalikan JPEG."""
+def flux_image(prompt: str, account: str, token: str) -> bytes:
+    """FLUX.1 schnell gratis ±170 gambar/hari (10.000 neuron). Mengembalikan JPEG.
+    Cloudflare tidak lagi menerima `seed` (400 "Additional properties '/seed' not allowed"),
+    jadi variasi antar-shot diatur lewat prompt (lihat cari_aset.ai_prompt)."""
     import base64
     url = f"https://api.cloudflare.com/client/v4/accounts/{account}/ai/run/@cf/black-forest-labs/flux-1-schnell"
-    body = json.dumps({"prompt": prompt[:2000], "steps": 6, "seed": seed}).encode()
+    body = json.dumps({"prompt": prompt[:2000], "steps": 6}).encode()
     data = http_json(url, {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}, body)
     img = (data.get("result") or {}).get("image")
     if not img:

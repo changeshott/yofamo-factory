@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -26,6 +27,10 @@ ROOT = Path(__file__).resolve().parents[1]
 PROD = ROOT / "produksi"
 PY = sys.executable
 MODEL = "sonnet"
+# `python` yang dipanggil Claude (skill) harus Python yang sama dengan produser ini,
+# bukan python lain yang kebetulan lebih dulu di PATH (misalnya venv aplikasi lain).
+os.environ["PATH"] = os.pathsep.join([str(Path(PY).parent), str(Path(PY).parent / "Scripts"), os.environ.get("PATH", "")])
+os.environ.setdefault("YOFAMO_PYTHON", PY)  # cadangan kalau shell Claude menyusun ulang PATH (lihat agents/pakai_python.py)
 
 TAHAP = [
     ("nova", "ide", "Nova meriset ide"),

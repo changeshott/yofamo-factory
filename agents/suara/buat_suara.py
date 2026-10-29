@@ -22,6 +22,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import pakai_python  # noqa: E402
+
+if __name__ == "__main__":
+    pakai_python.pastikan("edge_tts")
+
 ROOT = Path(__file__).resolve().parents[2]
 VIDEOS = ROOT / "videos"
 DEFAULT_VOICE = "id-ID-ArdiNeural"

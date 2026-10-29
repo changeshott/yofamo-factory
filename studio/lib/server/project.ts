@@ -1,5 +1,5 @@
 import "server-only";
-import { execFile } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -42,8 +42,71 @@ export function which(name: string): string | null {
   return null;
 }
 
+/** Semua salinan program di PATH, berurutan. */
+function whichAll(name: string): string[] {
+  const exts = process.platform === "win32" ? [".exe", ""] : [""];
+  const out: string[] = [];
+  for (const dir of (process.env.PATH ?? "").split(path.delimiter)) {
+    if (!dir) continue;
+    for (const ext of exts) {
+      const full = path.join(dir.replace(/^"|"$/g, ""), name + ext);
+      try {
+        if (fs.statSync(full).isFile() && !out.includes(full)) out.push(full);
+      } catch {
+        /* lanjut */
+      }
+    }
+  }
+  return out;
+}
+
+const pyPick: { exe: string | null; at: number } = { exe: null, at: 0 };
+
+/**
+ * Python untuk agent. Bukan sekadar "python" pertama di PATH: bisa saja itu venv aplikasi lain
+ * (misalnya hermes-agent) yang tidak punya edge-tts/yt-dlp. Pilih yang paket pabriknya lengkap.
+ * YOFAMO_PYTHON di lingkungan bisa memaksa satu Python tertentu.
+ */
 export function pythonCmd(): string | null {
-  return process.platform === "win32" ? which("python") ?? which("py") : which("python3") ?? which("python");
+  if (pyPick.exe && Date.now() - pyPick.at < 10 * 60_000) return pyPick.exe;
+  const forced = process.env.YOFAMO_PYTHON;
+  const cands = forced ? [forced] : [];
+  if (process.platform === "win32") {
+    cands.push(...whichAll("python"));
+    try {
+      const launcher = which("py");
+      if (launcher) cands.push(execFileSync(launcher, ["-3", "-c", "import sys;print(sys.executable)"], { windowsHide: true, timeout: 10_000, encoding: "utf8" }).trim());
+    } catch {
+      /* py launcher tidak ada */
+    }
+  } else cands.push(...whichAll("python3"), ...whichAll("python"));
+  const uniq = [...new Set(cands.filter(Boolean))];
+  const ok = (exe: string) => {
+    try {
+      execFileSync(exe, ["-c", "import edge_tts, yt_dlp"], { windowsHide: true, timeout: 20_000, stdio: "ignore" });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  const exe = uniq.find(ok) ?? uniq.find((e) => !/WindowsApps/i.test(e)) ?? null;
+  pyPick.exe = exe;
+  pyPick.at = Date.now();
+  return exe;
+}
+
+/** Lingkungan untuk proses agent: folder Python terpilih di depan PATH, supaya `python` yang
+ *  dipanggil Claude (skill) dan script lain sama dengan Python yang paketnya lengkap. */
+export function agentEnv(): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = { ...process.env, PYTHONIOENCODING: "utf-8" };
+  const py = pythonCmd();
+  if (py && path.isAbsolute(py)) {
+    const key = Object.keys(env).find((k) => k.toUpperCase() === "PATH") ?? "PATH";
+    const dir = path.dirname(py);
+    env[key] = [dir, path.join(dir, "Scripts"), env[key] ?? ""].join(path.delimiter);
+    env.YOFAMO_PYTHON ??= py; // shell Claude bisa menyusun ulang PATH; script memakai ini (agents/pakai_python.py)
+  }
+  return env;
 }
 
 export async function pabrik<T>(args: string[]): Promise<T> {

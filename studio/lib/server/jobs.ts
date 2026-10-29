@@ -3,7 +3,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import type { JobName, JobState } from "@/lib/types";
-import { P, ROOT, SLUG, localIso, pabrik, pythonCmd, which } from "./project";
+import { P, ROOT, SLUG, agentEnv, localIso, pabrik, pythonCmd, which } from "./project";
 
 /** Alat yang boleh dipakai Claude per agent. Selain ini otomatis ditolak. */
 function scriptTools(...scripts: string[]): string[] {
@@ -127,7 +127,7 @@ export async function startJob(job: JobName, arg = ""): Promise<{ ok: boolean; m
     stdio: ["ignore", out, out],
     windowsHide: true,
     shell: isCmd, // .cmd di Windows butuh shell; argumen sudah disaring
-    env: { ...process.env, PYTHONIOENCODING: "utf-8" },
+    env: agentEnv(),
   });
   store.child = child;
   store.state = { job, arg: arg || null, status: "running", started: localIso(), finished: null, log: logName };

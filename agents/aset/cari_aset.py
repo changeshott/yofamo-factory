@@ -39,6 +39,11 @@ from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(1, str(Path(__file__).resolve().parents[1]))
+import pakai_python  # noqa: E402
+
+if __name__ == "__main__":
+    pakai_python.pastikan("yt_dlp")
 import gerak  # noqa: E402
 import sumber  # noqa: E402
 
@@ -355,9 +360,9 @@ def raw_footage(c: dict, need: float, seg: int, used: list) -> tuple[Path, float
     return p, max(0.0, min(base + seg * (need + 0.5), d - need)) if d > need else 0.0
 
 
-def ai_image(prompt: str, seed: int) -> Path:
+def ai_image(prompt: str) -> Path:
     import hashlib
-    p = cache_path(f"ai-{seed}-{hashlib.sha1(prompt.encode()).hexdigest()[:10]}.jpg")
+    p = cache_path(f"ai-{hashlib.sha1(prompt.encode()).hexdigest()[:12]}.jpg")
     if p.exists():
         return p
     if UJI:
@@ -366,14 +371,18 @@ def ai_image(prompt: str, seed: int) -> Path:
     acc, tok = os.environ.get("CLOUDFLARE_ACCOUNT_ID", ""), os.environ.get("CLOUDFLARE_API_TOKEN", "")
     if not acc or not tok:
         raise RuntimeError("CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN belum diisi di .env")
-    p.write_bytes(sumber.flux_image(prompt, acc, tok, seed))
+    p.write_bytes(sumber.flux_image(prompt, acc, tok))
     return p
 
 
-def ai_prompt(p: dict, kalimat: str) -> str:
+# Sudut kamera per shot (a/b/c) supaya shot dalam satu kalimat tidak memakai gambar yang sama.
+FRAMING = ["medium shot", "extreme close-up detail", "wide establishing shot, different angle"]
+
+
+def ai_prompt(p: dict, kalimat: str, shot: int = 0) -> str:
     base = p["prompt_ai"] or p["kata"][0]
-    return (f"{base}. Vertical cinematic shot, photorealistic, dramatic lighting, shallow depth of field, "
-            f"high detail, no text, no watermark, no logo")
+    return (f"{base}. {FRAMING[shot % len(FRAMING)]}, vertical cinematic shot, photorealistic, dramatic lighting, "
+            f"shallow depth of field, high detail, no text, no watermark, no logo")
 
 
 def auto_pick(entry: dict, n: int, taken: set) -> list:
@@ -432,8 +441,8 @@ def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
                         gerak.grafis(p["grafis"], out, dur)
                         meta = {"jenis": "grafis", "sumber": "grafis", "judul": p["grafis"].get("teks") or p["grafis"].get("label", ""), "lisensi": "buatan sendiri"}
                     elif t == "ai":
-                        prompt = ai_prompt(p, narasi[i]["kalimat"])
-                        img = ai_image(prompt, seed=1000 * (i + 1) + s)
+                        prompt = ai_prompt(p, narasi[i]["kalimat"], s)
+                        img = ai_image(prompt)
                         gerak.kenburns(img, out, dur, seed=i * 7 + s)
                         meta = {"jenis": "ai", "sumber": "cloudflare-flux", "judul": prompt, "lisensi": "gambar AI (konten sintetis)"}
                     else:
