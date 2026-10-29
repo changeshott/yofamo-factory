@@ -29,7 +29,7 @@ Hindari atau batasi:
 
 ## Struktur naskah
 
-1. **Hook (0–3 detik, ≤ 12 kata):** klaim kaget, kontras, atau pertanyaan "beneran?!".
+1. **Hook (0–3 detik):** **selalu diawali "Tau nggak,"** (ciri khas Yofamo, pengganti "halo guys"), lalu langsung klaim kaget/kontras ≤ 12 kata. Contoh: "Tau nggak, robot ini bisa ngerasain sakit?"
 2. **Konteks:** apa itu & siapa pembuatnya, status jujur (1 kalimat).
 3. **Cara kerja:** singkat, pakai analogi sehari-hari (1–3 kalimat).
 4. **Wow:** fakta/angka paling mengejutkan (wajib), membayar *open loop* dari awal.

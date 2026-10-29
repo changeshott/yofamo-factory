@@ -33,7 +33,7 @@ IDEA = {
     "visual_tersedia": "Video demo", "risiko": "Prototipe",
 }
 NARASI = [
-    ("Robot ini bisa ngerasain sakit beneran, dan ini bukan film fiksi ilmiah.", "close-up tangan robot disentuh jarum"),
+    ("Tau nggak, robot ini bisa ngerasain sakit beneran, bukan film fiksi ilmiah.", "close-up tangan robot disentuh jarum"),
     ("Ilmuwan bikin kulit buatan yang tipis, lentur, dan penuh sensor kecil di dalamnya.", "lembar kulit buatan ditarik pelan"),
     ("Setiap sensor mengubah tekanan jadi sinyal listrik, mirip saraf di kulit kita.", "animasi sinyal mengalir dari ujung jari"),
     ("Kalau ditekan terlalu keras, robotnya langsung menarik tangan, seperti refleks manusia.", "robot menarik tangan dari benda tajam"),
@@ -154,6 +154,7 @@ def offline() -> None:
         cek("Raka: naskah.md untuk tim dibuat", (vdir / "naskah.md").exists() and "penutup" in (vdir / "naskah.md").read_text(encoding="utf-8"))
         jelek = json.loads(json.dumps(SCRIPT))
         jelek["narasi"][-1]["kalimat"] = "Dan yang lebih gila lagi, ternyata teknologi ini juga bisa dipakai untuk..."
+        jelek["narasi"][0]["kalimat"] = "Halo guys, robot ini bisa ngerasain sakit beneran."
         jelek["judul"] = "Halo guys, di video kali ini kita bahas kulit robot #Shorts #Teknologi"
         (vdir / "script.json").write_text(json.dumps({**jelek, "slug": slug}, ensure_ascii=False), encoding="utf-8")
         r2 = run(tmp, "agents/penulis/cek_naskah.py", slug)

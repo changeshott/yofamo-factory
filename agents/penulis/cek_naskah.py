@@ -5,7 +5,7 @@
     python agents/penulis/cek_naskah.py <slug> --tulis   # + tulis naskah.md (versi mudah dibaca untuk Zona & tim)
 
 Yang diperiksa:
-  struktur  kalimat 1 = hook (≤ 12 kata), kalimat terakhir = penutup yang tuntas (tidak menggantung)
+  struktur  kalimat 1 = hook diawali 'Tau nggak,' (ciri khas channel, isi ≤ 12 kata), kalimat terakhir = penutup yang tuntas (tidak menggantung)
   durasi    jumlah kata cocok dengan target_durasi (±12%), 25–58 detik
   ritme     tiap kalimat ≤ 22 kata (rata-rata ≤ 14), ada bagian 'wow'
   fakta     setiap angka di naskah (angka atau ditulis huruf) harus ada di fakta idea.json; status teknologi jujur
@@ -29,6 +29,7 @@ PENUTUP = {"loop", "pertanyaan", "kesimpulan"}
 FILLER = re.compile(r"\b(halo|hai|hi) (guys|semua|teman)|di video kali ini|jangan lupa (like|subscribe|follow)|tonton sampai (habis|akhir)|"
                     r"tanpa basa.?basi|langsung saja|oke guys|nah guys", re.I)
 GANTUNG = re.compile(r"(\.\.\.|…|\b(dan|tapi|karena|yang|atau|serta|lalu|kemudian|untuk|dengan|bahwa|jadi)\s*[.!?]?)\s*$", re.I)
+PEMBUKA = re.compile(r"^\s*(tau|tahu)\s+(nggak|gak|ga|enggak)\b[,!?]?\s*", re.I)   # ciri khas opening Yofamo
 JUAL = re.compile(r"\b(sudah|udah|bisa|sudah bisa) (dijual|dibeli|dipesan)|tersedia di (pasaran|toko)|dijual bebas", re.I)
 
 
@@ -177,8 +178,12 @@ def check(slug: str) -> tuple[list[str], list[str], dict, dict]:
 
     if narasi[0].get("bagian") != "hook":
         fails.append("kalimat 1 harus bagian 'hook'")
-    if panjang and panjang[0] > 12:
-        fails.append(f"hook {panjang[0]} kata; harus ≤ 12 supaya selesai dalam ±3 detik")
+    pembuka = str(narasi[0].get("kalimat", "")).strip()
+    if not PEMBUKA.match(pembuka):
+        fails.append("ciri khas channel: kalimat 1 harus diawali 'Tau nggak,' (contoh: 'Tau nggak, robot ini bisa ngerasain sakit?')")
+    isi_hook = len(words(PEMBUKA.sub("", pembuka, count=1)))
+    if panjang and isi_hook > 12:
+        fails.append(f"hook {isi_hook} kata setelah 'Tau nggak'; harus ≤ 12 supaya selesai dalam ±3 detik")
     akhir = str(narasi[-1].get("kalimat", "")).strip()
     if narasi[-1].get("bagian") != "penutup":
         fails.append("kalimat terakhir harus bagian 'penutup'")

@@ -38,11 +38,18 @@ Pilih sesuai kebutuhan cerita, lalu jumlah kata = **target × 2,3** (±10%).
 
 Kalau `pelajaran.md` punya aturan durasi yang **terbukti** (misalnya retensi turun tajam setelah 40 dtk), aturan itu menang.
 
-### 3. Pilih hook
-Pilih hook terkuat dari `hook_varian` (atau yang diminta eksperimen aktif) dan tajamkan. Kalimat 1 **≤ 12 kata**, terbaca dalam ±3 detik, berisi klaim kaget/kontras/pertanyaan "beneran?!". Teks besar di layar (`hook_teks`) **≤ 6 kata**, boleh berbeda dari kalimat yang diucapkan tapi maknanya sama. Jangan "Tahukah kamu…", jangan nama superhero sebagai satu-satunya daya tarik.
+### 3. Pilih hook — ciri khas "Tau nggak,"
+**Setiap video Yofamo dibuka dengan "Tau nggak,"** — ini ciri khas channel, pengganti "halo guys". Setelahnya langsung kejutan: pilih hook terkuat dari `hook_varian` (atau yang diminta eksperimen aktif), tajamkan, lalu tempelkan di belakang "Tau nggak,". Isi setelah "Tau nggak" **≤ 12 kata**, berisi klaim kaget/kontras.
+
+Contoh bagus:
+- "Tau nggak, robot ini bisa ngerasain sakit?"
+- "Tau nggak, ayam ini nggak pernah hidup?"
+- "Tau nggak, kamera ini bisa motret di balik tembok?"
+
+Jangan: "Tau nggak, di video ini kita bahas…" (basa-basi), "Tau nggak tentang kulit buatan?" (datar, bukan kejutan), atau "Tahukah kamu" (terlalu formal). Teks besar di layar (`hook_teks`) **≤ 6 kata** tetap berisi klaimnya, tanpa "tau nggak" (contoh `ROBOT BISA NGERASA SAKIT?!`). Jangan nama superhero sebagai satu-satunya daya tarik.
 
 ### 4. Susun beat (setiap kalimat diberi `bagian`)
-1. `hook` — 1 kalimat. Kejutan.
+1. `hook` — 1 kalimat, diawali "Tau nggak,". Kejutan.
 2. `konteks` — apa ini & siapa yang membuat (1 kalimat). Sebut status jujur (prototipe/riset/dijual).
 3. `cara_kerja` — 1–3 kalimat, analogi sehari-hari ("seperti…").
 4. `wow` — **wajib**: fakta/angka paling mengejutkan (pakai minimal 1 `angka_kunci` persis seperti di fakta).
@@ -84,7 +91,7 @@ python agents/pabrik.py set <slug> naskah
 ```
 
 ### 8. Jawaban akhir (maksimal 15 baris)
-Judul · hook · target durasi & jumlah kata · tipe penutup · porsi visual (footage/ai/grafis) · eksperimen (kalau ada) · "Naskah siap dibaca di Studio Yofamo."
+Judul · kalimat pembuka ("Tau nggak, …") · target durasi & jumlah kata · tipe penutup · porsi visual (footage/ai/grafis) · eksperimen (kalau ada) · "Naskah siap dibaca di Studio Yofamo."
 
 ## Mode pangkas
 
@@ -102,7 +109,7 @@ Dara mengukur durasi suara asli; produser memanggilmu kalau terlalu panjang. Bac
   "suasana": "misterius",
   "penutup_tipe": "pertanyaan",
   "narasi": [
-    {"kalimat": "Robot ini bisa ngerasain sakit. Serius.", "bagian": "hook",
+    {"kalimat": "Tau nggak, robot ini bisa ngerasain sakit?", "bagian": "hook",
      "visual": "close-up tangan robot ditekan jarum", "jenis_visual": "footage",
      "kata_kunci_visual": ["robot hand touch", "electronic skin"], "penekanan": ["sakit"]},
     {"kalimat": "…", "bagian": "wow", "visual": "…", "jenis_visual": "grafis", "teks_layar": "240 SENSOR!", "penekanan": ["240"]},
@@ -130,5 +137,5 @@ Dara mengukur durasi suara asli; produser memanggilmu kalau terlalu panjang. Bac
 ## Verification
 
 - `cek_naskah.py <slug> --tulis` mencetak `LOLOS` dan `videos/<slug>/naskah.md` ada.
-- Kalimat terakhir berlabel `penutup` dan tuntas; jumlah kata sesuai `target_durasi`.
+- Kalimat pertama diawali "Tau nggak,"; kalimat terakhir berlabel `penutup` dan tuntas; jumlah kata sesuai `target_durasi`.
 - Status video menjadi `naskah`.
