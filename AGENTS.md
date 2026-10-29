@@ -9,7 +9,7 @@ Pemilik: Zona. Semua jawaban dan laporan ditulis dalam **bahasa Indonesia**.
 | Nama | Peran | Skill | Status |
 | --- | --- | --- | --- |
 | Steve | Kepala analis: statistik, retensi & kurva penonton, komentar, radar pasar, eksperimen, post-mortem → laporan mingguan, `insights/topik_backlog.json` (dipakai Nova), `pelajaran.md`, `eksperimen.md` | `/steve-analis` | aktif |
-| Nova | Ide & riset: 3 ide bersumber per putaran (atau 1 ide di mode otomatis), selalu dicek belum pernah dibahas di channel (`agents/ide/cek_topik.py`) → `videos/<slug>/idea.json` | `/ide-riset [tema]` / `/ide-riset --otomatis [arahan]` | aktif |
+| Nova | Kepala riset & ide: longlist → saring → cek ketersediaan footage (`cek_visual.py`) → verifikasi jurnalis (≥3 fakta, kutipan, sumber tier 1) → paket ide (3+ varian hook, angka kunci, salah kaprah, kata kunci visual) → `cek_ide.py` (validasi + skor 0–100); portofolio 2 andalan + 1 eksplorasi; selalu belum pernah dibahas → `videos/<slug>/idea.json` | `/ide-riset [tema]` / `/ide-riset --otomatis [arahan]` | aktif |
 | Raka | Penulis: naskah, judul, hook, deskripsi, tag → `script.json` | `/penulis <slug>` | aktif |
 | Dara | Suara: voice-over gratis (edge-tts) + timing kata + subtitle → `vo.mp3`, `words.json`, `captions.srt` | `/suara <slug>` | aktif |
 | Bima | Visual: 1–3 shot 1080x1920 per kalimat dari footage YouTube CC BY/NASA/Wikimedia Commons (Pexels/Pixabay opsional), gambar AI gratis (Cloudflare FLUX + Ken Burns), atau kartu grafis → `aset/NN-a.mp4`, `aset/manifest.json` | `/aset <slug>` | aktif |
@@ -70,6 +70,8 @@ python agents/aset/cari_aset.py cari <slug>  # Bima: kandidat + lembar kontak (l
 python agents/editor/rakit.py <slug>        # Kai: rakit export/final.mp4
 python agents/produser.py ["arahan tema"]  # satu klik → tim pilih topik baru → video jadi
 python agents/ide/cek_topik.py "judul"      # cek topik belum pernah dibahas (--daftar: semua judul)
+python agents/ide/cek_visual.py "kata"      # Nova: ada footage legal untuk topik ini? (skor 0–10)
+python agents/ide/cek_ide.py <slug> --tulis # Nova: validasi sumber/kutipan/angka + skor ide 0–100
 python agents/qc/periksa.py otomatis <slug> # Rara cepat: cek + ganti shot gelap/beku
 python agents/upload/unggah.py login        # Uli: hubungkan YouTube (sekali)
 python agents/steve/kumpul.py [--pasar]     # Steve: semua data (statistik, komentar, analitik, pasar) + analisa, tanpa kuota Claude

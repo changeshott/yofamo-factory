@@ -115,6 +115,29 @@ def offline() -> None:
         (vdir / "idea.json").write_text(json.dumps({**IDEA, "slug": slug}, ensure_ascii=False), encoding="utf-8")
         cek("Zona menyetujui ide", run(tmp, "agents/pabrik.py", "set", slug, "disetujui").returncode == 0)
 
+        # Nova pro: validator ide (sumber tier, kutipan, angka kunci) + skor
+        rich = {**IDEA, "slug": slug, "status_teknologi": "prototipe",
+                "hook_varian": [{"jenis": "pertanyaan", "teks": "Robot ini bisa merasakan sakit?!"}, {"jenis": "angka", "teks": "240 sensor per sentimeter"},
+                                {"jenis": "kamu", "teks": "Kulitmu kalah sensitif?"}],
+                "fakta": [{"klaim": "Kulit buatan memuat 240 sensor per sentimeter persegi", "sumber_nama": "Universitas", "sumber_url": "https://news.stanford.edu/x",
+                           "kutipan": "240 sensors per square centimeter", "tanggal_sumber": "2026-05"},
+                          {"klaim": "Robot menarik tangan dalam 0,1 detik", "sumber_nama": "Nature", "sumber_url": "https://www.nature.com/articles/x",
+                           "kutipan": "withdrawal within 0.1 s", "tanggal_sumber": "2026-05"},
+                          {"klaim": "Diuji di laboratorium", "sumber_nama": "IEEE Spectrum", "sumber_url": "https://spectrum.ieee.org/x",
+                           "kutipan": "tested in the lab", "tanggal_sumber": "2026-06"}],
+                "angka_kunci": [{"angka": "240", "label": "sensor per cm²"}], "kata_kunci_visual": ["robot hand", "electronic skin"],
+                "rubrik": {"wow": 5, "dekat": 4, "bukti": 5, "kebaruan": 4, "risiko_rendah": 4, "visual": 3}}
+        (vdir / "idea.json").write_text(json.dumps(rich, ensure_ascii=False), encoding="utf-8")
+        r = run(tmp, "agents/ide/cek_ide.py", slug, "--tulis")
+        sk = (json.loads((vdir / "idea.json").read_text(encoding="utf-8")).get("skor") or {}).get("total")
+        cek("Nova: ide lengkap lolos validasi & berskor", r.returncode == 0 and sk is not None, f"skor {sk}/100")
+        bad = {**rich, "fakta": rich["fakta"][:2] + [{**rich["fakta"][2], "sumber_url": "https://medium.com/x"}],
+               "angka_kunci": [{"angka": "999", "label": "karangan"}]}
+        (vdir / "idea.json").write_text(json.dumps(bad, ensure_ascii=False), encoding="utf-8")
+        r = run(tmp, "agents/ide/cek_ide.py", slug)
+        cek("Nova: sumber tier 3 & angka karangan ditolak", r.returncode == 1 and "tier 3" in r.stdout and "999" in r.stdout)
+        (vdir / "idea.json").write_text(json.dumps({**IDEA, "slug": slug}, ensure_ascii=False), encoding="utf-8")  # kembali ke ide contoh untuk tes Raka
+
         # Raka
         (vdir / "script.json").write_text(json.dumps({**SCRIPT, "slug": slug}, ensure_ascii=False), encoding="utf-8")
         r = run(tmp, "agents/penulis/cek_naskah.py", slug)

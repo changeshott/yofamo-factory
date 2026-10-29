@@ -186,19 +186,35 @@ export function VideoCard({ v, ctx, defaultOpen }: { v: Video; ctx: PanelCtx; de
     <details className="group my-2 rounded-lg border border-line bg-ink-800 open:border-ink-600" open={defaultOpen}>
       <summary className="grid cursor-pointer list-none grid-cols-[auto_1fr_auto] items-center gap-3 px-3 py-2.5 [&::-webkit-details-marker]:hidden">
         <span className={`rounded px-2 py-1 font-pixel text-[11px] leading-none whitespace-nowrap ${STEP[v.status] ?? "bg-ink-700 text-muted"}`}>{v.label}</span>
-        <span><strong className="block text-sm leading-snug">{v.judul_kerja}</strong><small className="text-xs text-faint">{when(v.diubah)}</small></span>
+        <span><strong className="block text-sm leading-snug">{v.judul_kerja}</strong><small className="text-xs text-faint">{when(v.diubah)}{v.idea?.skor ? ` · skor ide ${v.idea.skor.total}/100` : ""}{v.idea?.status_teknologi ? ` · ${v.idea.status_teknologi}` : ""}</small></span>
         <span className="text-faint transition group-open:rotate-90" aria-hidden>›</span>
       </summary>
       <div className="border-t border-line px-3 pb-3">
         {i?._error && <Muted className="mt-2">{i._error}</Muted>}
         {i && !i._error && (<>
-          <h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Ide dari Nova</h4>
+          <div className="mt-3 mb-1 flex flex-wrap items-center gap-2">
+            <h4 className="font-pixel text-sm text-muted">Ide dari Nova</h4>
+            {i.skor && <span className={`rounded px-1.5 py-0.5 font-pixel text-xs ${i.skor.total >= 75 ? "bg-leaf/20 text-leaf" : i.skor.total >= 60 ? "bg-gold/20 text-gold" : "bg-bad/20 text-bad"}`}>skor {i.skor.total}/100</span>}
+            {i.slot && <span className="rounded bg-ink-700 px-1.5 py-0.5 text-xs text-muted">{i.slot}</span>}
+            {i.visual?.skor != null && <span className={`rounded px-1.5 py-0.5 text-xs ${i.visual.skor >= 4 ? "bg-circuit/15 text-circuit" : "bg-signal/15 text-signal"}`}>visual {i.visual.skor}/10</span>}
+          </div>
           <p className="font-pixel text-lg leading-tight font-bold text-signal">{i.hook_ide}</p>
           <p className="mt-1 text-sm">{i.kenapa_menang}</p>
+          {i.kenapa_sekarang && <p className="text-sm text-muted">Kenapa sekarang: {i.kenapa_sekarang}</p>}
           <Muted className="mt-1">{i.kategori ?? "–"} · {i.status_teknologi ?? "–"}{i.risiko ? ` · Risiko: ${i.risiko}` : ""}</Muted>
+          {i.skor && <p className="mt-1 text-xs text-faint">{Object.entries(i.skor.rubrik).map(([k, v]) => `${k} ${v}/5`).join(" · ")}{i.skor.sinyal.length ? ` · ${i.skor.sinyal.join(" · ")}` : ""}</p>}
+          {!!i.hook_varian?.length && (<>
+            <h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Varian hook</h4>
+            <ul className="space-y-0.5 text-sm">{i.hook_varian.map((h, k) => <li key={k}><span className="mr-1.5 rounded bg-ink-700 px-1 text-xs text-muted">{h.jenis}</span>{h.teks}</li>)}</ul>
+          </>)}
+          {!!i.angka_kunci?.length && <p className="mt-2 text-sm"><span className="text-muted">Angka kunci: </span>{i.angka_kunci.map((a) => `${a.angka} (${a.label})`).join(" · ")}</p>}
+          {i.salah_kaprah && <p className="mt-1 text-sm"><span className="text-muted">Salah kaprah: </span>{i.salah_kaprah}</p>}
           {!!i.fakta?.length && (<>
             <h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Fakta & sumber</h4>
-            <ul className="list-disc space-y-1 pl-5 text-sm">{i.fakta.map((f, k) => <li key={k}>{f.klaim} <a className="text-circuit hover:underline" href={f.sumber_url} target="_blank" rel="noopener noreferrer">{f.sumber_nama ?? "sumber"}</a></li>)}</ul>
+            <ul className="space-y-1.5 text-sm">{i.fakta.map((f, k) => (
+              <li key={k}>{f.tier != null && <span className={`mr-1.5 rounded px-1 font-pixel text-[10px] ${f.tier === 1 ? "bg-leaf/20 text-leaf" : f.tier === 2 ? "bg-circuit/15 text-circuit" : "bg-bad/15 text-bad"}`}>T{f.tier}</span>}
+                {f.klaim} <a className="text-circuit hover:underline" href={f.sumber_url} target="_blank" rel="noopener noreferrer">{f.sumber_nama ?? "sumber"}</a>{f.tanggal_sumber ? <small className="text-faint"> · {f.tanggal_sumber}</small> : null}
+                {f.kutipan && <small className="block text-faint italic">&ldquo;{f.kutipan}&rdquo;</small>}</li>))}</ul>
           </>)}
         </>)}
         {sc && !sc._error && (<>

@@ -26,7 +26,7 @@ export interface Snapshot {
 
 export type VideoStatus = "ide" | "disetujui" | "naskah" | "suara" | "aset" | "draft" | "export" | "terbit" | "ditolak";
 
-export interface Fact { klaim: string; sumber_nama?: string; sumber_url: string }
+export interface Fact { klaim: string; sumber_nama?: string; sumber_url: string; kutipan?: string; tanggal_sumber?: string; tier?: number | null }
 export interface Idea {
   _error?: string;
   judul_kerja?: string;
@@ -37,6 +37,14 @@ export interface Idea {
   fakta?: Fact[];
   visual_tersedia?: string;
   risiko?: string;
+  slot?: string;
+  kenapa_sekarang?: string;
+  hook_varian?: { jenis: string; teks: string }[];
+  angka_kunci?: { angka: string; label: string }[];
+  salah_kaprah?: string;
+  pertanyaan_penonton?: string[];
+  visual?: { skor: number | null; jumlah?: Record<string, number> };
+  skor?: { total: number; rubrik: Record<string, number>; sinyal: string[] };
 }
 export interface Script {
   _error?: string;

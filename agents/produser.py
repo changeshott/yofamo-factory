@@ -155,15 +155,16 @@ def main() -> None:
         # 1. Nova: tim memilih topik (arahan Zona hanya arah), wajib belum pernah dibahas
         cat.tahap("nova", "jalan")
         sys.path.insert(0, str(ROOT / "agents"))
-        slug = ""
+        slug, alasan_tolak = "", ""
         for coba in range(2):
             before = videos()
             if a.uji:
                 import tes_pabrik as fx
                 pabrik("new", fx.IDEA["judul_kerja"])
             else:
-                extra = "" if coba == 0 else " (percobaan ke-2: ide sebelumnya ditolak karena duplikat topik lama, pilih teknologi lain)"
-                claude(f"/ide-riset --otomatis {teks}{extra}".strip(), tools("agents/pabrik.py", "agents/ide/cek_topik.py", web=True), 40 * 60)
+                extra = "" if coba == 0 else f" (percobaan ke-2: ide sebelumnya ditolak karena {alasan_tolak}, pilih teknologi lain)"
+                claude(f"/ide-riset --otomatis {teks}{extra}".strip(),
+                       tools("agents/pabrik.py", "agents/ide/cek_topik.py", "agents/ide/cek_visual.py", "agents/ide/cek_ide.py", web=True), 45 * 60)
             new = [x for x, st in videos().items() if x not in before and st == "ide"]
             if not new:
                 break
@@ -176,7 +177,16 @@ def main() -> None:
                 print(dup.stdout, flush=True)
                 pabrik("set", cand, "ditolak", "--note", "duplikat topik yang sudah ada di channel")
                 cat.tahap("nova", "jalan", f"'{jk}' ternyata mirip video lama, cari topik lain")
+                alasan_tolak = "duplikat topik lama"
                 continue
+            if not a.uji:   # editor riset: ide harus lolos validasi sumber, kutipan, angka, dan punya skor
+                v = subprocess.run([PY, "agents/ide/cek_ide.py", cand, "--tulis"], cwd=ROOT, capture_output=True, text=True, encoding="utf-8")
+                print(v.stdout, flush=True)
+                if v.returncode != 0:
+                    pabrik("set", cand, "ditolak", "--note", "gagal validasi ide (sumber/kutipan/angka)")
+                    cat.tahap("nova", "jalan", f"'{jk}' belum lolos validasi sumber, cari lagi")
+                    alasan_tolak = "tidak lolos validasi sumber/kutipan/angka"
+                    continue
             slug = cand
             break
         if not slug:
@@ -186,8 +196,10 @@ def main() -> None:
         if a.uji:
             (ROOT / "videos" / slug).mkdir(parents=True, exist_ok=True)
             (ROOT / "videos" / slug / "idea.json").write_text(json.dumps({**fx.IDEA, "slug": slug}, ensure_ascii=False), encoding="utf-8")
-        judul = json.loads((ROOT / "videos" / slug / "idea.json").read_text(encoding="utf-8-sig")).get("judul_kerja", slug)
-        cat.tahap("nova", "ok", judul)
+        idea_now = json.loads((ROOT / "videos" / slug / "idea.json").read_text(encoding="utf-8-sig"))
+        judul = idea_now.get("judul_kerja", slug)
+        sk = (idea_now.get("skor") or {}).get("total")
+        cat.tahap("nova", "ok", f"{judul}{f' · skor {sk}/100' if sk is not None else ''}")
 
         # 2. disetujui oleh permintaan Zona
         cat.tahap("setuju", "jalan")

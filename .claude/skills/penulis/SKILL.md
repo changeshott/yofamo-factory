@@ -30,6 +30,7 @@ Gaya: bahasa Indonesia lisan yang santai dan cepat, seperti teman yang sedang ka
    4. Fakta paling mengejutkan.
    5. Penutup yang nyambung ke kalimat pembuka supaya terasa loop.
    Total **80–98 kata** (suara ±2,3 kata/detik → 35–43 detik). Setiap fakta harus ada di `idea.json`. Jangan menambah fakta baru.
+   Pakai paket Nova di `idea.json`: pilih hook terkuat dari `hook_varian` (atau varian yang diminta eksperimen aktif), masukkan minimal 1 `angka_kunci` persis seperti di fakta (Bima menampilkannya sebagai kartu grafis), luruskan `salah_kaprah` kalau ada, dan jawab 1 `pertanyaan_penonton` yang paling penting. Hormati `status_teknologi` dan `risiko` (prototipe jangan disebut sudah dijual).
 4. Kalau `insights/eksperimen.md` punya eksperimen berstatus `aktif` yang menyangkut naskah/judul/hook, terapkan varian yang diminta dan catat di `script.json` field `"eksperimen": ["<nama eksperimen>: <varian>"]`, supaya Steve bisa mengukurnya.
 5. Tulis `videos/<slug>/script.json` dengan format di bawah.
 6. Validasi:
