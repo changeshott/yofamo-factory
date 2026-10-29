@@ -42,10 +42,18 @@ NARASI = [
     ("Teknologinya masih di laboratorium, jadi belum dijual bebas di mana pun.", "ruang laboratorium dengan peneliti"),
     ("Jadi kalau robot bisa ngerasain sakit, kira-kira dia juga bisa ngerasa sedih nggak ya?", "wajah robot menatap kamera"),
 ]
+BAGIAN = ["hook", "konteks", "cara_kerja", "wow", "dampak", "dampak", "bukti", "penutup"]
+VIS = [("footage", ["robot hand touch"], None, ["sakit"]), ("footage", ["electronic skin"], None, []), ("ai", ["nerve signal"], None, ["sinyal listrik"]),
+       ("footage", ["robot reflex"], "REFLEKS!", ["langsung"]), ("footage", ["prosthetic hand"], None, []), ("footage", ["holding hands"], None, ["hangatnya"]),
+       ("footage", ["robotics lab"], "PROTOTIPE", []), ("grafis", [], None, ["sedih"])]
 SCRIPT = {
     "judul": "ROBOT BISA MERASAKAN SAKIT?! Kulit Buatan Ini Bikin Merinding #Shorts #Teknologi",
+    "judul_alternatif": ["KULIT ROBOT INI BISA NGERASA SAKIT! #Shorts #Teknologi", "ROBOT PUNYA SARAF?! Kulit Buatan Paling Gila #Shorts #Teknologi"],
     "hook_teks": "ROBOT BISA NGERASA SAKIT?!",
-    "narasi": [{"kalimat": k, "visual": v} for k, v in NARASI],
+    "target_durasi": 42, "suasana": "misterius", "penutup_tipe": "pertanyaan",
+    "komentar_pin": "Kalau robot bisa ngerasa sakit, perlu nggak robot punya hak? Tulis pendapatmu!",
+    "narasi": [{"kalimat": k, "visual": v, "bagian": b, "jenis_visual": vi[0], "kata_kunci_visual": vi[1], "teks_layar": vi[2], "penekanan": vi[3]}
+               for (k, v), b, vi in zip(NARASI, BAGIAN, VIS)],
     "deskripsi": "Kulit buatan ini bikin robot bisa merasakan sentuhan.\nSumber: https://example.org/a https://example.com/b",
     "tag": ["teknologi", "robot", "kulit buatan", "sensor", "prostetik", "sains", "inovasi", "teknologi masa depan"],
     "sumber": ["https://example.org/a", "https://example.com/b"], "catatan_editor": "-",
@@ -142,6 +150,15 @@ def offline() -> None:
         (vdir / "script.json").write_text(json.dumps({**SCRIPT, "slug": slug}, ensure_ascii=False), encoding="utf-8")
         r = run(tmp, "agents/penulis/cek_naskah.py", slug)
         cek("Raka: naskah lolos validasi", r.returncode == 0 and "LOLOS" in r.stdout, (r.stdout + r.stderr).strip().splitlines()[-1] if (r.stdout + r.stderr).strip() else "")
+        run(tmp, "agents/penulis/cek_naskah.py", slug, "--tulis")
+        cek("Raka: naskah.md untuk tim dibuat", (vdir / "naskah.md").exists() and "penutup" in (vdir / "naskah.md").read_text(encoding="utf-8"))
+        jelek = json.loads(json.dumps(SCRIPT))
+        jelek["narasi"][-1]["kalimat"] = "Dan yang lebih gila lagi, ternyata teknologi ini juga bisa dipakai untuk..."
+        jelek["judul"] = "Halo guys, di video kali ini kita bahas kulit robot #Shorts #Teknologi"
+        (vdir / "script.json").write_text(json.dumps({**jelek, "slug": slug}, ensure_ascii=False), encoding="utf-8")
+        r2 = run(tmp, "agents/penulis/cek_naskah.py", slug)
+        cek("Raka: akhir menggantung & basa-basi ditolak", r2.returncode != 0 and "GAGAL" in r2.stdout)
+        (vdir / "script.json").write_text(json.dumps({**SCRIPT, "slug": slug}, ensure_ascii=False), encoding="utf-8")
         run(tmp, "agents/pabrik.py", "set", slug, "naskah")
 
         # Dara (mode uji)
@@ -149,6 +166,9 @@ def offline() -> None:
         w = json.loads((vdir / "words.json").read_text(encoding="utf-8")) if (vdir / "words.json").exists() else {}
         cek("Dara: timing kata + kalimat", r.returncode == 0 and len(w.get("kalimat", [])) == len(NARASI), f"durasi {w.get('durasi')} dtk, {len(w.get('kata', []))} kata")
         cek("Dara: durasi 28–47 detik", 28 <= float(w.get("durasi") or 0) <= 47, str(w.get("durasi")))
+        tg = w.get("target") or {}
+        cek("Dara: transkrip & target durasi naskah", (vdir / "transkrip.txt").exists() and tg.get("detik") == SCRIPT["target_durasi"],
+            f"target {tg.get('min')}–{tg.get('maks')} dtk")
         ok, info = srt_ok((vdir / "captions.srt").read_text(encoding="utf-8")) if (vdir / "captions.srt").exists() else (False, "tidak ada")
         cek("Dara: subtitle SRT rapi", ok, info)
         run(tmp, "agents/pabrik.py", "set", slug, "suara")
@@ -195,7 +215,17 @@ def offline() -> None:
         fin = vdir / "export" / "final.mp4"
         wd, ht, d = ffprobe_size(fin) if fin.exists() else (0, 0, 0)
         cek("Kai: video final 1080x1920", r.returncode == 0 and (wd, ht) == (1080, 1920), f"{d:.1f} dtk, render {time.time() - t0:.0f} dtk" if fin.exists() else (r.stdout + r.stderr)[-300:])
-        cek("Kai: durasi final = durasi suara", abs(d - float(m.get("durasi") or 0)) < 0.15, f"{d:.2f} vs {m.get('durasi')}")
+        inf = json.loads((vdir / "export" / "info.json").read_text(encoding="utf-8")) if (vdir / "export" / "info.json").exists() else {}
+        harap = float(m.get("durasi") or 0) + float(inf.get("penutup_detik") or 0)
+        cek("Kai: durasi final = suara + penutup", inf.get("penutup_detik", 0) > 0 and abs(d - harap) < 0.15,
+            f"{d:.2f} vs {m.get('durasi')} + {inf.get('penutup_detik')}")
+        ass_txt = (vdir / "export" / "subtitle.ass").read_text(encoding="utf-8") if (vdir / "export" / "subtitle.ass").exists() else ""
+        try:
+            subprocess.run(["ffmpeg", "-v", "error", "-y", "-sseof", "-0.5", "-i", str(fin), "-frames:v", "1", "-vf", "scale=360:-2",
+                            os.environ.get("TES_FRAME_AKHIR", str(tmp / "akhir.jpg"))], check=False)
+        except OSError:
+            pass
+        cek("Kai: penutup, teks layar & penekanan tampil", ",Akhir," in ass_txt and ",Layar," in ass_txt and "PROTOTIPE" in ass_txt and "REFLEKS!" not in ass_txt and "&H003FD2FF&" in ass_txt)
         ar = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=codec_name", "-of", "csv=p=0", str(fin)], capture_output=True, text=True)
         cek("Kai: ada audio AAC", "aac" in ar.stdout)
         cek("Kai: subtitle & sampul dibuat", (vdir / "export" / "subtitle.ass").exists() and (vdir / "export" / "sampul.jpg").exists())

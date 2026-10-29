@@ -81,11 +81,22 @@ def groups(words: list[dict], sentence_starts: list[float], max_words: int) -> l
     return out
 
 
+def kunci(t: str) -> str:
+    return re.sub(r"[^0-9a-z]", "", t.lower())
+
+
 def build_ass(words: list[dict], kalimat: list[dict], hook: str, total: float, st: dict, family: str,
-              senyap: list[tuple[float, float]] | None = None) -> str:
-    """senyap: rentang waktu kartu grafis; subtitle disembunyikan di sana supaya tidak bertabrakan dengan teks kartu."""
+              senyap: list[tuple[float, float]] | None = None, narasi: list[dict] | None = None,
+              akhir: float | None = None) -> str:
+    """senyap: rentang waktu kartu grafis; subtitle disembunyikan di sana supaya tidak bertabrakan dengan teks kartu.
+    narasi: kalimat naskah Raka (teks_layar → teks atas sesaat, penekanan → kata disorot).
+    akhir: durasi video termasuk penutup (frame terakhir ditahan + teks ajakan)."""
     sub, hk, hd = st["subtitle"], st["hook"], st["handle"]
+    tl, pn = st.get("teks_layar", {}), st.get("penutup", {})
+    akhir = akhir or total
+    narasi = narasi or []
     white, act = ass_color(sub.get("warna", "FFFFFF")), ass_color(sub.get("warna_aktif", "FF9A4D"))
+    tek = ass_color(sub.get("warna_tekan", "FFD23F"))
     head = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: 1080
@@ -98,6 +109,8 @@ Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour,
 Style: Sub,{family},{sub.get('ukuran', 92)},{white},{white},&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,{sub.get('garis', 7)},3,2,60,60,{sub.get('jarak_bawah', 560)},1
 Style: Hook,{family},{hk.get('ukuran', 84)},{ass_color(hk.get('warna_teks', '141414'))},{white},{ass_color(hk.get('warna_kotak', 'FF9A4D'))},&H00000000,-1,0,0,0,100,100,0,0,3,22,0,8,70,70,{hk.get('jarak_atas', 260)},1
 Style: Handle,{family},{hd.get('ukuran', 34)},{ass_color('FFFFFF', '70')},{white},&H90000000,&H00000000,-1,0,0,0,100,100,0,0,1,2,0,9,40,40,70,1
+Style: Layar,{family},{tl.get('ukuran', 78)},{ass_color(tl.get('warna_teks', 'FFFFFF'))},{white},{ass_color(tl.get('warna_kotak', '141414'), '30')},&H00000000,-1,0,0,0,100,100,0,0,3,18,0,8,80,80,{tl.get('jarak_atas', 300)},1
+Style: Akhir,{family},{pn.get('ukuran', 80)},{ass_color(pn.get('warna_teks', '141414'))},{white},{ass_color(pn.get('warna_kotak', 'FF9A4D'))},&H00000000,-1,0,0,0,100,100,0,0,3,24,0,2,90,90,{pn.get('jarak_bawah', sub.get('jarak_bawah', 560))},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -109,21 +122,62 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         ev.append(f"Dialogue: 2,{ass_time(0)},{ass_time(end)},Hook,,0,0,0,,"
                   f"{{\\fad(0,180)\\fscx60\\fscy60\\t(0,120,\\fscx108\\fscy108)\\t(120,200,\\fscx100\\fscy100)}}{txt}")
     if hd.get("tampil", True) and hd.get("teks"):
-        ev.append(f"Dialogue: 0,{ass_time(0)},{ass_time(total)},Handle,,0,0,0,,{clean(hd['teks'])}")
+        ev.append(f"Dialogue: 0,{ass_time(0)},{ass_time(akhir)},Handle,,0,0,0,,{clean(hd['teks'])}")
+    sepi = senyap or []
+    # teks layar: 1–4 kata penegas di atas, muncul di awal kalimatnya (bukan di kalimat hook & bukan saat kartu grafis)
+    if tl.get("tampil", True):
+        for k in kalimat:
+            i = int(k.get("i", -1))
+            teks = clean(str((narasi[i] if 0 <= i < len(narasi) else {}).get("teks_layar") or "")).strip()
+            if not teks or i == 0 or any(a <= k["mulai"] + 0.1 < b for a, b in sepi):
+                continue
+            a = k["mulai"]
+            b = min(k["selesai"], a + float(tl.get("maks_detik", 1.6)))
+            ev.append(f"Dialogue: 2,{ass_time(a)},{ass_time(b)},Layar,,0,0,0,,"
+                      f"{{\\fad(60,160)\\fscx70\\fscy70\\t(0,110,\\fscx106\\fscy106)\\t(110,180,\\fscx100\\fscy100)}}{teks.upper()}")
+    # penutup: frame terakhir ditahan, ajakan singkat di tengah layar → video tidak terasa terpotong
+    if akhir > total + 0.05 and pn.get("teks"):
+        txt = "\\N".join(textwrap.wrap(clean(pn["teks"]).upper(), 18)[:3])
+        mv = 330 if any(b >= total - 0.05 for _, b in sepi) else 0     # shot terakhir kartu grafis → turunkan supaya tidak menimpa teksnya
+        ev.append(f"Dialogue: 3,{ass_time(total)},{ass_time(akhir)},Akhir,,0,0,{mv},,"
+                  f"{{\\fad(150,250)\\fscx85\\fscy85\\t(0,200,\\fscx100\\fscy100)}}{txt}")
+    # kata penekanan per kalimat → disorot warna lain
+    tekan: set[tuple[int, str]] = set()
+    for k in kalimat:
+        i = int(k.get("i", -1))
+        for w in (narasi[i] if 0 <= i < len(narasi) else {}).get("penekanan") or []:
+            for bag in str(w).split():
+                if kunci(bag):
+                    tekan.add((i, kunci(bag)))
+
+    def kal_dari(t: float) -> int:
+        for k in kalimat:
+            if k["mulai"] - 0.05 <= t < k["selesai"] + 0.05:
+                return int(k.get("i", -1))
+        return -1
     upper = sub.get("huruf_besar", True)
     starts = [k["mulai"] for k in kalimat[1:]]
     gs = groups(words, starts, int(sub.get("maks_kata", 3)))
-    sepi = senyap or []
     for gi, g in enumerate(gs):
         mid = (g[0]["mulai"] + g[-1]["selesai"]) / 2
         if any(a <= mid < b for a, b in sepi):
             continue
         limit = gs[gi + 1][0]["mulai"] if gi + 1 < len(gs) else total      # jangan tumpang tindih dengan grup berikutnya
         texts = [clean(w["kata"]).upper() if upper else clean(w["kata"]) for w in g]
+        ki = kal_dari(mid)
+        penting = [(ki, kunci(w["kata"])) in tekan for w in g]
         for j, w in enumerate(g):
             a = w["mulai"]
             b = g[j + 1]["mulai"] if j + 1 < len(g) else min(w["selesai"] + 0.12, limit)
-            parts = [f"{{\\c{act}&}}{t}{{\\c{white}&}}" if q == j else t for q, t in enumerate(texts)]
+            parts = []
+            for q, t in enumerate(texts):
+                if q == j:
+                    besar = "\\fscx112\\fscy112" if penting[q] else ""
+                    parts.append(f"{{\\c{tek if penting[q] else act}&{besar}}}{t}{{\\c{white}&\\fscx100\\fscy100}}")
+                elif penting[q]:
+                    parts.append(f"{{\\c{tek}&}}{t}{{\\c{white}&}}")
+                else:
+                    parts.append(t)
             pop = "{\\fscx78\\fscy78\\t(0,90,\\fscx106\\fscy106)\\t(90,150,\\fscx100\\fscy100)}" if (j == 0 and sub.get("pop", True)) else ""
             ev.append(f"Dialogue: 1,{ass_time(a)},{ass_time(b)},Sub,,0,0,0,,{pop}{' '.join(parts)}")
     return head + "\n".join(ev) + "\n"
@@ -188,6 +242,9 @@ def main() -> None:
     font = Path(st.get("font") or gerak.font())
     family = FAMILY.get(font.stem.lower(), font.stem)
     total = float(man.get("durasi") or words.get("durasi"))
+    pn = st.get("penutup", {})
+    tutup = max(0.0, min(3.0, float(pn.get("detik", 1.2)))) if pn.get("tampil", True) else 0.0
+    akhir = total + tutup
     klip = sorted(man["klip"], key=lambda k: (k["i"], k["potong"]))
     missing = [k["file"] for k in klip if not (vdir / "aset" / k["file"]).exists()]
     if missing:
@@ -197,7 +254,9 @@ def main() -> None:
     out_dir.mkdir(exist_ok=True)
     ass = out_dir / "subtitle.ass"
     senyap = [(k["mulai"], k["selesai"]) for k in man["klip"] if k.get("jenis") == "grafis"]
-    ass.write_text(build_ass(words["kata"], words.get("kalimat", []), script.get("hook_teks", ""), total, st, family, senyap), encoding="utf-8")
+    narasi = [x for x in script.get("narasi", []) if str(x.get("kalimat", "")).strip()]
+    ass.write_text(build_ass(words["kata"], words.get("kalimat", []), script.get("hook_teks", ""), total, st, family, senyap,
+                             narasi, akhir), encoding="utf-8")
 
     # ---- input
     args: list[str] = []
@@ -230,16 +289,20 @@ def main() -> None:
             f += (f",scale=w='trunc({gerak.W}*{s}/2)*2':h='trunc({gerak.H}*{s}/2)*2':eval=frame:flags=bicubic,"
                   f"crop={gerak.W}:{gerak.H}")
         chains.append(f + ",setsar=1,format=yuv420p" + f"[v{j}]")
-    chains.append("".join(f"[v{j}]" for j in range(n)) + f"concat=n={n}:v=1:a=0[base]")
+    chains.append("".join(f"[v{j}]" for j in range(n)) + f"concat=n={n}:v=1:a=0[cat]")
+    if tutup > 0:   # tahan frame terakhir, sedikit digelapkan perlahan supaya teks penutup terbaca
+        chains.append(f"[cat]tpad=stop_mode=clone:stop_duration={tutup:.3f},eq=brightness='if(gte(t\\,{total:.3f})\\,-0.3*min(1\\,(t-{total:.3f})/0.4)\\,0)':eval=frame[base]")
+    else:
+        chains.append("[cat]null[base]")
     fontsdir = gerak.esc(font.parent)
     chains.append(f"[base]subtitles=filename='{gerak.esc(ass)}':fontsdir='{fontsdir}'[vout]")
 
     # ---- audio: suara + musik (otomatis mengecil saat ada suara) + whoosh di pergantian kalimat
-    chains.append(f"[{idx_vo}:a]aresample=48000,apad=whole_dur={total:.3f},asplit=2[vo1][vo2]")
+    chains.append(f"[{idx_vo}:a]aresample=48000,apad=whole_dur={akhir:.3f},asplit=2[vo1][vo2]")
     mix = ["[vo1]"]
     if idx_bgm is not None:
-        chains.append(f"[{idx_bgm}:a]aresample=48000,atrim=duration={total:.3f},volume={st['audio'].get('volume_musik_db', -20)}dB,"
-                      f"afade=t=out:st={max(0, total - 1.2):.2f}:d=1.2[bg]")
+        chains.append(f"[{idx_bgm}:a]aresample=48000,atrim=duration={akhir:.3f},volume={st['audio'].get('volume_musik_db', -20)}dB,"
+                      f"afade=t=out:st={max(0, akhir - max(1.2, tutup + 0.6)):.2f}:d={max(1.2, tutup + 0.6):.2f}[bg]")
         chains.append("[bg][vo2]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=350[bgd]")
         mix.append("[bgd]")
     else:
@@ -257,15 +320,16 @@ def main() -> None:
 
     final = out_dir / "final.mp4"
     tmp = out_dir / "final.tmp.mp4"
-    log(f"merakit {n} shot, {total:.1f} dtk{', musik: ' + music.name if music else ', tanpa musik'}{', whoosh' if idx_wh is not None else ''}")
+    log(f"merakit {n} shot, {total:.1f} dtk + penutup {tutup:.1f} dtk{', musik: ' + music.name if music else ', tanpa musik'}{', whoosh' if idx_wh is not None else ''}")
     t0 = time.time()
-    gerak.ff(*args, "-filter_complex", ";".join(chains), "-map", "[vout]", "-map", "[aout]", "-t", f"{total:.3f}",
+    gerak.ff(*args, "-filter_complex", ";".join(chains), "-map", "[vout]", "-map", "[aout]", "-t", f"{akhir:.3f}",
              "-c:v", "libx264", "-preset", "medium", "-crf", "19", "-pix_fmt", "yuv420p", "-r", str(gerak.FPS),
              "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(tmp))
     tmp.replace(final)
     gerak.ff("-ss", "0.8", "-i", str(final), "-frames:v", "1", "-q:v", "3", str(out_dir / "sampul.jpg"))
     info = {"dibuat": datetime.now().isoformat(timespec="seconds"), "uji": a.uji, "durasi": round(gerak.duration(final), 2),
-            "shot": n, "musik": music.name if music else None, "font": family, "pakai_ai": bool(man.get("pakai_ai"))}
+            "shot": n, "musik": music.name if music else None, "font": family, "pakai_ai": bool(man.get("pakai_ai")),
+            "suara_detik": round(total, 2), "penutup_detik": round(tutup, 2)}
     (out_dir / "info.json").write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
     log(f"selesai dalam {time.time() - t0:.0f} dtk: videos/{a.slug}/export/final.mp4 ({info['durasi']} dtk)")
     if not music:

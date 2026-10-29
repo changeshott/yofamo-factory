@@ -98,11 +98,15 @@ def cek(slug: str) -> dict:
     words = rj(vdir / "words.json", {})
     masalah, ganti = [], []
     dur = gerak.duration(final)
+    info = rj(vdir / "export" / "info.json", {})
     target = float(words.get("durasi") or man.get("durasi") or dur)
-    if abs(dur - target) > 0.3:
-        masalah.append(f"durasi final {dur:.1f} dtk tidak sama dengan suara {target:.1f} dtk")
-    if not 28 <= target <= 45.5:
-        masalah.append(f"durasi {target:.1f} dtk di luar target 30–45 dtk")
+    harap = target + float(info.get("penutup_detik") or 0)
+    if abs(dur - harap) > 0.35:
+        masalah.append(f"durasi final {dur:.1f} dtk tidak sama dengan suara + penutup {harap:.1f} dtk")
+    tg = words.get("target") or {}
+    lo, hi = float(tg.get("min") or 28), float(tg.get("maks") or 45.5)
+    if not lo - 0.5 <= target <= hi + 0.5:
+        masalah.append(f"durasi suara {target:.1f} dtk di luar target naskah {lo:.0f}–{hi:.0f} dtk")
     for k in klip:
         f = vdir / "aset" / k["file"]
         if not f.exists():

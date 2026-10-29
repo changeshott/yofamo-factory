@@ -228,18 +228,20 @@ def main() -> None:
             cat.tahap("dara", "gagal", "Suara gagal dibuat (cek internet / edge-tts).")
             return cat.akhir("gagal", "Berhenti di tahap suara.")
         w = json.loads((ROOT / "videos" / slug / "words.json").read_text(encoding="utf-8"))
-        # kontrol durasi: target 30–45 detik. Percepat/perlambat suara dulu; kalau masih kepanjangan, Raka memangkas.
+        # kontrol durasi: target ditentukan Raka (target_durasi). Atur kecepatan suara dulu; kalau masih jauh, Raka memangkas.
         d = float(w.get("durasi") or 0)
-        if not a.uji and (d > 45 or d < 28):
-            rate = round((1.15 * d / 42 - 1) * 100)
-            if d > 45 and rate > 28:
+        tg = w.get("target") or {}
+        t_det, t_lo, t_hi = float(tg.get("detik") or 40), float(tg.get("min") or 28), float(tg.get("maks") or 45)
+        if not a.uji and (d > t_hi or d < t_lo):
+            rate = round((1.15 * d / t_det - 1) * 100)
+            if d > t_hi and rate > 28:
                 cat.tahap("dara", "jalan", f"{d:.1f} dtk kepanjangan, Raka memangkas naskah")
                 pabrik("set", slug, "naskah", "--note", f"suara {d:.1f} dtk, dipangkas")
                 claude(f"/penulis {slug} --pangkas {d:.0f}", tools("agents/pabrik.py", "agents/penulis/cek_naskah.py"), 20 * 60)
                 rate = 15
-            rate = max(0, min(28, rate))
+            rate = max(-5, min(28, rate))
             cat.tahap("dara", "jalan", f"{d:.1f} dtk di luar target, rekam ulang kecepatan +{rate}%")
-            jalan([PY, "agents/suara/buat_suara.py", slug, *voice, "--rate", f"+{rate}%"], 10 * 60)
+            jalan([PY, "agents/suara/buat_suara.py", slug, *voice, "--rate", f"{rate:+d}%"], 10 * 60)
             w = json.loads((ROOT / "videos" / slug / "words.json").read_text(encoding="utf-8"))
             if videos().get(slug) != "suara":
                 cat.tahap("dara", "gagal", "Rekam ulang gagal.")

@@ -9,7 +9,8 @@
     "jarak_bawah": 560,
     "maks_kata": 3,
     "huruf_besar": true,
-    "pop": true
+    "pop": true,
+    "warna_tekan": "FFD23F"
   },
   "hook": {
     "tampil": true,
@@ -29,6 +30,20 @@
     "volume_musik_db": -20,
     "whoosh": true,
     "volume_whoosh_db": -16
+  },
+  "teks_layar": {
+    "tampil": true,
+    "ukuran": 78,
+    "warna_teks": "FFFFFF",
+    "warna_kotak": "141414",
+    "jarak_atas": 300,
+    "maks_detik": 1.6
+  },
+  "penutup": {
+    "tampil": true,
+    "detik": 1.2,
+    "teks": "Follow buat teknologi gila berikutnya",
+    "ukuran": 80
   },
   "handle": {
     "tampil": true,

@@ -122,9 +122,22 @@ def load_video(slug: str) -> tuple[Path, list[dict], list[tuple[float, float]], 
     return folder, narasi, spans, total
 
 
+def grafis_dari_naskah(n: dict, angka_kunci: list[dict]) -> dict:
+    """Kartu grafis dari naskah v2 Raka: angka kunci Nova yang disebut di kalimat ini → gaya angka, kalau tidak → teks layar."""
+    teks = str(n.get("kalimat", ""))
+    for a in angka_kunci:
+        angka = str(a.get("angka", "")).strip()
+        if angka and re.search(rf"(?<![\d]){re.escape(angka)}(?![\d])", teks):
+            return {"gaya": "angka", "angka": angka, "akhiran": str(a.get("akhiran", "")), "label": str(a.get("label", ""))[:40]}
+    return {"gaya": "teks", "teks": str(n.get("teks_layar") or teks)}
+
+
 def load_plan(folder: Path, narasi: list[dict]) -> list[dict]:
+    """Rencana visual per kalimat. Urutan prioritas: aset/rencana.json (Bima) → kueri.json lama →
+    kolom visual di naskah v2 Raka (jenis_visual, kata_kunci_visual, teks_layar)."""
     raw = read_json(folder / "aset" / "rencana.json", {}).get("rencana") or [
         {"i": q.get("i"), "jenis": "footage", "kata": q.get("kata", [])} for q in read_json(folder / "aset" / "kueri.json", {}).get("kueri", [])]
+    angka_kunci = [a for a in read_json(folder / "idea.json", {}).get("angka_kunci", []) if isinstance(a, dict)]
     by_i = {}
     for r in raw:
         try:
@@ -133,12 +146,22 @@ def load_plan(folder: Path, narasi: list[dict]) -> list[dict]:
             pass
     plan = []
     for i, n in enumerate(narasi):
-        r = by_i.get(i, {})
+        r = by_i.get(i)
+        if r is None and n.get("jenis_visual") in ("footage", "ai", "grafis"):
+            kk = n.get("kata_kunci_visual") or []
+            kk = [kk] if isinstance(kk, str) else kk
+            kata = [str(k).strip() for k in kk if str(k).strip()][:4]
+            r = {"jenis": n["jenis_visual"], "kata": kata,
+                 "prompt_ai": (", ".join(kata) + ", cinematic, photorealistic, vertical") if kata else "",
+                 "grafis": grafis_dari_naskah(n, angka_kunci)}
+            if n["jenis_visual"] != "grafis" and not kata:
+                r = None
+        r = r or {}
         jenis = r.get("jenis") if r.get("jenis") in ("footage", "ai", "grafis") else "footage"
         kata = [str(k).strip() for k in r.get("kata", []) if str(k).strip()][:4] or [n.get("visual") or n["kalimat"]]
         plan.append({"i": i, "jenis": jenis, "kata": kata, "prompt_ai": str(r.get("prompt_ai", "")).strip(),
-                     "grafis": r.get("grafis") if isinstance(r.get("grafis"), dict) else {"gaya": "teks", "teks": n["kalimat"]},
-                     "inggris": bool(r)})
+                     "grafis": r.get("grafis") if isinstance(r.get("grafis"), dict) else {"gaya": "teks", "teks": n.get("teks_layar") or n["kalimat"]},
+                     "inggris": bool(r.get("kata"))})
     return plan
 
 

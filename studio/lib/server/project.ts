@@ -273,6 +273,8 @@ function media(slug: string): Video["media"] {
   return {
     vo: fs.existsSync(path.join(dir, "vo.mp3")),
     srt: fs.existsSync(path.join(dir, "captions.srt")),
+    naskah: fs.existsSync(path.join(dir, "naskah.md")),
+    transkrip: fs.existsSync(path.join(dir, "transkrip.txt")),
     durasi: w?.durasi ?? null,
     uji: !!w?.uji,
     suara: w?.suara ?? null,

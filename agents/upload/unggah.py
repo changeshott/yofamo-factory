@@ -162,9 +162,14 @@ def unggah(slug: str, jadwal: str | None) -> None:
     info = {"videoId": vid, "url": f"https://youtube.com/shorts/{vid}", "studio": f"https://studio.youtube.com/video/{vid}/edit",
             "waktu": datetime.now(WIB).isoformat(timespec="seconds"), "jadwal": jadwal, "privasi": "private", "judul": m["judul"],
             "sintetis": m["sintetis"]}
+    pin = str(rj(vdir / "script.json").get("komentar_pin") or "").strip()
+    if pin:
+        info["komentar_pin"] = pin       # API tidak bisa menyematkan komentar; Zona tempel & sematkan sendiri
     up.write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
     subprocess.run([sys.executable, str(ROOT / "agents" / "pabrik.py"), "set", slug, "export", "--note", f"diupload private: {vid}"], cwd=ROOT)
     log(f"selesai: {info['url']} (private). Cek di YouTube Studio, lalu tandai terbit di Studio Yofamo setelah tayang.")
+    if pin:
+        log(f"komentar untuk disematkan setelah tayang: {pin}")
 
 
 def main() -> None:

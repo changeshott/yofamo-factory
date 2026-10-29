@@ -50,7 +50,12 @@ export interface Script {
   _error?: string;
   judul?: string;
   hook_teks?: string;
-  narasi?: { kalimat: string; visual: string }[];
+  judul_alternatif?: string[];
+  target_durasi?: number;
+  suasana?: string;
+  penutup_tipe?: string;
+  komentar_pin?: string;
+  narasi?: { kalimat: string; visual: string; bagian?: string; jenis_visual?: string; teks_layar?: string | null; penekanan?: string[] }[];
   deskripsi?: string;
   tag?: string[];
   sumber?: string[];
@@ -68,7 +73,7 @@ export interface Video {
   idea: Idea | null;
   script: Script | null;
   moves: VideoStatus[];
-  media: { vo: boolean; srt: boolean; durasi: number | null; uji: boolean; suara: string | null };
+  media: { vo: boolean; srt: boolean; naskah?: boolean; transkrip?: boolean; durasi: number | null; uji: boolean; suara: string | null };
   aset: AsetManifest | null;
   final: { ada: boolean; durasi: number | null; musik: string | null; dibuat: string | null; uji: boolean };
   qc: { skor: number | null; lolos: boolean | null; catatan: string; saran: string[]; masalah: string[]; putaran: number; lembar: string[]; porsi: Record<string, number> | null } | null;

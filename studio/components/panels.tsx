@@ -221,9 +221,17 @@ export function VideoCard({ v, ctx, defaultOpen }: { v: Video; ctx: PanelCtx; de
           <Copy label="Judul" text={sc.judul ?? ""} />
           <h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Teks hook di layar</h4>
           <p className="font-pixel text-lg leading-tight font-bold text-signal">{sc.hook_teks}</p>
-          <h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Naskah ({words} kata, ±{Math.round(words / 2.6)} detik)</h4>
-          <ol className="list-decimal space-y-1.5 pl-5 text-sm">{(sc.narasi ?? []).map((n, k) => <li key={k}>{n.kalimat}<span className="block text-[13px] text-faint">Visual: {n.visual}</span></li>)}</ol>
-          <div className="mt-2"><CopyBtn label="Salin naskah" text={(sc.narasi ?? []).map((n) => n.kalimat).join(" ")} /></div>
+          {!!sc.judul_alternatif?.length && <p className="mt-1 text-sm"><span className="text-muted">Judul alternatif: </span>{sc.judul_alternatif.join(" · ")}</p>}
+          <h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Naskah ({words} kata, ±{Math.round(words / 2.3)} detik{sc.target_durasi ? ` · target ${sc.target_durasi} dtk` : ""}{sc.penutup_tipe ? ` · penutup ${sc.penutup_tipe}` : ""}{sc.suasana ? ` · ${sc.suasana}` : ""})</h4>
+          <ol className="list-decimal space-y-1.5 pl-5 text-sm">{(sc.narasi ?? []).map((n, k) => (
+            <li key={k}>{n.bagian && <span className={`mr-1.5 rounded px-1 font-pixel text-[10px] ${n.bagian === "hook" || n.bagian === "wow" ? "bg-signal/20 text-signal" : n.bagian === "penutup" ? "bg-leaf/20 text-leaf" : "bg-ink-700 text-muted"}`}>{n.bagian}</span>}{n.kalimat}
+              <span className="block text-[13px] text-faint">{n.jenis_visual ? `${n.jenis_visual} · ` : ""}Visual: {n.visual}{n.teks_layar ? ` · layar: "${n.teks_layar}"` : ""}{n.penekanan?.length ? ` · tekan: ${n.penekanan.join(", ")}` : ""}</span></li>))}</ol>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <CopyBtn label="Salin naskah" text={(sc.narasi ?? []).map((n) => n.kalimat).join(" ")} />
+            {v.media.naskah && <a className="text-sm text-circuit hover:underline" href={`/api/media?slug=${v.slug}&file=naskah.md&unduh=1`}>Unduh naskah.md</a>}
+            {v.media.transkrip && <a className="text-sm text-circuit hover:underline" href={`/api/media?slug=${v.slug}&file=transkrip.txt&unduh=1`}>Unduh transkrip</a>}
+          </div>
+          {sc.komentar_pin && <Copy label="Komentar untuk disematkan" text={sc.komentar_pin} />}
           <Copy label="Deskripsi" text={sc.deskripsi ?? ""} />
           <Copy label="Tag" text={(sc.tag ?? []).join(", ")} />
           {sc.catatan_editor && (<><h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Catatan editor</h4><p className="text-sm">{sc.catatan_editor}</p></>)}

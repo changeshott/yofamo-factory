@@ -117,6 +117,17 @@ def captions(words: list[dict], max_words: int = 3, max_gap: float = 0.35) -> st
     return "\n".join(lines)
 
 
+def transkrip(script: dict, data: dict) -> str:
+    """Transkrip bertimestamp per kalimat: untuk Zona, Rara, dan deskripsi/caption."""
+    L = [f"{script.get('judul', '')}", f"Durasi {data['durasi']:.1f} detik · suara {data['suara']} {data['kecepatan']}", ""]
+    narasi = [n for n in script.get("narasi", []) if str(n.get("kalimat", "")).strip()]
+    for k in data.get("kalimat", []):
+        n = narasi[k["i"]] if k["i"] < len(narasi) else {}
+        m, s = divmod(k["mulai"], 60)
+        L.append(f"[{int(m):02d}:{s:05.2f}] ({n.get('bagian', '-')}) {k['kalimat']}")
+    return "\n".join(L) + "\n"
+
+
 def set_status(slug: str) -> None:
     subprocess.run([sys.executable, str(ROOT / "agents" / "pabrik.py"), "set", slug, "suara", "--note", "dibuat Dara"], check=True, cwd=ROOT)
 
@@ -164,10 +175,15 @@ def main() -> None:
             "kata": words, "kalimat": align_sentences(narasi, words)}
     (folder / "words.json").write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
     (folder / "captions.srt").write_text(captions(words), encoding="utf-8")
+    (folder / "transkrip.txt").write_text(transkrip(script, data), encoding="utf-8")
 
-    print(f"[dara] durasi {durasi:.1f} detik, {len(words)} kata bertiming, {len(data['kalimat'])} kalimat")
-    if durasi < 28 or durasi > 45:
-        print(f"[dara] PERHATIAN: durasi di luar target 30–45 detik. Pertimbangkan minta Raka menulis ulang.")
+    target = float(script.get("target_durasi") or 40)
+    lo, hi = max(25.0, target * 0.9), min(59.0, target * 1.12)
+    data["target"] = {"detik": target, "min": round(lo, 1), "maks": round(hi, 1)}
+    (folder / "words.json").write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"[dara] durasi {durasi:.1f} detik (target Raka {target:.0f}), {len(words)} kata bertiming, {len(data['kalimat'])} kalimat")
+    if not lo <= durasi <= hi:
+        print(f"[dara] PERHATIAN: durasi di luar target {lo:.0f}–{hi:.0f} detik. Atur kecepatan (--rate) atau minta Raka memangkas.")
     if args.uji:
         print("[dara] selesai (uji)")
         return

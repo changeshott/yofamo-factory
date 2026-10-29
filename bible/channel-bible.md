@@ -5,7 +5,7 @@ Dibaca oleh semua agent. Kalau ada aturan yang berubah, ubah di sini saja.
 ## Identitas
 
 - **Niche:** teknologi nyata yang terdengar seperti fiksi ilmiah.
-- **Format:** YouTube Shorts faceless, 30–45 detik, bahasa Indonesia santai.
+- **Format:** YouTube Shorts faceless, umumnya 30–45 detik (sesuai kebutuhan topik, maksimal ±58 detik), bahasa Indonesia santai.
 - **Janji ke penonton:** "selangkah lebih maju soal teknologi dunia" — kaget dulu, paham kemudian.
 
 ## Topik
@@ -29,13 +29,14 @@ Hindari atau batasi:
 
 ## Struktur naskah
 
-1. **Hook (0–2 detik):** klaim kaget atau pertanyaan "beneran?!".
-2. Apa itu (1 kalimat).
-3. Cara kerja singkat (1–2 kalimat).
-4. Fakta paling mengejutkan.
-5. Penutup yang nyambung ke kalimat pembuka (supaya terasa loop).
+1. **Hook (0–3 detik, ≤ 12 kata):** klaim kaget, kontras, atau pertanyaan "beneran?!".
+2. **Konteks:** apa itu & siapa pembuatnya, status jujur (1 kalimat).
+3. **Cara kerja:** singkat, pakai analogi sehari-hari (1–3 kalimat).
+4. **Wow:** fakta/angka paling mengejutkan (wajib), membayar *open loop* dari awal.
+5. **Bukti/dampak** (opsional): luruskan salah kaprah atau "artinya buat kamu…".
+6. **Penutup tuntas:** loop ke kalimat pertama, pertanyaan opini yang spesifik, atau kesimpulan "jadi…". Tidak boleh menggantung, tidak "part 2", tidak ajakan subscribe (ajakan follow ditampilkan Kai di layar penutup ±1,2 detik).
 
-Panjang 80–98 kata (suara Ardi +15% ≈ 2,3 kata/detik → 35–43 detik). Video pertama: 101 kata = 46,8 detik, kepanjangan.
+Durasi mengikuti kebutuhan cerita (`target_durasi` 25–58 detik): sederhana 28–34, standar 35–42, kompleks 43–52. Jumlah kata = target × 2,3 (suara Ardi +15%). Video pertama: 101 kata = 46,8 detik, kepanjangan untuk topik standar.
 
 ## Judul
 
@@ -61,4 +62,4 @@ Panjang 80–98 kata (suara Ardi +15% ≈ 2,3 kata/detik → 35–43 detik). Vid
 
 ## Suara
 
-- `id-ID-ArdiNeural`, kecepatan +15%. Durasi di luar 28–45 detik diperbaiki otomatis (lihat produser).
+- `id-ID-ArdiNeural`, kecepatan +15%. Durasi di luar target naskah (−10%/+12%) diperbaiki otomatis: kecepatan suara disesuaikan, atau Raka memangkas.
