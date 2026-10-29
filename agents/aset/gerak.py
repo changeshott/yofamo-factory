@@ -14,6 +14,7 @@ W, H, FPS = 1080, 1920, 30
 INK, INK2, ORANGE, WHITE = "0x0B1220", "0x16304F", "0xFF9A4D", "0xF4F1E8"
 
 FONT_CANDIDATES = [
+    str(Path(__file__).resolve().parents[2] / "fonts" / "Poppins-Black.ttf"),       # font khas Yofamo (ikut di repo, lisensi OFL)
     "C:/Windows/Fonts/seguibl.ttf", "C:/Windows/Fonts/ariblk.ttf", "C:/Windows/Fonts/arialbd.ttf",
     "/usr/share/fonts/truetype/google-fonts/Poppins-Bold.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
     "/System/Library/Fonts/Supplemental/Arial Bold.ttf",

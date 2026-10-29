@@ -52,7 +52,8 @@ VIDEOS = ROOT / "videos"
 CACHE = ROOT / "cache" / "aset"
 MILIK = ROOT / "milik-saya"      # rekaman Zona sendiri: prioritas tertinggi
 VIDEO_EXT = {".mp4", ".mov", ".mkv", ".webm", ".m4v"}
-MAX_FOOTAGE_BERUNTUN = 2         # setelah 2 shot footage berturut-turut, wajib selingan AI/animasi
+MAX_FOOTAGE_BERUNTUN = 99        # tidak ada lagi selingan AI paksa: variasi datang dari transisi & gerak Kai; footage asli diutamakan
+URUT_SUMBER = {"milik": 0, "youtube": 1, "nasa": 2, "wikimedia": 3, "pexels": 4, "pixabay": 5}
 FIXTURE = Path(__file__).with_name("contoh_respon.json")
 SHOT_MAX = 3.0          # bible: ganti visual tiap 1,5–3 detik
 MAX_BYTES = 300 * 1024 * 1024
@@ -199,7 +200,7 @@ def search_all(query: str, english: bool) -> list[dict]:
     while any(per.values()) and len(out) < 24:
         for name in ("youtube", "nasa", "wikimedia", "pexels", "pixabay"):
             lst = per.get(name) or []
-            take = 2 if rnd == 0 else 1
+            take = (4 if name == "youtube" else 2) if rnd == 0 else (2 if name == "youtube" else 1)
             out += lst[:take]
             per[name] = lst[take:]
         rnd += 1
@@ -416,6 +417,7 @@ def ai_prompt(p: dict, kalimat: str, shot: int = 0, varian: int = 0) -> str:
 def auto_pick(entry: dict, n: int, taken: set) -> list:
     """Kandidat teratas yang belum dipakai kalimat lain (supaya visual tidak berulang)."""
     free = [k + 1 for k, c in enumerate(entry["kandidat"]) if (c["sumber"], c["id"]) not in taken]
+    free.sort(key=lambda k: URUT_SUMBER.get(entry["kandidat"][k - 1]["sumber"], 9))     # potongan YouTube CC lebih dulu
     return free[:n] or [k + 1 for k in range(min(n, len(entry["kandidat"])))]
 
 

@@ -46,7 +46,7 @@ Contoh bagus:
 - "Tau nggak, ayam ini nggak pernah hidup?"
 - "Tau nggak, kamera ini bisa motret di balik tembok?"
 
-Jangan: "Tau nggak, di video ini kita bahas…" (basa-basi), "Tau nggak tentang kulit buatan?" (datar, bukan kejutan), atau "Tahukah kamu" (terlalu formal). Teks besar di layar (`hook_teks`) **≤ 6 kata** tetap berisi klaimnya, tanpa "tau nggak" (contoh `ROBOT BISA NGERASA SAKIT?!`). Jangan nama superhero sebagai satu-satunya daya tarik.
+Jangan: "Tau nggak, di video ini kita bahas…" (basa-basi), "Tau nggak tentang kulit buatan?" (datar, bukan kejutan), atau "Tahukah kamu" (terlalu formal). Teks besar di layar (`hook_teks`) **≤ 6 kata** tetap berisi klaimnya, tanpa "tau nggak" (contoh `ROBOT CAIR YANG BISA BERUBAH WUJUD`). Kai menampilkannya bertingkat di tengah layar: subjek **putih** besar → kata penghubung **kuning** lebih kecil → kata kunci terakhir **biru** besar. Kalau pembagian otomatis kurang pas, tulis sendiri `hook_baris`, misalnya `[{"teks": "ROBOT CAIR", "warna": "putih"}, {"teks": "YANG BISA BERUBAH", "warna": "kuning"}, {"teks": "WUJUD", "warna": "biru"}]` (maksimal 5 baris, tiap baris ≤ 12 huruf; warna: putih/kuning/biru/oranye/merah/hijau). Jangan nama superhero sebagai satu-satunya daya tarik.
 
 ### 4. Susun beat (setiap kalimat diberi `bagian`)
 1. `hook` — 1 kalimat, diawali "Tau nggak,". Kejutan.
@@ -66,7 +66,7 @@ Jangan: "Tau nggak, di video ini kita bahas…" (basa-basi), "Tau nggak tentang 
 ### 5. Lembar produksi per kalimat
 Untuk setiap kalimat di `narasi`:
 - `visual`: deskripsi konkret dalam bahasa Indonesia (benda, aksi, close-up).
-- `jenis_visual`: `footage` (default, footage asli), `ai` (hanya kalau footage tidak mungkin: konsep, dalam tubuh, masa depan), atau `grafis` (kalimat yang menyebut angka kunci, maksimal 2 per video). Ikuti aturan campuran visual di bible: footage dominan, tidak ada lebih dari 2 AI berturut-turut.
+- `jenis_visual`: `footage` (default, footage asli), `ai` (hanya kalau footage tidak mungkin: konsep, dalam tubuh, masa depan), atau `grafis` (kalimat yang menyebut angka kunci, maksimal 2 per video). Ikuti aturan campuran visual di bible: **≥ 75% footage** (Bima mengutamakan potongan YouTube CC), AI ≤ 15%, tidak ada 2 AI berturut-turut.
 - `kata_kunci_visual`: 1–3 kata kunci **bahasa Inggris** untuk mencari footage (ambil/kembangkan dari `kata_kunci_visual` Nova). Wajib untuk footage/ai.
 - `teks_layar` (opsional, ≤ 4 kata): teks penegas di atas layar, misalnya "PROTOTIPE", "0,1 DETIK!". Maksimal 1 setiap 2 kalimat; jangan di kalimat hook.
 - `penekanan` (opsional): 1–2 kata dari kalimat itu yang harus disorot di subtitle (angka, kata kunci emosi).

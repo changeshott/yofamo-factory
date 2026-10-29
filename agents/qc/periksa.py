@@ -121,8 +121,8 @@ def cek(slug: str) -> dict:
             ganti.append({**ref(k), "alasan": f"diam/beku {beku:.0%}"})
     total = sum(k["durasi"] for k in klip) or 1
     porsi = {j: round(sum(k["durasi"] for k in klip if k["jenis"] == j) / total, 2) for j in ("footage", "ai", "grafis")}
-    if porsi["ai"] > 0.6:
-        masalah.append(f"gambar AI {porsi['ai']:.0%} dari durasi (target ≤40%). Cek yt-dlp/sumber footage.")
+    if porsi["ai"] > 0.3:
+        masalah.append(f"gambar AI {porsi['ai']:.0%} dari durasi (target ≤ 20%, utamakan potongan YouTube CC). Cek yt-dlp/sumber footage.")
     lufs = loudness(final)
     if lufs is not None and not -16.5 <= lufs <= -11.5:
         masalah.append(f"kerasnya suara {lufs:.1f} LUFS (target -14)")

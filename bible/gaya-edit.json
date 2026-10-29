@@ -1,28 +1,58 @@
 {
-  "_catatan": "Gaya editan Kai (agent editor). Ubah di sini, berlaku untuk semua video berikutnya. Warna dalam hex RRGGBB.",
+  "_catatan": "Gaya editan Kai (agent editor), meniru gaya channel Yofamo. Ubah di sini, berlaku untuk semua video berikutnya. Warna hex RRGGBB. Font default fonts/Poppins-Black.ttf.",
   "font": "",
   "subtitle": {
-    "ukuran": 92,
+    "posisi": "tengah",
+    "y": 960,
+    "ukuran": 130,
+    "ukuran_min": 72,
     "warna": "FFFFFF",
-    "warna_aktif": "FF9A4D",
+    "warna_tekan": "FFD23F",
     "garis": 7,
-    "jarak_bawah": 560,
-    "maks_kata": 3,
+    "bayangan": 5,
+    "maks_kata": 1,
     "huruf_besar": true,
-    "pop": true,
-    "warna_tekan": "FFD23F"
+    "pop": true
   },
   "hook": {
     "tampil": true,
-    "ukuran": 84,
-    "warna_teks": "141414",
-    "warna_kotak": "FF9A4D",
-    "jarak_atas": 260,
-    "maks_detik": 2.6
+    "animasi": "pop bertahap per baris (fade + memantul)",
+    "warna": [
+      "FFFFFF",
+      "FFD23F",
+      "2D8CFF"
+    ],
+    "ukuran_maks": 250,
+    "garis": 9,
+    "bayangan": 7,
+    "y_tengah": 1150,
+    "jeda_baris": 0.09,
+    "min_detik": 1.8,
+    "maks_detik": 3.6,
+    "jarak_baris": 0.8,
+    "tinggi_maks": 900
   },
   "gerak": {
     "punch_zoom": 0.08,
-    "punch_detik": 0.28
+    "punch_detik": 0.28,
+    "dorong": 0.06,
+    "denyut_tekanan": 0.05,
+    "transisi_detik": 0.3,
+    "transisi": [
+      "smoothleft",
+      "zoomin",
+      "smoothup",
+      "slideleft",
+      "circleopen"
+    ],
+    "transisi_wow": "fadewhite"
+  },
+  "teks_layar": {
+    "tampil": true,
+    "ukuran": 110,
+    "warna_teks": "FFD23F",
+    "jarak_atas": 330,
+    "maks_detik": 1.6
   },
   "audio": {
     "loudness_lufs": -14,
@@ -31,19 +61,11 @@
     "whoosh": true,
     "volume_whoosh_db": -16
   },
-  "teks_layar": {
-    "tampil": true,
-    "ukuran": 78,
-    "warna_teks": "FFFFFF",
-    "warna_kotak": "141414",
-    "jarak_atas": 300,
-    "maks_detik": 1.6
-  },
   "penutup": {
     "tampil": true,
     "detik": 1.2,
     "teks": "Follow buat teknologi gila berikutnya",
-    "ukuran": 80
+    "ukuran": 96
   },
   "handle": {
     "tampil": true,

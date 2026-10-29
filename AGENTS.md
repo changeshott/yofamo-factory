@@ -12,8 +12,8 @@ Pemilik: Zona. Semua jawaban dan laporan ditulis dalam **bahasa Indonesia**.
 | Nova | Kepala riset & ide: longlist → saring → cek ketersediaan footage (`cek_visual.py`) → verifikasi jurnalis (≥3 fakta, kutipan, sumber tier 1) → paket ide (3+ varian hook, angka kunci, salah kaprah, kata kunci visual) → `cek_ide.py` (validasi + skor 0–100); portofolio 2 andalan + 1 eksplorasi; selalu belum pernah dibahas → `videos/<slug>/idea.json` | `/ide-riset [tema]` / `/ide-riset --otomatis [arahan]` | aktif |
 | Raka | Kepala penulis: target durasi sesuai topik, struktur beat (pembuka khas "Tau nggak, …" → konteks → cara kerja → wow → penutup tuntas), lembar produksi per kalimat (jenis visual, kata kunci Inggris, teks layar, penekanan), judul + 2 alternatif, komentar pin → `script.json`, `naskah.md` (divalidasi `cek_naskah.py`) | `/penulis <slug>` | aktif |
 | Dara | Suara: voice-over gratis (edge-tts) + timing kata + subtitle + transkrip bertimestamp → `vo.mp3`, `words.json` (+ target durasi), `captions.srt`, `transkrip.txt` | `/suara <slug>` | aktif |
-| Bima | Visual: 1–3 shot 1080x1920 per kalimat dari footage YouTube CC BY/NASA/Wikimedia Commons (Pexels/Pixabay opsional), gambar AI gratis (Cloudflare FLUX + Ken Burns), atau kartu grafis → `aset/NN-a.mp4`, `aset/manifest.json` | `/aset <slug>` | aktif |
-| Kai | Editor: rakit video final (ffmpeg) — subtitle kata-per-kata (kata penekanan disorot), hook, teks layar, punch zoom, whoosh, musik per suasana, layar penutup → `export/final.mp4` | `/editor <slug>` | aktif |
+| Bima | Visual: 1–3 shot 1080x1920 per kalimat, **utamakan potongan YouTube CC BY** (≥ 75% footage asli), lalu NASA/Wikimedia Commons (Pexels/Pixabay opsional), gambar AI gratis (Cloudflare FLUX + Ken Burns), atau kartu grafis → `aset/NN-a.mp4`, `aset/manifest.json` | `/aset <slug>` | aktif |
+| Kai | Editor: rakit video final (ffmpeg, font Poppins Black di `fonts/`) — gaya khas Yofamo: hook bertingkat putih/kuning/biru muncul bertahap, subtitle 1 kata di tengah (penekanan kuning), gerak keyframe, transisi antar-kalimat sinkron suara, denyut zoom, whoosh, musik per suasana, layar penutup → `export/final.mp4` | `/editor <slug>` | aktif |
 | Rara | QC: cek otomatis (gelap/beku/durasi/LUFS/porsi AI) + lihat frame tiap shot, tolak yang jelek → Bima ganti → Kai rakit ulang (maks 2 putaran) → `export/qc.json`, `qc_review.json` | `/qc <slug>` | aktif |
 | Uli | Upload: video `export` → YouTube **private** (+ jadwal, kredit, label konten sintetis) → `export/upload.json` | `/upload <slug>` | aktif |
 
@@ -25,7 +25,8 @@ Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetu
 
 ## Struktur folder
 
-- `bible/gaya-edit.json` — gaya editan Kai (font, warna subtitle, hook, zoom, musik).
+- `bible/gaya-edit.json` — gaya editan Kai (font, warna & ukuran subtitle, hook bertingkat, gerak & transisi, musik).
+- `fonts/` — font khas Yofamo (Poppins Black/ExtraBold, lisensi OFL).
 - `musik/`, `sfx/` — musik latar & efek suara bebas royalti milik Zona (tidak di-commit).
 - `bible/channel-bible.md` — aturan gaya & konten. **Wajib dibaca** sebelum membuat ide, naskah, atau menilai video.
 - `agents/<nama>/` — script Python milik tiap agent. Jalankan dari root project.

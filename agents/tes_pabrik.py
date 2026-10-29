@@ -103,7 +103,7 @@ def offline() -> None:
     print("\n== Tes alur lengkap (tanpa internet, folder sementara) ==")
     tmp = Path(tempfile.mkdtemp(prefix="yofamo-tes-"))
     try:
-        for d in ("agents", "bible"):
+        for d in ("agents", "bible", "fonts"):
             shutil.copytree(ROOT / d, tmp / d, ignore=shutil.ignore_patterns("__pycache__"))
         (tmp / "videos").mkdir()
         cek("ffmpeg & ffprobe ada", bool(shutil.which("ffmpeg") and shutil.which("ffprobe")), "" if shutil.which("ffmpeg") else "winget install Gyan.FFmpeg")
@@ -193,11 +193,13 @@ def offline() -> None:
         cek("Bima: semua shot 1080x1920 dan durasinya pas", not bad, ", ".join(bad[:5]))
         longest = max((k["durasi"] for k in kl if k["jenis"] != "grafis"), default=0)
         cek("Bima: ganti visual maks ±3,5 detik", longest <= 3.5, f"terpanjang {longest:.1f} dtk")
-        streak = run_max = 0
-        for k in kl:
-            streak = streak + 1 if k["jenis"] == "footage" else 0
-            run_max = max(run_max, streak)
-        cek("Bima: maks 2 footage berturut-turut", run_max <= 2, f"{run_max} beruntun")
+        dur_j = {j: sum(k["durasi"] for k in kl if k["jenis"] == j) for j in ("footage", "ai", "grafis")}
+        tot_j = sum(dur_j.values()) or 1
+        cek("Bima: footage asli diutamakan (AI ≤ 30%)", dur_j["ai"] / tot_j <= 0.30 and dur_j["footage"] / tot_j >= 0.5,
+            f"footage {dur_j['footage'] / tot_j:.0%}, AI {dur_j['ai'] / tot_j:.0%}")
+        yt_pertama = [k for k in kl if k["jenis"] == "footage" and k.get("sumber") == "youtube"]
+        cek("Bima: potongan YouTube CC dipakai paling banyak", len(yt_pertama) >= max((sum(1 for k in kl if k.get("sumber") == s_) for s_ in ("nasa", "wikimedia", "pexels")), default=0),
+            f"{len(yt_pertama)} potongan YouTube")
         jenis = {j: sum(1 for k in kl if k["jenis"] == j) for j in ("footage", "ai", "grafis")}
         cek("Bima: campuran footage/AI/grafis", all(jenis.values()), json.dumps(jenis))
         cek("Bima: rekaman milik-saya dipakai", any(k.get("sumber") == "milik" for k in kl))
@@ -226,6 +228,19 @@ def offline() -> None:
                             os.environ.get("TES_FRAME_AKHIR", str(tmp / "akhir.jpg"))], check=False)
         except OSError:
             pass
+        subs = [l.split(",,", 1)[-1] for l in ass_txt.splitlines() if ",Sub," in l]
+        satu_kata = all(len(re.sub(r"\{[^}]*\}", "", t).split()) == 1 for t in subs)
+        cek("Kai: subtitle 1 kata di tengah layar", bool(subs) and satu_kata and all("\\an5" in t for t in subs), f"{len(subs)} kata")
+        hk = [l for l in ass_txt.splitlines() if ",Hook," in l]
+        cek("Kai: hook bertingkat warna-warni muncul bertahap", len(hk) >= 3 and len({re.search(r"\\c(&H\w+&)", l).group(1) for l in hk}) >= 3
+            and len({l.split(",")[1] for l in hk}) >= 3, f"{len(hk)} baris")
+        cek("Kai: transisi antar-kalimat & denyut penekanan", len(inf.get("transisi", [])) == len(NARASI) - 1 and inf.get("denyut_tekanan", 0) > 0,
+            ", ".join(inf.get("transisi", [])[:4]))
+        fdir = os.environ.get("TES_FRAME_DIR")
+        if fdir:
+            for t in (0.15, 0.5, 1.2, 4.0, 6.0):
+                subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", str(t), "-i", str(fin), "-frames:v", "1", "-vf", "scale=360:-2",
+                                str(Path(fdir) / f"f{t:.2f}.jpg")], check=False)
         cek("Kai: penutup, teks layar & penekanan tampil", ",Akhir," in ass_txt and ",Layar," in ass_txt and "PROTOTIPE" in ass_txt and "REFLEKS!" not in ass_txt and "&H003FD2FF&" in ass_txt)
         ar = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=codec_name", "-of", "csv=p=0", str(fin)], capture_output=True, text=True)
         cek("Kai: ada audio AAC", "aac" in ar.stdout)
