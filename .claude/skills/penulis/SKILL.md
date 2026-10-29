@@ -30,14 +30,15 @@ Gaya: bahasa Indonesia lisan yang santai dan cepat, seperti teman yang sedang ka
    4. Fakta paling mengejutkan.
    5. Penutup yang nyambung ke kalimat pembuka supaya terasa loop.
    Total **80–98 kata** (suara ±2,3 kata/detik → 35–43 detik). Setiap fakta harus ada di `idea.json`. Jangan menambah fakta baru.
-4. Tulis `videos/<slug>/script.json` dengan format di bawah.
-5. Validasi:
+4. Kalau `insights/eksperimen.md` punya eksperimen berstatus `aktif` yang menyangkut naskah/judul/hook, terapkan varian yang diminta dan catat di `script.json` field `"eksperimen": ["<nama eksperimen>: <varian>"]`, supaya Steve bisa mengukurnya.
+5. Tulis `videos/<slug>/script.json` dengan format di bawah.
+6. Validasi:
    ```bash
    python agents/penulis/cek_naskah.py <slug>
    ```
    Kalau ada `GAGAL`, perbaiki `script.json` lalu jalankan lagi sampai lolos (maksimal 3 kali).
-6. Kalau lolos: `python agents/pabrik.py set <slug> naskah`
-7. Jawaban akhir (maksimal 15 baris): judul, teks hook, jumlah kata, estimasi durasi, dan kalimat "Naskah siap dibaca di Studio Yofamo."
+7. Kalau lolos: `python agents/pabrik.py set <slug> naskah`
+8. Jawaban akhir (maksimal 15 baris): judul, teks hook, jumlah kata, estimasi durasi, dan kalimat "Naskah siap dibaca di Studio Yofamo."
 
 ## Format script.json
 

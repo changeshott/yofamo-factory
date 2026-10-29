@@ -8,7 +8,7 @@ Pemilik: Zona. Semua jawaban dan laporan ditulis dalam **bahasa Indonesia**.
 
 | Nama | Peran | Skill | Status |
 | --- | --- | --- | --- |
-| Steve | Analis: statistik publik + retensi YouTube Analytics (`analitik.py`), menulis `insights/pelajaran.md` yang dibaca Nova/Raka/Bima | `/steve-analis` | aktif |
+| Steve | Kepala analis: statistik, retensi & kurva penonton, komentar, radar pasar, eksperimen, post-mortem → laporan mingguan, `insights/topik_backlog.json` (dipakai Nova), `pelajaran.md`, `eksperimen.md` | `/steve-analis` | aktif |
 | Nova | Ide & riset: 3 ide bersumber per putaran (atau 1 ide di mode otomatis), selalu dicek belum pernah dibahas di channel (`agents/ide/cek_topik.py`) → `videos/<slug>/idea.json` | `/ide-riset [tema]` / `/ide-riset --otomatis [arahan]` | aktif |
 | Raka | Penulis: naskah, judul, hook, deskripsi, tag → `script.json` | `/penulis <slug>` | aktif |
 | Dara | Suara: voice-over gratis (edge-tts) + timing kata + subtitle → `vo.mp3`, `words.json`, `captions.srt` | `/suara <slug>` | aktif |
@@ -39,6 +39,8 @@ Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetu
 - `milik-saya/` — rekaman Zona sendiri (layar HP, gadget, dll). Bima memakainya lebih dulu kalau nama file cocok dengan kalimat, misalnya `tangan-robot-lab.mp4`. Tidak di-commit.
 - `rahasia/` — OAuth client & token YouTube (tidak pernah di-commit, jangan dibaca/ditampilkan agent).
 - `insights/pelajaran.md` — aturan hasil belajar dari retensi penonton (ditulis Steve).
+- `insights/topik_backlog.json` — topik berperingkat yang belum pernah dibahas (Steve → Nova).
+- `insights/eksperimen.md` — uji coba aktif (Steve → Raka/Bima/Kai); Raka mencatat varian di `script.json` → `eksperimen`.
 - `cache/` — unduhan mentah Bima (boleh dihapus Zona kalau penuh, tidak di-commit).
 
 ## Aturan kerja
@@ -70,7 +72,8 @@ python agents/produser.py ["arahan tema"]  # satu klik → tim pilih topik baru 
 python agents/ide/cek_topik.py "judul"      # cek topik belum pernah dibahas (--daftar: semua judul)
 python agents/qc/periksa.py otomatis <slug> # Rara cepat: cek + ganti shot gelap/beku
 python agents/upload/unggah.py login        # Uli: hubungkan YouTube (sekali)
-python agents/steve/analitik.py             # Steve v2: retensi per video
+python agents/steve/kumpul.py [--pasar]     # Steve: semua data (statistik, komentar, analitik, pasar) + analisa, tanpa kuota Claude
+python agents/steve/analisa.py              # Steve: hitung KPI, pola, retensi, peluang → insights/raw/analisa-*.json/.md
 python agents/tes_pabrik.py [--online]     # tes seluruh pabrik (aman, di folder sementara)
 start_studio.bat                            # buka Studio Yofamo (Windows)
 cd studio && npm run dev                    # sama, manual (http://127.0.0.1:3210)

@@ -15,7 +15,7 @@ function scriptTools(...scripts: string[]): string[] {
   return out;
 }
 const TOOLS = {
-  steve: scriptTools("agents/steve/fetch_stats.py", "agents/steve/analitik.py"),
+  steve: scriptTools("agents/steve/kumpul.py", "agents/steve/fetch_stats.py", "agents/steve/komentar.py", "agents/steve/pasar.py", "agents/steve/analitik.py", "agents/steve/analisa.py", "agents/ide/cek_topik.py", "agents/pabrik.py"),
   ide: [...scriptTools("agents/pabrik.py", "agents/ide/cek_topik.py"), "WebSearch", "WebFetch"],
   penulis: scriptTools("agents/pabrik.py", "agents/penulis/cek_naskah.py"),
   aset: scriptTools("agents/pabrik.py", "agents/aset/cari_aset.py"),
@@ -33,6 +33,10 @@ export const jobState = (): JobState => ({ ...store.state });
 
 async function command(job: JobName, arg: string): Promise<{ cmd: string; args: string[] } | string> {
   const py = pythonCmd();
+  if (job === "data") {
+    if (!py) return "Python tidak ditemukan.";
+    return { cmd: py, args: ["agents/steve/kumpul.py", ...(arg === "pasar" ? ["--pasar"] : arg === "ringan" ? ["--ringan"] : [])] };
+  }
   if (job === "fetch" || job === "check") {
     if (!py) return "Python tidak ditemukan. Install Python dan centang 'Add python.exe to PATH'.";
     return { cmd: py, args: ["agents/steve/fetch_stats.py", ...(job === "check" ? ["--check"] : [])] };
@@ -128,6 +132,7 @@ const LABEL: Record<JobName, string> = {
   editor: "Kai merakit video",
   produksi: "Produksi video",
   qc: "Rara memeriksa video",
+  data: "Steve mengumpulkan data",
   upload: "Uli mengunggah ke YouTube",
   login: "Menghubungkan YouTube",
 };

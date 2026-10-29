@@ -18,7 +18,8 @@ Gaya: teliti seperti jurnalis sains, skeptis terhadap klaim viral.
 ## Procedure
 
 1. Baca `bible/channel-bible.md` dan `insights/pelajaran.md` kalau ada (pelajaran dari retensi penonton; aturan **terbukti** wajib diikuti).
-2. Baca laporan Steve terbaru di `insights/` (file `.md` dengan nama minggu terbesar). Pakai bagian **Rekomendasi** dan **Pola** sebagai arah utama.
+2. Baca laporan Steve terbaru di `insights/` (file `.md` dengan nama minggu terbesar). Pakai bagian **Keputusan & rekomendasi** dan **Diagnosa** sebagai arah utama.
+   **Mode otomatis:** baca `insights/topik_backlog.json` dulu. Mulai dari topik dengan `skor` tertinggi yang belum ada di pabrik (`cek_topik.py` AMAN) dan cocok dengan arahan tema (kalau ada). Verifikasi faktanya seperti biasa; kalau tidak lolos 2 sumber, lanjut ke topik berikutnya. Kalau backlog kosong atau semua gagal, cari sendiri.
 3. **Cegah duplikat (wajib, topik tidak boleh pernah dibahas di channel):**
    ```bash
    python agents/ide/cek_topik.py --daftar

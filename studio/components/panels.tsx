@@ -42,7 +42,7 @@ export function AgentPanel({ def, ctx }: { def: AgentDef; ctx: PanelCtx }) {
   const [theme, setTheme] = useState("");
   const [log, setLog] = useState<string | null>(mine ? j.log : null);
   useEffect(() => { if (mine && j.log) setLog(j.log); }, [mine, j.log]);
-  const logs = state.logs.filter((l) => l.name.startsWith(def.job + "-") || (def.id === "steve" && l.name.startsWith("fetch-"))).slice(0, 6);
+  const logs = state.logs.filter((l) => l.name.startsWith(def.job + "-") || (def.id === "steve" && (l.name.startsWith("fetch-") || l.name.startsWith("data-")))).slice(0, 6);
   const noClaude = !state.health.claude;
   return (
     <div>
@@ -55,10 +55,12 @@ export function AgentPanel({ def, ctx }: { def: AgentDef; ctx: PanelCtx }) {
       <H3>Tugas</H3>
       {def.id === "steve" && (<>
         <div className="flex flex-wrap gap-2">
-          <Btn tone="primary" disabled={busy(state) || noClaude} onClick={() => ctx.run("steve")}>Jalankan Steve</Btn>
-          <Btn disabled={busy(state)} onClick={() => ctx.run("fetch")}>Ambil data terbaru</Btn>
+          <Btn tone="primary" disabled={busy(state) || noClaude} onClick={() => ctx.run("steve")}>Analisa lengkap</Btn>
+          <Btn disabled={busy(state)} onClick={() => ctx.run("data")}>Kumpulkan data</Btn>
+          <Btn disabled={busy(state)} onClick={() => ctx.run("data", "pasar")}>+ Radar pasar</Btn>
+          <Btn size="sm" tone="ghost" onClick={() => ctx.open("analytics")}>Lihat wawasan</Btn>
         </div>
-        <Muted className="mt-2">Ambil data tidak memakai kuota Claude. Jalankan Steve memakai kuota Pro (model Sonnet).</Muted>
+        <Muted className="mt-2">Analisa lengkap: Steve mengumpulkan semua data lalu menulis laporan, backlog topik untuk Nova, eksperimen, pelajaran, dan post-mortem (kuota Claude Pro). Kumpulkan data: statistik, komentar, retensi (kalau YouTube terhubung), dan hitungan analisa, tanpa kuota. Studio juga memperbarui statistik otomatis sekali sehari.</Muted>
       </>)}
       {def.id === "nova" && (<>
         <label className="text-sm text-muted" htmlFor="theme">Arahan tema (opsional)</label>
@@ -314,12 +316,55 @@ export function FounderPanel({ ctx }: { ctx: PanelCtx }) {
 }
 
 /* ---------------------------------------------------------------- analitik */
+function SteveWawasan({ si, ctx }: { si: NonNullable<PanelCtx["state"]["steve"]>; ctx: PanelCtx }) {
+  const k = si.kpi;
+  const card = (v: string, l: string, tone = "") => (
+    <div className="rounded-lg border border-line bg-ink-800 px-3 py-2"><strong className={`block font-pixel text-lg leading-tight ${tone}`}>{v}</strong><small className="text-faint">{l}</small></div>);
+  const tren = k?.median_10_terbaru != null && k?.median_10_sebelumnya ? Math.round((k.median_10_terbaru / k.median_10_sebelumnya - 1) * 100) : null;
+  return (<>
+    <H3>Wawasan Steve{si.tanggal ? ` · ${si.tanggal}` : ""}</H3>
+    {k && <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+      {card(fmt(k.subscriber), `subscriber${k.subscriber_per_hari != null ? ` · ${k.subscriber_per_hari}/hari` : ""}`)}
+      {card(fmt(Math.round(k.median_views_shorts)), "median views Shorts")}
+      {card(tren == null ? "–" : `${tren > 0 ? "+" : ""}${tren}%`, "10 Shorts terbaru vs sebelumnya", tren == null ? "" : tren >= 0 ? "text-leaf" : "text-bad")}
+      {card(String(k.upload_30_hari), "upload 30 hari", k.upload_30_hari < 4 ? "text-signal" : "")}
+      {card(k.hari_sejak_upload == null ? "–" : `${k.hari_sejak_upload} hr`, "sejak upload terakhir", (k.hari_sejak_upload ?? 0) > 7 ? "text-bad" : "")}
+      {card(si.retensi?.rata != null ? `${si.retensi.rata}%` : "–", si.retensi ? "rata-rata ditonton" : "retensi: hubungkan YouTube")}
+    </div>}
+    {si.kategori && (<>
+      <h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Kategori (× median channel)</h4>
+      <ul className="space-y-1 text-sm">{Object.entries(si.kategori).sort((a, b) => (b[1].median ?? 0) - (a[1].median ?? 0)).map(([n, v]) => (
+        <li key={n} className="grid grid-cols-[110px_1fr_auto] items-center gap-2"><span>{n}</span>
+          <span className="h-2 rounded-sm bg-ink-950"><i className={`block h-full rounded-sm ${(v.median ?? 0) >= 1.5 ? "bg-signal" : (v.median ?? 0) >= 1 ? "bg-circuit" : "bg-ink-600"}`} style={{ width: `${Math.min(100, ((v.median ?? 0) / 3) * 100)}%` }} /></span>
+          <small className="text-faint">{v.median}× · n={v.n} · {v.label}</small></li>))}</ul>
+    </>)}
+    <h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Backlog topik untuk Nova{si.backlogTanggal ? ` (${si.backlogTanggal})` : ""}</h4>
+    {si.backlog.length ? <ol className="space-y-1.5 text-sm">{si.backlog.map((t, i) => (
+      <li key={i} className="rounded-md border border-line bg-ink-800 px-2.5 py-1.5"><strong>{i + 1}. {t.judul_kerja}</strong>{t.skor != null && <span className="ml-2 rounded bg-signal/20 px-1.5 font-pixel text-xs text-signal">{t.skor}/10</span>}
+        {t.alasan && <small className="block text-muted">{t.alasan}</small>}</li>))}</ol>
+      : <Muted>Belum ada. Klik Analisa lengkap di meja Steve; Nova memakai daftar ini saat kamu menekan Buat video.</Muted>}
+    {!!si.peluang.length && (<>
+      <h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Radar pasar: ramai di channel lain, belum dibahas Yofamo</h4>
+      <ul className="space-y-1 text-sm">{si.peluang.map((p, i) => <li key={i}><a className="text-circuit hover:underline" href={p.url} target="_blank" rel="noopener noreferrer">{p.judul}</a> <small className="text-faint">· {fmt(Math.round(p.views_per_hari))}/hari · {p.channel}</small></li>)}</ul>
+    </>)}
+    {!!si.permintaan.length && (<>
+      <h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Permintaan penonton di komentar</h4>
+      <ul className="space-y-1 text-sm">{si.permintaan.map((p, i) => <li key={i}>&ldquo;{p.teks}&rdquo; <small className="text-faint">{p.like} like</small></li>)}</ul>
+    </>)}
+    {si.eksperimen && (<><h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Eksperimen</h4><div className="prose-studio text-sm" dangerouslySetInnerHTML={{ __html: md(si.eksperimen) }} /></>)}
+    {si.pelajaran && (<><h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Pelajaran tim</h4><div className="prose-studio text-sm" dangerouslySetInnerHTML={{ __html: md(si.pelajaran) }} /></>)}
+    {!!si.kurang.length && <><h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Data yang belum ada</h4><ul className="list-disc pl-5 text-sm text-muted">{si.kurang.map((x, i) => <li key={i}>{x}</li>)}</ul></>}
+    <div className="mt-3 flex flex-wrap gap-2"><Btn size="sm" onClick={() => ctx.open("agent:steve")}>Ke meja Steve</Btn><Btn size="sm" onClick={() => ctx.open("reports")}>Laporan lengkap</Btn></div>
+  </>);
+}
+
 export function AnalyticsPanel({ ctx }: { ctx: PanelCtx }) {
   const s = ctx.state.snapshot;
   const [filter, setFilter] = useState<"all" | "menang" | "rata-rata" | "lemah">("all");
   const [sort, setSort] = useState<{ k: "title" | "views" | "vs_median" | "views_per_day" | "published"; d: 1 | -1 }>({ k: "published", d: -1 });
   const rows = useMemo(() => !s ? [] : s.videos.filter((v) => filter === "all" || v.tier === filter).sort((a, b) => ((a[sort.k] ?? 0) > (b[sort.k] ?? 0) ? 1 : (a[sort.k] ?? 0) < (b[sort.k] ?? 0) ? -1 : 0) * sort.d), [s, filter, sort]);
-  if (!s?.videos.length) return (<><Muted>Belum ada data. Buka meja Steve lalu klik Ambil data terbaru.</Muted><Btn className="mt-3" onClick={() => ctx.open("agent:steve")}>Ke meja Steve</Btn></>);
+  const si = ctx.state.steve;
+  if (!s?.videos.length) return (<><Muted>Belum ada data. Buka meja Steve lalu klik Kumpulkan data.</Muted><Btn className="mt-3" onClick={() => ctx.open("agent:steve")}>Ke meja Steve</Btn></>);
   const vids = [...s.videos].sort((a, b) => a.published.localeCompare(b.published)), W = 480, H = 220, pl = 34, pb = 22, pt = 8, n = vids.length;
   const max = Math.max(...vids.map((v) => v.views)) * 1.08, med = s.summary.median_views, step = (W - pl) / n, bw = Math.max(3, Math.min(22, step * 0.7)), y = (v: number) => pt + (H - pt - pb) * (1 - v / max);
   const col = { menang: "#FF9A4D", "rata-rata": "#47B5FF", lemah: "#5A7393" } as const;
@@ -327,6 +372,8 @@ export function AnalyticsPanel({ ctx }: { ctx: PanelCtx }) {
     <th className={`border-b border-line px-1.5 py-1.5 font-bold whitespace-nowrap text-muted ${num ? "text-right" : "text-left"}`} aria-sort={sort.k === k ? (sort.d > 0 ? "ascending" : "descending") : "none"}>
       <button onClick={() => setSort({ k, d: sort.k === k ? (-sort.d as 1 | -1) : k === "title" ? 1 : -1 })}>{l}{sort.k === k ? (sort.d > 0 ? " ↑" : " ↓") : ""}</button></th>);
   return (<>
+    {si && <SteveWawasan si={si} ctx={ctx} />}
+    <H3>Semua Shorts</H3>
     <Muted>{fmt(s.summary.videos)} video, median {fmt(Math.round(med))} views. Data per {s.snapshot_date}. Klik batang untuk membuka videonya.</Muted>
     <div className="mt-2 rounded-lg border border-line bg-ink-800 p-2.5">
       <div className="mb-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">

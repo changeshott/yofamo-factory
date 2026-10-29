@@ -76,7 +76,7 @@ export interface AsetManifest { _error?: string; dibuat?: string; uji?: boolean;
 
 export interface Activity { slug: string; dari: string | null; ke: string; waktu: string; judul_kerja: string | null }
 
-export type JobName = "fetch" | "check" | "steve" | "ide" | "penulis" | "suara" | "aset" | "editor" | "produksi" | "qc" | "upload" | "login";
+export type JobName = "fetch" | "check" | "steve" | "ide" | "penulis" | "suara" | "aset" | "editor" | "produksi" | "qc" | "upload" | "login" | "data";
 export interface JobState {
   job: JobName | null;
   arg: string | null;
@@ -92,6 +92,20 @@ export interface Produksi {
   status: "berjalan" | "selesai" | "gagal" | "terhenti"; slug: string | null; pesan: string; tahap: Tahap[];
 }
 
+export interface SteveInsight {
+  tanggal: string | null;
+  kpi: { subscriber: number; subscriber_per_hari: number | null; median_views_shorts: number; median_10_terbaru: number | null; median_10_sebelumnya: number | null;
+    upload_30_hari: number; hari_sejak_upload: number | null; proyeksi: Record<string, number | null> } | null;
+  retensi: { rata: number | null } | null;
+  kategori: Record<string, { n: number; median: number | null; label: string }> | null;
+  peluang: { judul: string; channel: string; views_per_hari: number; kategori: string; url: string }[];
+  permintaan: { teks: string; like: number }[];
+  kurang: string[];
+  backlog: { judul_kerja: string; kategori?: string; skor?: number; alasan?: string; sudut_hook?: string }[];
+  backlogTanggal: string | null;
+  eksperimen: string; pelajaran: string;
+}
+
 export interface FileEntry { name: string; modified: string }
 
 export interface StudioState {
@@ -104,6 +118,7 @@ export interface StudioState {
   agents: { key: string; ready: boolean }[];
   job: JobState;
   produksi: Produksi[];
+  steve: SteveInsight | null;
   antrean: { id: string; teks: string; suara: string; visual: string; dibuat: string }[];
   health: { env: boolean; claude: boolean; python: boolean; pythonCmd: string; edgeTts: boolean; stockKey: boolean; ffmpeg: boolean; ytdlp: boolean; aiKey: boolean; google: boolean; ytClient: boolean; ytLogin: boolean };
 }

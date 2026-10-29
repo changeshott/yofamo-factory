@@ -120,6 +120,7 @@ def build_rows(videos: list[dict], now: datetime) -> list[dict]:
             "url": f"https://www.youtube.com/shorts/{v['id']}",
             "title": sn["title"],
             "published": published.date().isoformat(),
+            "published_at": sn["publishedAt"],
             "age_days": round(age_days, 1),
             "duration_s": seconds,
             "is_short": 0 < seconds <= SHORTS_MAX_SECONDS,
@@ -134,10 +135,15 @@ def build_rows(videos: list[dict], now: datetime) -> list[dict]:
 
 
 def add_comparisons(rows: list[dict], previous: dict | None) -> dict:
-    views = [r["views"] for r in rows] or [0]
+    # median & tier hanya dari Shorts: video panjang/0 views (misalnya unggahan nyasar) tidak boleh menggeser patokan
+    views = [r["views"] for r in rows if r["is_short"]] or [r["views"] for r in rows] or [0]
     median = statistics.median(views)
     prev_views = {v["id"]: v["views"] for v in (previous or {}).get("videos", [])}
     for r in rows:
+        if not r["is_short"]:
+            r.update(vs_median=None, tier="bukan-short", views_since_last=r["views"] - prev_views.get(r["id"], r["views"]),
+                     is_new=r["id"] not in prev_views and previous is not None)
+            continue
         r["vs_median"] = round(r["views"] / median, 2) if median else None
         r["tier"] = "menang" if median and r["views"] >= 1.5 * median else (
             "lemah" if median and r["views"] <= 0.75 * median else "rata-rata")
@@ -145,16 +151,18 @@ def add_comparisons(rows: list[dict], previous: dict | None) -> dict:
         r["is_new"] = r["id"] not in prev_views and previous is not None
     return {
         "videos": len(rows),
+        "shorts": sum(1 for r in rows if r["is_short"]),
         "median_views": median,
         "mean_views": round(statistics.mean(views), 1),
         "total_views_videos": sum(views),
-        "winners": [r["title"] for r in rows if r["tier"] == "menang"],
+        "winners": [r["title"] for r in rows if r.get("tier") == "menang"],
         "previous_snapshot": (previous or {}).get("snapshot_date"),
     }
 
 
 def latest_snapshot(exclude: str) -> dict | None:
-    files = sorted(p for p in RAW_DIR.glob("*.json") if p.stem != exclude)
+    # hanya snapshot harian (YYYY-MM-DD.json), bukan analitik-/komentar-/pasar-/analisa-
+    files = sorted(p for p in RAW_DIR.glob("*.json") if re.fullmatch(r"\d{4}-\d\d-\d\d", p.stem) and p.stem != exclude)
     return json.loads(files[-1].read_text(encoding="utf-8")) if files else None
 
 

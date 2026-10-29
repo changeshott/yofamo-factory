@@ -3,7 +3,7 @@ import { execFile, execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
-import type { Activity, FileEntry, Produksi, Snapshot, Video, VideoStatus } from "@/lib/types";
+import type { Activity, FileEntry, Produksi, Snapshot, SteveInsight, Video, VideoStatus } from "@/lib/types";
 
 const run = promisify(execFile);
 
@@ -140,8 +140,33 @@ function readJson<T>(file: string): T | null {
 
 export function latestSnapshot(): Snapshot | null {
   try {
-    const files = fs.readdirSync(P.raw).filter((f) => f.endsWith(".json")).sort();
+    // hanya snapshot harian YYYY-MM-DD.json (bukan analisa-/analitik-/komentar-/pasar-)
+    const files = fs.readdirSync(P.raw).filter((f) => /^\d{4}-\d\d-\d\d\.json$/.test(f)).sort();
     return files.length ? readJson<Snapshot>(path.join(P.raw, files[files.length - 1])) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Wawasan Steve untuk dasbor: analisa terbaru, backlog topik, eksperimen, pelajaran. */
+export function steveInsight(): SteveInsight | null {
+  try {
+    const an = fs.readdirSync(P.raw).filter((f) => /^analisa-\d{4}-\d\d-\d\d\.json$/.test(f)).sort().pop();
+    const a = an ? readJson<Record<string, unknown>>(path.join(P.raw, an)) : null;
+    const bl = readJson<{ dibuat?: string; topik?: SteveInsight["backlog"] }>(path.join(P.insights, "topik_backlog.json"));
+    const txt = (f: string) => { try { return fs.readFileSync(path.join(P.insights, f), "utf8").slice(0, 6000); } catch { return ""; } };
+    if (!a && !bl) return null;
+    return {
+      tanggal: (a?.tanggal as string) ?? null,
+      kpi: (a?.kpi as SteveInsight["kpi"]) ?? null,
+      retensi: a?.retensi ? { rata: (a.retensi as { rata_persen_ditonton?: number }).rata_persen_ditonton ?? null } : null,
+      kategori: (a?.kategori as SteveInsight["kategori"]) ?? null,
+      peluang: ((a?.peluang_pasar as SteveInsight["peluang"]) ?? []).slice(0, 6),
+      permintaan: (((a?.komentar as { permintaan?: { teks: string; like: number }[] })?.permintaan) ?? []).slice(0, 4).map((k) => ({ teks: k.teks, like: k.like })),
+      kurang: (a?.data_kurang as string[]) ?? [],
+      backlog: (bl?.topik ?? []).slice(0, 10), backlogTanggal: bl?.dibuat ?? null,
+      eksperimen: txt("eksperimen.md"), pelajaran: txt("pelajaran.md"),
+    };
   } catch {
     return null;
   }

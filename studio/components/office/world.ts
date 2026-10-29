@@ -20,10 +20,10 @@ export interface AgentDef {
 
 export const TEAM: AgentDef[] = [
   {
-    id: "steve", skill: "steve-analis", job: "steve", name: "Steve", role: "Analis statistik", desk: [1.6, 2.6], color: "#47B5FF",
-    about: "Membaca statistik semua Shorts, menemukan topik dan hook yang menang, lalu menulis laporan mingguan.",
+    id: "steve", skill: "steve-analis", job: "steve", name: "Steve", role: "Kepala analis", desk: [1.6, 2.6], color: "#47B5FF",
+    about: "Kepala analis: statistik, retensi & kurva penonton, komentar, radar pasar Shorts Indonesia, eksperimen, dan post-mortem tiap video. Menyusun backlog topik untuk Nova dan pelajaran untuk seluruh tim.",
     look: { skin: "#EFC6A0", hair: "#4A3426", shirt: "#3F8FD6", pants: "#2C3B57", accent: "#BFE3FF", style: "short", glasses: true },
-    busy: { steve: "Menganalisis data…", fetch: "Mengambil statistik…" },
+    busy: { steve: "Menganalisis data…", fetch: "Mengambil statistik…", data: "Mengumpulkan data…" },
   },
   {
     id: "nova", skill: "ide-riset", job: "ide", name: "Nova", role: "Ide & riset", desk: [5.4, 2.6], color: "#6FD29A",
