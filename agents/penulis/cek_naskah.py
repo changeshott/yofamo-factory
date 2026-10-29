@@ -29,6 +29,8 @@ PENUTUP = {"loop", "pertanyaan", "kesimpulan"}
 FILLER = re.compile(r"\b(halo|hai|hi) (guys|semua|teman)|di video kali ini|jangan lupa (like|subscribe|follow)|tonton sampai (habis|akhir)|"
                     r"tanpa basa.?basi|langsung saja|oke guys|nah guys", re.I)
 GANTUNG = re.compile(r"(\.\.\.|…|\b(dan|tapi|karena|yang|atau|serta|lalu|kemudian|untuk|dengan|bahwa|jadi)\s*[.!?]?)\s*$", re.I)
+GRAFIS_GERAK = {"angka": ["angka", "label"], "label": ["teks"], "kata": ["teks"], "status": ["teks"],
+                "perbandingan": ["kiri", "kanan"], "langkah": ["poin"]}
 PEMBUKA = re.compile(r"^\s*(tau|tahu)\s+(nggak|gak|ga|enggak)\b[,!?]?\s*", re.I)   # ciri khas opening Yofamo
 JUAL = re.compile(r"\b(sudah|udah|bisa|sudah bisa) (dijual|dibeli|dipesan)|tersedia di (pasaran|toko)|dijual bebas", re.I)
 
@@ -163,6 +165,17 @@ def check(slug: str) -> tuple[list[str], list[str], dict, dict]:
             fails.append(f"kalimat {i}: jenis_visual harus footage/ai/grafis")
         if n.get("jenis_visual") in ("footage", "ai") and not n.get("kata_kunci_visual"):
             fails.append(f"kalimat {i}: kata_kunci_visual (Inggris) kosong")
+        gg = n.get("grafis_gerak")
+        if gg is not None:
+            tipe = gg.get("tipe") if isinstance(gg, dict) else None
+            if tipe not in GRAFIS_GERAK:
+                fails.append(f"kalimat {i}: grafis_gerak.tipe harus salah satu {sorted(GRAFIS_GERAK)}")
+            else:
+                kurang = [f for f in GRAFIS_GERAK[tipe] if not gg.get(f)]
+                if kurang:
+                    fails.append(f"kalimat {i}: grafis_gerak {tipe} butuh {', '.join(kurang)}")
+                if tipe == "langkah" and not 2 <= len(gg.get("poin") or []) <= 4:
+                    fails.append(f"kalimat {i}: grafis_gerak langkah butuh 2–4 poin")
         tl = n.get("teks_layar")
         if tl and len(words(str(tl))) > 4:
             fails.append(f"kalimat {i}: teks_layar maksimal 4 kata")
@@ -209,6 +222,11 @@ def check(slug: str) -> tuple[list[str], list[str], dict, dict]:
 
     # ---- fakta: angka & status
     teks_naskah = " ".join(str(n.get("kalimat", "")) for n in narasi) + " " + str(s.get("hook_teks", "")) + " " + " ".join(str(n.get("teks_layar") or "") for n in narasi)
+    teks_naskah += " " + " ".join(" ".join(str(v) for v in (n.get("grafis_gerak") or {}).values() if isinstance(v, (str, int, float)))
+                                  for n in narasi if isinstance(n.get("grafis_gerak"), dict))
+    tegas = sum(1 for n in narasi[1:] if n.get("grafis_gerak") or n.get("teks_layar"))
+    if tegas < max(2, (len(narasi) - 1) // 3):
+        warns.append(f"hanya {tegas} kalimat punya grafis gerak/teks layar; targetkan ±1 dari tiap 2–3 kalimat supaya video hidup")
     sumber_angka = " ".join(str(f.get("klaim", "")) + " " + str(f.get("kutipan", "")) for f in idea.get("fakta", [])) + " " + " ".join(str(a.get("angka", "")) for a in idea.get("angka_kunci", []))
     boleh = set(angka_digit(sumber_angka)) | set(kata_ke_angka(sumber_angka))
     if idea:

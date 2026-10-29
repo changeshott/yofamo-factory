@@ -16,7 +16,7 @@ function scriptTools(...scripts: string[]): string[] {
 }
 const TOOLS = {
   steve: scriptTools("agents/steve/kumpul.py", "agents/steve/fetch_stats.py", "agents/steve/komentar.py", "agents/steve/pasar.py", "agents/steve/analitik.py", "agents/steve/analisa.py", "agents/ide/cek_topik.py", "agents/pabrik.py"),
-  ide: [...scriptTools("agents/pabrik.py", "agents/ide/cek_topik.py", "agents/ide/cek_visual.py", "agents/ide/cek_ide.py"), "WebSearch", "WebFetch"],
+  ide: [...scriptTools("agents/pabrik.py", "agents/ide/radar.py", "agents/ide/cek_topik.py", "agents/ide/cek_visual.py", "agents/ide/cek_ide.py"), "WebSearch", "WebFetch"],
   penulis: scriptTools("agents/pabrik.py", "agents/penulis/cek_naskah.py"),
   aset: scriptTools("agents/pabrik.py", "agents/aset/cari_aset.py"),
   qc: scriptTools("agents/pabrik.py", "agents/qc/periksa.py"),
@@ -164,6 +164,7 @@ export async function startJob(job: JobName, arg = ""): Promise<{ ok: boolean; m
   const done = (status: JobState["status"], note?: string) => {
     clearTimeout(timer);
     if (note) fs.writeSync(out, `\n[studio] ${note}\n`);
+    if (job === "produksi" && status !== "ok") tandaiProduksiTerhenti(store.state.status === "stopped" ? "Dihentikan Zona." : note ?? "Proses berhenti.");
     fs.closeSync(out);
     store.child = null;
     if (store.state.log === logName) store.state = { ...store.state, status: store.state.status === "stopped" ? "stopped" : status, finished: localIso() };
@@ -173,6 +174,20 @@ export async function startJob(job: JobName, arg = ""): Promise<{ ok: boolean; m
   child.on("error", (err) => done("error", `Gagal menjalankan: ${err.message}`));
   child.on("exit", (code) => done(code === 0 ? "ok" : "error", code === 0 ? undefined : `Selesai dengan kode ${code}`));
   return { ok: true, message: "Dimulai." };
+}
+
+/** Produser yang dimatikan paksa (Hentikan, Studio ditutup) tidak sempat menulis status akhir: tandai di sini. */
+function tandaiProduksiTerhenti(pesan: string) {
+  try {
+    for (const f of fs.readdirSync(P.produksi).filter((n) => /^\d{8}-\d{6}\.json$/.test(n))) {
+      const fp = path.join(P.produksi, f);
+      const d = JSON.parse(fs.readFileSync(fp, "utf-8")) as { status?: string; pesan?: string; selesai?: string | null; tahap?: { status: string; catatan?: string }[] };
+      if (d.status !== "berjalan") continue;
+      for (const t of d.tahap ?? []) if (t.status === "jalan") { t.status = "gagal"; t.catatan = pesan; }
+      Object.assign(d, { status: "gagal", pesan, selesai: localIso() });
+      fs.writeFileSync(fp, JSON.stringify(d, null, 2), "utf-8");
+    }
+  } catch { /* folder belum ada */ }
 }
 
 /* ------------------------------------------------------------ antrean produksi */

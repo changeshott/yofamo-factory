@@ -16,3 +16,6 @@ milik-saya/*
 !milik-saya/.gitkeep
 produksi/
 rahasia/
+.venv-suara/
+suara-khas/
+/node_modules/

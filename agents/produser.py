@@ -120,11 +120,49 @@ def pabrik(*args: str) -> None:
     subprocess.run([PY, str(ROOT / "agents" / "pabrik.py"), *args], cwd=ROOT, check=True)
 
 
-def claude(prompt: str, allowed: list[str], timeout: int) -> int:
+API_SEMENTARA = re.compile(r"API Error: ?(5\d\d|529)|overloaded|Internal server error|api_error|ECONNRESET|ETIMEDOUT|socket hang up|fetch failed", re.I)
+API_LIMIT = re.compile(r"usage limit|limit reached|rate.?limit|credit balance", re.I)
+
+
+def jalan_tangkap(args: list[str], timeout: int) -> tuple[int, str]:
+    """Seperti jalan(), tapi juga menyimpan ±60 baris terakhir supaya error API bisa dikenali."""
+    print(f"[produser] $ {' '.join(a if len(a) < 80 else a[:77] + '…' for a in args[:4])}", flush=True)
+    ekor: list[str] = []
+    try:
+        p = subprocess.Popen(args, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace")
+    except OSError as err:
+        return 127, str(err)
+    batas = time.time() + timeout
+    assert p.stdout is not None
+    for line in p.stdout:
+        print(line, end="", flush=True)
+        ekor = (ekor + [line])[-60:]
+        if time.time() > batas:
+            p.kill()
+            print("[produser] waktu habis", flush=True)
+            return 124, "".join(ekor)
+    return p.wait(), "".join(ekor)
+
+
+def claude(prompt: str, allowed: list[str], timeout: int, turns: int = 60) -> int:
+    """claude -p dengan coba ulang otomatis kalau server Anthropic sedang error (HTTP 500/529/overloaded)."""
     exe = shutil.which("claude")
     if not exe:
         raise RuntimeError("perintah 'claude' tidak ditemukan")
-    return jalan([exe, "-p", prompt, "--model", MODEL, "--max-turns", "60", "--allowedTools", *allowed], timeout)
+    for coba in range(3):
+        kode, ekor = jalan_tangkap([exe, "-p", prompt, "--model", MODEL, "--max-turns", str(turns), "--allowedTools", *allowed], timeout)
+        if kode == 0:
+            return 0
+        if API_LIMIT.search(ekor):
+            print("[produser] Kuota Claude sedang habis/dibatasi. Coba lagi setelah kuota pulih (lihat pesan di atas).", flush=True)
+            return kode
+        if API_SEMENTARA.search(ekor) and coba < 2:
+            jeda = (45, 120)[coba]
+            print(f"[produser] Server Claude sedang error sementara (HTTP 5xx/overloaded). Coba lagi dalam {jeda} dtk… ({coba + 2}/3)", flush=True)
+            time.sleep(jeda)
+            continue
+        return kode
+    return 1
 
 
 def main() -> None:
@@ -163,9 +201,11 @@ def main() -> None:
                 pabrik("new", fx.IDEA["judul_kerja"])
             else:
                 extra = "" if coba == 0 else f" (percobaan ke-2: ide sebelumnya ditolak karena {alasan_tolak}, pilih teknologi lain)"
+                jalan([PY, "agents/ide/radar.py"], 3 * 60)          # kandidat gratis tanpa token (cache 12 jam)
                 claude(f"/ide-riset --otomatis {teks}{extra}".strip(),
-                       tools("agents/pabrik.py", "agents/ide/cek_topik.py", "agents/ide/cek_visual.py", "agents/ide/cek_ide.py", web=True), 45 * 60)
-            new = [x for x, st in videos().items() if x not in before and st == "ide"]
+                       tools("agents/pabrik.py", "agents/ide/radar.py", "agents/ide/cek_topik.py", "agents/ide/cek_visual.py", "agents/ide/cek_ide.py", web=True),
+                       45 * 60, turns=40)
+            new = [x for x, st in videos().items() if x not in before and st in ("ide", "disetujui")]
             if not new:
                 break
             cand = sorted(new)[-1]
@@ -203,7 +243,8 @@ def main() -> None:
 
         # 2. disetujui oleh permintaan Zona
         cat.tahap("setuju", "jalan")
-        pabrik("set", slug, "disetujui", "--note", f"disetujui lewat tombol Buat video Zona{(': ' + teks[:80]) if teks else ' (topik dipilih tim)'}")
+        if videos().get(slug) == "ide":
+            pabrik("set", slug, "disetujui", "--note", f"disetujui lewat tombol Buat video Zona{(': ' + teks[:80]) if teks else ' (topik dipilih tim)'}")
         cat.tahap("setuju", "ok")
 
         # 3. Raka
@@ -268,7 +309,7 @@ def main() -> None:
 
         # 6. Kai
         cat.tahap("kai", "jalan")
-        code = jalan([PY, "agents/editor/rakit.py", slug, *(["--uji"] if a.uji else [])], 30 * 60)
+        code = jalan([PY, "agents/editor/rakit.py", slug, *(["--uji"] if a.uji else [])], 45 * 60)
         if a.uji and code == 0:
             pabrik("set", slug, "draft")
         if code != 0 or not (ROOT / "videos" / slug / "export" / "final.mp4").exists():
@@ -279,9 +320,9 @@ def main() -> None:
         # 7. Rara (QC): periksa, ganti shot jelek, rakit ulang (maks 2 putaran)
         cat.tahap("rara", "jalan")
         if a.uji or a.visual == "cepat":
-            jalan([PY, "agents/qc/periksa.py", "otomatis", slug, *(["--uji"] if a.uji else [])], 40 * 60)
+            jalan([PY, "agents/qc/periksa.py", "otomatis", slug, *(["--uji"] if a.uji else [])], 75 * 60)
         else:
-            claude(f"/qc {slug}", tools("agents/pabrik.py", "agents/qc/periksa.py"), 60 * 60)
+            claude(f"/qc {slug}", tools("agents/pabrik.py", "agents/qc/periksa.py"), 90 * 60)
         q = rj(ROOT / "videos" / slug / "export" / "qc.json")
         rv = rj(ROOT / "videos" / slug / "export" / "qc_review.json")
         info = []

@@ -575,7 +575,8 @@ def main() -> None:
     gerak.need_ffmpeg()
     if not UJI:
         st = status_of(a.slug)
-        if st not in ("suara", "aset"):
+        boleh = ("suara", "aset", "draft") if (a.perintah == "unduh" and a.ulang) else ("suara", "aset")   # draft: Rara mengganti shot
+        if st not in boleh:
             sys.exit(f"[bima] status video '{st}'. Aset disiapkan setelah Dara membuat suara (status suara).")
         load_env()
         if not any(os.environ.get(k) for k in ("PEXELS_API_KEY", "PIXABAY_API_KEY", "YOUTUBE_API_KEY")):

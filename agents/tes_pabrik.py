@@ -46,14 +46,17 @@ BAGIAN = ["hook", "konteks", "cara_kerja", "wow", "dampak", "dampak", "bukti", "
 VIS = [("footage", ["robot hand touch"], None, ["sakit"]), ("footage", ["electronic skin"], None, []), ("ai", ["nerve signal"], None, ["sinyal listrik"]),
        ("footage", ["robot reflex"], "REFLEKS!", ["langsung"]), ("footage", ["prosthetic hand"], None, []), ("footage", ["holding hands"], None, ["hangatnya"]),
        ("footage", ["robotics lab"], "PROTOTIPE", []), ("grafis", [], None, ["sedih"])]
+GG = {2: {"tipe": "langkah", "poin": ["Ditekan", "Sinyal listrik", "Refleks"]},
+      5: {"tipe": "perbandingan", "kiri": "Tangan palsu biasa", "kanan": "Pakai kulit ini", "nilai_kiri": "mati rasa", "nilai_kanan": "bisa merasa"}}
 SCRIPT = {
     "judul": "ROBOT BISA MERASAKAN SAKIT?! Kulit Buatan Ini Bikin Merinding #Shorts #Teknologi",
     "judul_alternatif": ["KULIT ROBOT INI BISA NGERASA SAKIT! #Shorts #Teknologi", "ROBOT PUNYA SARAF?! Kulit Buatan Paling Gila #Shorts #Teknologi"],
     "hook_teks": "ROBOT BISA NGERASA SAKIT?!",
     "target_durasi": 42, "suasana": "misterius", "penutup_tipe": "pertanyaan",
     "komentar_pin": "Kalau robot bisa ngerasa sakit, perlu nggak robot punya hak? Tulis pendapatmu!",
-    "narasi": [{"kalimat": k, "visual": v, "bagian": b, "jenis_visual": vi[0], "kata_kunci_visual": vi[1], "teks_layar": vi[2], "penekanan": vi[3]}
-               for (k, v), b, vi in zip(NARASI, BAGIAN, VIS)],
+    "narasi": [{"kalimat": k, "visual": v, "bagian": b, "jenis_visual": vi[0], "kata_kunci_visual": vi[1], "teks_layar": vi[2], "penekanan": vi[3],
+                **({"grafis_gerak": GG[i]} if i in GG else {})}
+               for i, ((k, v), b, vi) in enumerate(zip(NARASI, BAGIAN, VIS))],
     "deskripsi": "Kulit buatan ini bikin robot bisa merasakan sentuhan.\nSumber: https://example.org/a https://example.com/b",
     "tag": ["teknologi", "robot", "kulit buatan", "sensor", "prostetik", "sains", "inovasi", "teknologi masa depan"],
     "sumber": ["https://example.org/a", "https://example.com/b"], "catatan_editor": "-",
@@ -105,6 +108,11 @@ def offline() -> None:
     try:
         for d in ("agents", "bible", "fonts"):
             shutil.copytree(ROOT / d, tmp / d, ignore=shutil.ignore_patterns("__pycache__"))
+        if (ROOT / "node_modules").exists():          # mesin HyperFrames (kalau sudah npm install)
+            try:
+                os.symlink(ROOT / "node_modules", tmp / "node_modules", target_is_directory=True)
+            except OSError:
+                pass
         (tmp / "videos").mkdir()
         cek("ffmpeg & ffprobe ada", bool(shutil.which("ffmpeg") and shutil.which("ffprobe")), "" if shutil.which("ffmpeg") else "winget install Gyan.FFmpeg")
 
@@ -236,6 +244,11 @@ def offline() -> None:
             and len({l.split(",")[1] for l in hk}) >= 3, f"{len(hk)} baris")
         cek("Kai: transisi antar-kalimat & denyut penekanan", len(inf.get("transisi", [])) == len(NARASI) - 1 and inf.get("denyut_tekanan", 0) > 0,
             ", ".join(inf.get("transisi", [])[:4]))
+        if (tmp / "node_modules").exists():
+            hfd = json.loads((vdir / "export" / "hf" / "data.json").read_text(encoding="utf-8")) if (vdir / "export" / "hf" / "data.json").exists() else {}
+            tipe = sorted({g["tipe"] for g in hfd.get("grafis", [])})
+            cek("Kai: mesin HyperFrames + grafis gerak sesuai kalimat", inf.get("mesin") == "hyperframes" and len(hfd.get("grafis", [])) >= 3,
+                f"mesin {inf.get('mesin')}, grafis: {', '.join(tipe)}")
         fdir = os.environ.get("TES_FRAME_DIR")
         if fdir:
             for t in (0.15, 0.5, 1.2, 4.0, 6.0):

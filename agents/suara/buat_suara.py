@@ -138,6 +138,8 @@ def main() -> None:
     ap.add_argument("--voice", default=DEFAULT_VOICE, help="id-ID-ArdiNeural (pria) atau id-ID-GadisNeural (wanita)")
     ap.add_argument("--rate", default=DEFAULT_RATE, help="kecepatan, misalnya +10%%")
     ap.add_argument("--uji", action="store_true", help="tanpa internet: timing perkiraan, tanpa audio, status tidak diubah")
+    ap.add_argument("--mesin", choices=["auto", "voxcpm", "edge"], default="",
+                    help="auto (default, bible/gaya-suara.json): VoxCPM2 natural kalau terpasang + GPU, kalau tidak edge-tts")
     args = ap.parse_args()
 
     if not re.fullmatch(r"[a-z0-9-]{3,80}", args.slug):
@@ -159,6 +161,26 @@ def main() -> None:
         words = estimate([n["kalimat"] for n in narasi], args.rate)
         print("[dara] MODE UJI: timing perkiraan, vo.mp3 tidak dibuat")
     else:
+        sys.path.insert(0, str(Path(__file__).parent))
+        import mesin_suara  # noqa: E402
+        mesin = args.mesin or str(mesin_suara.konfig().get("mesin", "auto"))
+        words = None
+        if mesin in ("auto", "voxcpm"):
+            ok, ket = mesin_suara.siap()
+            if ok:
+                print(f"[dara] mesin suara natural VoxCPM2 ({ket})")
+                try:
+                    words = mesin_suara.buat([n["kalimat"].strip() for n in narasi], args.voice, args.rate, folder / "vo.mp3")
+                    args.voice = f"voxcpm2-{'wanita' if 'gadis' in args.voice.lower() else 'pria'}"
+                except RuntimeError as err:
+                    if mesin == "voxcpm":
+                        sys.exit(f"[dara] {err}")
+                    print(f"[dara] {err} → cadangan edge-tts")
+            elif mesin == "voxcpm":
+                sys.exit(f"[dara] VoxCPM2 belum siap: {ket}")
+            else:
+                print(f"[dara] suara natural belum aktif ({ket}) → edge-tts")
+    if not args.uji and words is None:
         tmp = folder / "vo.tmp.mp3"  # vo.mp3 lama tetap utuh kalau gagal di tengah jalan
         try:
             words = asyncio.run(synth(text, args.voice, args.rate, tmp))

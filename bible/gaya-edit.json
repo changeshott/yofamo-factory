@@ -1,5 +1,16 @@
 {
   "_catatan": "Gaya editan Kai (agent editor), meniru gaya channel Yofamo. Ubah di sini, berlaku untuk semua video berikutnya. Warna hex RRGGBB. Font default fonts/Poppins-Black.ttf.",
+  "mesin": "auto",
+  "hyperframes": {
+    "subtitle_px": 104,
+    "subtitle_min": 60,
+    "subtitle_y": 1180,
+    "hook_px_maks": 230,
+    "hook_y": 1000,
+    "zona_grafis_atas": 430,
+    "aksen": "FF9A4D",
+    "_catatan": "Dipakai mesin HyperFrames (Node 22 + npm install). Subtitle y=1180 berada di zona aman Shorts (168–1330 px); grafis gerak di 430–1000 px."
+  },
   "font": "",
   "subtitle": {
     "posisi": "tengah",

@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1080, height=1920" />
+<title>Yofamo — __JUDUL__</title>
+<script src="assets/gsap.min.js"></script>
+<style>
+  @font-face { font-family: "Yofamo"; src: url("assets/fonts/Poppins-Black.ttf") format("truetype"); font-weight: 900; }
+  @font-face { font-family: "YofamoXB"; src: url("assets/fonts/Poppins-ExtraBold.ttf") format("truetype"); font-weight: 800; }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { width: 1080px; height: 1920px; margin: 0; overflow: hidden; background: #000; }
+  #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #000; font-family: "Yofamo", "Poppins", sans-serif; }
+  #base { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; object-fit: cover; z-index: 1; }
+  #ui { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
+  .lapis { position: absolute; left: 0; width: 100%; text-align: center; color: #fff; opacity: 0; visibility: hidden; }
+  /* teks bergaris tebal ala Shorts: garis digambar di belakang isi huruf */
+  .tebal { paint-order: stroke fill; -webkit-text-stroke: var(--garis, 12px) #000; text-shadow: 0 8px 0 rgba(0,0,0,.35), 0 14px 28px rgba(0,0,0,.45); }
+  /* hook */
+  .hook-baris { font-weight: 900; line-height: .95; letter-spacing: -.01em; white-space: nowrap; }
+  #scrim { position: absolute; inset: 0; background: radial-gradient(ellipse 80% 45% at 50% 58%, rgba(0,0,0,.55), rgba(0,0,0,0) 70%); opacity: 0; }
+  /* subtitle 1 kata */
+  .kata { font-weight: 900; white-space: nowrap; line-height: 1; }
+  .kata .isi { display: inline-block; position: relative; }
+  .kata.tekan .isi { color: var(--kuning); }
+  .stabilo { position: absolute; left: -14px; right: -14px; top: 18%; bottom: 8%; background: var(--oranye); border-radius: 14px;
+             transform-origin: left center; z-index: -1; opacity: .92; }
+  /* kartu kaca (glass) untuk grafis gerak */
+  .kartu { position: absolute; left: 70px; right: 70px; border-radius: 40px; padding: 38px 44px; color: #fff;
+           background: linear-gradient(160deg, rgba(28,30,40,.82), rgba(10,11,16,.78)); border: 2px solid rgba(255,255,255,.14);
+           box-shadow: 0 30px 80px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.18); opacity: 0; visibility: hidden; }
+  .kartu .kecil { font-family: "YofamoXB", "Poppins", sans-serif; font-weight: 800; font-size: 40px; letter-spacing: .06em; color: rgba(255,255,255,.72); text-transform: uppercase; }
+  .angka-besar { font-weight: 900; font-size: 210px; line-height: .95; color: var(--kuning); letter-spacing: -.02em; }
+  .angka-besar .akh { font-size: .55em; color: #fff; margin-left: 10px; }
+  .bar { height: 22px; border-radius: 11px; background: rgba(255,255,255,.12); overflow: hidden; margin-top: 26px; }
+  .bar i { display: block; height: 100%; width: 100%; border-radius: 11px; background: linear-gradient(90deg, var(--oranye), var(--kuning)); transform-origin: left; }
+  .pil { position: absolute; left: 0; right: 0; display: flex; justify-content: center; opacity: 0; visibility: hidden; }
+  .pil span { display: inline-flex; align-items: center; gap: 22px; padding: 22px 44px; border-radius: 999px; font-weight: 900; font-size: 64px; color: #111;
+              background: var(--kuning); box-shadow: 0 18px 50px rgba(0,0,0,.45); white-space: nowrap; }
+  .pil span b { width: 26px; height: 26px; border-radius: 50%; background: #111; display: inline-block; }
+  .cap { position: absolute; left: 0; right: 0; display: flex; justify-content: center; opacity: 0; visibility: hidden; }
+  .cap span { font-weight: 900; font-size: 150px; color: #fff; padding: 6px 40px; border: 10px solid #fff; border-radius: 28px; transform: rotate(-6deg);
+              text-shadow: 0 10px 30px rgba(0,0,0,.5); background: rgba(255,59,48,.88); white-space: nowrap; }
+  .ring { position: absolute; left: 50%; top: 50%; width: 300px; height: 300px; margin: -150px 0 0 -150px; border-radius: 50%; border: 10px solid #fff; opacity: 0; }
+  .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
+  .vs > div { border-radius: 28px; padding: 26px 26px 30px; background: rgba(255,255,255,.08); }
+  .vs .nil { font-weight: 900; font-size: 92px; line-height: 1; margin-top: 10px; }
+  .vs .kanan { background: linear-gradient(160deg, rgba(255,154,77,.35), rgba(255,154,77,.12)); }
+  .langkah { display: flex; flex-direction: column; gap: 22px; }
+  .langkah .lk { display: flex; align-items: center; gap: 26px; font-weight: 900; font-size: 62px; opacity: 0; }
+  .langkah .no { width: 92px; height: 92px; border-radius: 26px; display: grid; place-items: center; background: var(--oranye); color: #111; font-size: 56px; flex: none; }
+  .chip-sumber { position: absolute; left: 60px; top: 1360px; display: flex; gap: 14px; align-items: center; padding: 14px 26px; border-radius: 999px;
+                 background: rgba(10,11,16,.72); border: 2px solid rgba(255,255,255,.16); color: #fff; font-family: "YofamoXB", sans-serif; font-weight: 800; font-size: 34px; opacity: 0; visibility: hidden; }
+  .chip-sumber b { width: 16px; height: 16px; border-radius: 50%; background: #4DFF88; display: inline-block; }
+  #progres { position: absolute; left: 60px; right: 60px; top: 196px; height: 10px; border-radius: 5px; background: rgba(255,255,255,.18); overflow: hidden; z-index: 12; }
+  #progres i { display: block; width: 100%; height: 100%; background: linear-gradient(90deg, var(--oranye), var(--kuning)); transform-origin: left; transform: scaleX(0); }
+  #handle { position: absolute; right: 44px; top: 222px; font-family: "YofamoXB", sans-serif; font-weight: 800; font-size: 32px; color: rgba(255,255,255,.62); z-index: 12; }
+  .sapuan { position: absolute; top: -20%; width: 260px; height: 140%; left: -400px; z-index: 11; opacity: 0;
+            background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.28), rgba(255,255,255,0)); transform: rotate(14deg); }
+  #kilat { position: absolute; inset: 0; background: #fff; opacity: 0; z-index: 11; }
+  #grain { position: absolute; inset: 0; z-index: 13; opacity: .07; mix-blend-mode: overlay;
+           background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+  #penutup { position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 34px; opacity: 0; visibility: hidden; z-index: 14; }
+  #penutup .tbl { display: inline-flex; align-items: center; gap: 22px; padding: 30px 64px; border-radius: 999px; background: var(--oranye); color: #111; font-weight: 900; font-size: 84px; box-shadow: 0 24px 70px rgba(0,0,0,.5); }
+  #penutup .sub { font-weight: 900; font-size: 64px; color: #fff; text-align: center; padding: 0 80px; line-height: 1.08; }
+  #penutup .hd { font-family: "YofamoXB", sans-serif; font-weight: 800; font-size: 44px; color: rgba(255,255,255,.85); }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="main" data-start="0" data-duration="__AKHIR__" data-width="1080" data-height="1920" data-fps="30">
+  <video id="base" class="clip" src="assets/base.mp4" muted playsinline data-start="0" data-duration="__AKHIR__" data-track-index="0"></video>
+  <div id="ui"><div id="scrim"></div><div id="kilat"></div></div>
+  <div id="progres"><i></i></div>
+  <div id="handle"></div>
+  <div id="grain"></div>
+  <div id="penutup"><div class="sub" id="pn-sub"></div><div class="tbl"><svg width="70" height="70" viewBox="0 0 24 24"><path fill="#111" d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3a1.5 1.5 0 0 0-3 0v1.16A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg><span id="pn-tbl">FOLLOW</span></div><div class="hd" id="pn-hd"></div></div>
+</div>
+<script>
+/* Data video ditulis Kai (agents/editor/komposisi.py). Semua gerak = fungsi waktu timeline (deterministik). */
+const D = __DATA__;
+(function () {
+  window.__timelines = window.__timelines || {};
+  const R = document.getElementById("root"), UI = document.getElementById("ui");
+  R.style.setProperty("--kuning", "#" + D.warna.kuning);
+  R.style.setProperty("--oranye", "#" + D.warna.oranye);
+  R.style.setProperty("--biru", "#" + D.warna.biru);
+  const cv = document.createElement("canvas").getContext("2d");
+  const lebar = (t, px, fam) => { cv.font = `900 ${px}px ${fam || "Yofamo"}`; return cv.measureText(t).width; };
+  const pas = (t, maks, min, ruang, fam) => { let s = maks; while (s > min && lebar(t, s, fam) > ruang) s -= 2; return s; };
+  const el = (tag, cls, html, parent) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; (parent || UI).appendChild(e); return e; };
+  const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  const tampil = (tl, e, a, b) => { tl.set(e, { visibility: "visible" }, a); tl.set(e, { visibility: "hidden", opacity: 0 }, b); };
+
+  function bangun() {
+    const tl = gsap.timeline({ paused: true });
+    document.getElementById("handle").textContent = D.handle || "";
+    // progres tonton (tren retensi): bar tipis mengisi sepanjang video
+    tl.fromTo("#progres i", { scaleX: 0 }, { scaleX: 1, duration: D.total, ease: "none" }, 0);
+
+    // ---------------- HOOK bertingkat: tiap baris jatuh + blur → tajam, memantul
+    if (D.hook && D.hook.baris.length) {
+      const H = D.hook;
+      H.baris.forEach((b) => { b.px = pas(b.teks, b.maks, 60, 900); });
+      const muat = H.tinggi_maks / H.baris.reduce((s, b) => s + b.px * H.rapat, 0);
+      if (muat < 1) H.baris.forEach((b) => { b.px = Math.floor(b.px * muat); });
+      const tinggi = H.baris.map((b) => b.px * H.rapat);
+      let y = H.y - tinggi.reduce((s, x) => s + x, 0) / 2;
+      tl.fromTo("#scrim", { opacity: 0 }, { opacity: 1, duration: .25, ease: "power2.out" }, 0);
+      tl.to("#scrim", { opacity: 0, duration: .2, ease: "power2.in" }, H.akhir - .2);
+      H.baris.forEach((b, i) => {
+        const e = el("div", "lapis tebal hook-baris", esc(b.teks));
+        e.style.cssText += `top:${y}px;font-size:${b.px}px;color:#${b.warna};--garis:${Math.round(b.px * .085)}px;`;
+        y += tinggi[i];
+        const a = i * H.jeda;
+        tampil(tl, e, a, H.akhir);
+        tl.fromTo(e, { opacity: 0, y: -70, scale: 1.6, filter: "blur(14px)" },
+                     { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", duration: .42, ease: "back.out(2.2)" }, a);
+        tl.to(e, { opacity: 0, y: 30, filter: "blur(10px)", duration: .18, ease: "power2.in" }, H.akhir - .18);
+      });
+    }
+
+    // ---------------- SUBTITLE 1 kata, posisi aman di bawah tengah, kata penekanan kuning + stabilo
+    D.kata.forEach((k, i) => {
+      const px = pas(k.t, k.tekan ? D.sub.px * 1.15 : D.sub.px, D.sub.min, 880);
+      const e = el("div", "lapis tebal kata" + (k.tekan ? " tekan" : ""), `<span class="isi">${k.tekan ? '<i class="stabilo"></i>' : ""}${esc(k.t)}</span>`);
+      e.style.cssText += `top:${D.sub.y - px / 2}px;font-size:${px}px;--garis:${Math.round(px * .1)}px;`;
+      tampil(tl, e, k.a, k.b);
+      const isi = e.firstChild;
+      tl.fromTo(e, { opacity: 0 }, { opacity: 1, duration: .04 }, k.a);
+      tl.fromTo(isi, { scale: .72, rotation: (i % 2 ? 3 : -3), filter: "blur(5px)" },
+                     { scale: 1, rotation: 0, filter: "blur(0px)", duration: .16, ease: "back.out(3)" }, k.a);
+      if (k.tekan) {
+        tl.fromTo(isi.querySelector(".stabilo"), { scaleX: 0 }, { scaleX: 1, duration: .14, ease: "power3.out" }, k.a + .02);
+        tl.fromTo(isi, { scale: 1 }, { scale: 1.08, duration: .1, yoyo: true, repeat: 1, ease: "power1.inOut" }, k.a + .16);
+      }
+    });
+
+    // ---------------- GRAFIS GERAK sesuai kalimat
+    D.grafis.forEach((g, n) => {
+      const a = g.a, b = g.b, top = D.zona_grafis;
+      if (g.tipe === "angka") {
+        const e = el("div", "kartu", `<div class="kecil">${esc(g.judul || "faktanya")}</div><div class="angka-besar"><span class="n">0</span><span class="akh">${esc(g.akhiran || "")}</span></div><div class="kecil" style="font-size:44px;color:#fff;letter-spacing:0;text-transform:none">${esc(g.label || "")}</div><div class="bar"><i></i></div>`);
+        e.style.top = top + "px";
+        tampil(tl, e, a, b);
+        tl.fromTo(e, { opacity: 0, y: 80, scale: .9, rotationX: 25 }, { opacity: 1, y: 0, scale: 1, rotationX: 0, duration: .5, ease: "expo.out" }, a);
+        const target = Number(String(g.angka).replace(/\./g, "").replace(",", "."));
+        const nEl = e.querySelector(".n"), desimal = String(g.angka).includes(",");
+        if (isFinite(target)) {
+          const o = { v: 0 };
+          tl.fromTo(o, { v: 0 }, { v: target, duration: Math.min(1.1, (b - a) * .55), ease: "power3.out",
+            onUpdate: () => { nEl.textContent = desimal ? o.v.toFixed(1).replace(".", ",") : Math.round(o.v).toLocaleString("id-ID"); } }, a + .1);
+        } else nEl.textContent = g.angka;
+        tl.fromTo(e.querySelector(".bar i"), { scaleX: 0 }, { scaleX: 1, duration: Math.min(1.2, (b - a) * .6), ease: "power2.out" }, a + .15);
+        tl.to(e, { opacity: 0, y: -40, duration: .22, ease: "power2.in" }, b - .22);
+      } else if (g.tipe === "label" || g.tipe === "status") {
+        const e = el("div", "pil", `<span style="${g.warna ? `background:#${g.warna}` : ""}"><b></b>${esc(g.teks)}</span>`);
+        e.style.top = (top + 60) + "px";
+        tampil(tl, e, a, b);
+        const s = e.firstChild;
+        tl.fromTo(e, { opacity: 0 }, { opacity: 1, duration: .05 }, a);
+        tl.fromTo(s, { x: -420, skewX: -18, filter: "blur(10px)" }, { x: 0, skewX: 0, filter: "blur(0px)", duration: .45, ease: "expo.out" }, a);
+        tl.fromTo(s.querySelector("b"), { scale: 0 }, { scale: 1, duration: .3, ease: "back.out(4)" }, a + .2);
+        tl.to(s, { x: 420, skewX: 18, opacity: 0, duration: .22, ease: "power3.in" }, b - .22);
+      } else if (g.tipe === "kata") {
+        const e = el("div", "cap", `<span>${esc(g.teks)}</span>`);
+        e.style.top = (top + 20) + "px";
+        const ring = el("div", "ring", null, e);
+        tampil(tl, e, a, b);
+        const s = e.firstChild;
+        s.style.fontSize = pas(g.teks, 150, 70, 860) + "px";
+        tl.fromTo(e, { opacity: 0 }, { opacity: 1, duration: .04 }, a);
+        tl.fromTo(s, { scale: 2.6, rotation: -16, filter: "blur(12px)" }, { scale: 1, rotation: -6, filter: "blur(0px)", duration: .32, ease: "power4.out" }, a);
+        tl.fromTo(ring, { scale: .4, opacity: .9 }, { scale: 3.2, opacity: 0, duration: .55, ease: "power2.out" }, a + .22);
+        tl.to(s, { scale: .85, opacity: 0, duration: .18, ease: "power2.in" }, b - .18);
+      } else if (g.tipe === "perbandingan") {
+        const e = el("div", "kartu", `<div class="vs"><div><div class="kecil">${esc(g.kiri)}</div><div class="nil">${esc(g.nilai_kiri || "")}</div></div><div class="kanan"><div class="kecil" style="color:#fff">${esc(g.kanan)}</div><div class="nil" style="color:var(--kuning)">${esc(g.nilai_kanan || "")}</div></div></div>`);
+        e.style.top = top + "px";
+        tampil(tl, e, a, b);
+        const [l, r] = e.querySelectorAll(".vs > div");
+        tl.fromTo(e, { opacity: 0, scale: .92 }, { opacity: 1, scale: 1, duration: .35, ease: "expo.out" }, a);
+        tl.fromTo(l, { x: -160, opacity: 0 }, { x: 0, opacity: 1, duration: .4, ease: "expo.out" }, a + .05);
+        tl.fromTo(r, { x: 160, opacity: 0 }, { x: 0, opacity: 1, duration: .4, ease: "expo.out" }, a + .2);
+        tl.to(e, { opacity: 0, y: -40, duration: .22, ease: "power2.in" }, b - .22);
+      } else if (g.tipe === "langkah") {
+        const e = el("div", "kartu", `<div class="langkah">${g.poin.map((p, i) => `<div class="lk"><span class="no">${i + 1}</span>${esc(p)}</div>`).join("")}</div>`);
+        e.style.top = top + "px";
+        tampil(tl, e, a, b);
+        tl.fromTo(e, { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: .4, ease: "expo.out" }, a);
+        const lk = e.querySelectorAll(".lk"), jarak = Math.min(.45, (b - a - .5) / Math.max(1, lk.length));
+        lk.forEach((x, i) => tl.fromTo(x, { opacity: 0, x: 80 }, { opacity: 1, x: 0, duration: .35, ease: "back.out(2)" }, a + .15 + i * jarak));
+        tl.to(e, { opacity: 0, y: -40, duration: .22, ease: "power2.in" }, b - .22);
+      } else if (g.tipe === "sumber") {
+        const e = el("div", "chip-sumber", `<b></b>${esc(g.teks)}`);
+        tampil(tl, e, a, b);
+        tl.fromTo(e, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: .35, ease: "expo.out" }, a);
+        tl.to(e, { opacity: 0, duration: .2 }, b - .2);
+      }
+    });
+
+    // ---------------- aksen di pergantian kalimat: sapuan cahaya (atau kilat pada kalimat 'wow')
+    D.potong.forEach((p, i) => {
+      if (p.wow) {
+        tl.fromTo("#kilat", { opacity: .0 }, { opacity: .55, duration: .05, ease: "none" }, p.t - .02);
+        tl.to("#kilat", { opacity: 0, duration: .22, ease: "power2.out" }, p.t + .03);
+      } else if (i % 2 === 0) {
+        const s = el("div", "sapuan");
+        tl.set(s, { opacity: 1 }, p.t - .05);
+        tl.fromTo(s, { x: 0 }, { x: 1700, duration: .45, ease: "power2.inOut" }, p.t - .05);
+        tl.set(s, { opacity: 0 }, p.t + .4);
+      }
+    });
+
+    // ---------------- PENUTUP: kartu ajakan follow
+    if (D.penutup) {
+      const P = D.penutup;
+      document.getElementById("pn-sub").textContent = P.teks || "";
+      document.getElementById("pn-hd").textContent = D.handle || "";
+      tampil(tl, "#penutup", P.a, P.b + 1);
+      tl.fromTo("#penutup", { opacity: 0 }, { opacity: 1, duration: .2 }, P.a);
+      tl.fromTo("#penutup .sub", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: .35, ease: "expo.out" }, P.a);
+      tl.fromTo("#penutup .tbl", { scale: .4, opacity: 0 }, { scale: 1, opacity: 1, duration: .45, ease: "back.out(2.6)" }, P.a + .12);
+      tl.to("#penutup .tbl", { scale: 1.07, duration: .18, yoyo: true, repeat: 1, ease: "power1.inOut" }, P.a + .65);
+      tl.fromTo("#penutup .hd", { opacity: 0 }, { opacity: 1, duration: .3 }, P.a + .3);
+    }
+    window.__timelines["main"] = tl;
+  }
+  // ukur huruf setelah font termuat supaya teks tidak keluar layar
+  const siap = document.fonts && document.fonts.load ? Promise.all([document.fonts.load('900 100px "Yofamo"'), document.fonts.load('800 40px "YofamoXB"')]) : Promise.resolve();
+  siap.then(bangun, bangun);
+})();
+</script>
+</body>
+</html>

@@ -70,6 +70,13 @@ Untuk setiap kalimat di `narasi`:
 - `kata_kunci_visual`: 1–3 kata kunci **bahasa Inggris** untuk mencari footage (ambil/kembangkan dari `kata_kunci_visual` Nova). Wajib untuk footage/ai.
 - `teks_layar` (opsional, ≤ 4 kata): teks penegas di atas layar, misalnya "PROTOTIPE", "0,1 DETIK!". Maksimal 1 setiap 2 kalimat; jangan di kalimat hook.
 - `penekanan` (opsional): 1–2 kata dari kalimat itu yang harus disorot di subtitle (angka, kata kunci emosi).
+- `grafis_gerak` (opsional, **disarankan ±1 dari tiap 2–3 kalimat**): animasi motion graphic yang Kai gambar di atas footage (zona atas layar), **harus sesuai yang sedang diucapkan**. Pilih satu tipe:
+  - `{"tipe": "angka", "angka": "240", "akhiran": "+", "label": "sensor per cm²"}` — angka menghitung naik + bar (angka wajib dari `angka_kunci`/fakta).
+  - `{"tipe": "langkah", "poin": ["Ditekan", "Sinyal listrik", "Refleks"]}` — 2–4 langkah cara kerja muncul berurutan (untuk kalimat `cara_kerja`).
+  - `{"tipe": "perbandingan", "kiri": "Tangan palsu biasa", "kanan": "Pakai kulit ini", "nilai_kiri": "mati rasa", "nilai_kanan": "bisa merasa"}` — sebelum vs sesudah / A vs B.
+  - `{"tipe": "kata", "teks": "REFLEKS!"}` — satu kata dihantam ke layar (momen kaget).
+  - `{"tipe": "label", "teks": "DARI JEPANG"}` — pil info pendek.
+  Tanpa `grafis_gerak`, Kai otomatis memakai angka kunci yang disebut di kalimat, `teks_layar`, label status (riset/prototipe/dijual) di kalimat konteks, dan chip sumber tier 1. Jangan pasang grafis di kalimat hook, dan jangan di kalimat yang visualnya `grafis` (kartu penuh).
 
 ### 6. Judul, metadata, eksperimen
 - `judul`: klaim HURUF KAPITAL + kalimat kaget, benar menurut sumber, diakhiri tepat `#Shorts #Teknologi`, ≤ 100 karakter.

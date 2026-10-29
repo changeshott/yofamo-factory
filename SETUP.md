@@ -26,6 +26,29 @@
   ```
   Tutup lalu buka lagi PowerShell sesudahnya.
 
+### Mesin video HyperFrames (motion graphics Kai)
+
+Butuh **Node.js 22 atau lebih baru** (`node --version`; kalau lebih lama: `winget install OpenJS.NodeJS.LTS`). Lalu sekali saja, dari folder project:
+
+```powershell
+npm install
+npx hyperframes browser ensure
+```
+
+Perintah kedua mengunduh Chrome khusus render (±150 MB). Tanpa ini, Kai tetap jalan dengan mesin ffmpeg (tanpa grafis gerak).
+Cek: `python agents\suara\cek_gpu.py` → baris **Video: HyperFrames SIAP**.
+
+### Suara natural VoxCPM2 (opsional, butuh GPU NVIDIA)
+
+Jalankan dulu `python agents\suara\cek_gpu.py`. Kalau GPU NVIDIA terdeteksi (disarankan VRAM ≥ 8 GB):
+
+```powershell
+winget install Python.Python.3.12
+setup_suara.bat
+```
+
+Ini membuat Python terpisah `.venv-suara` (PyTorch CUDA + VoxCPM2 + faster-whisper, unduhan ±8 GB). Model VoxCPM2 (±5 GB) diunduh saat pertama membuat suara, lalu suara khas Yofamo dibuat sekali dari deskripsi di `bible/gaya-suara.json` dan dipakai di semua video. Tanpa GPU NVIDIA, Dara otomatis memakai edge-tts.
+
 ## 2. Folder project
 
 Taruh di tempat tetap, misalnya `C:\Users\zonaf\Projects\yofamo-factory`, lalu:

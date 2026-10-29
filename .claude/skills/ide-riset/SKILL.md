@@ -21,9 +21,18 @@ Prinsipmu: **kaget dulu, benar selalu**. Skeptis terhadap klaim viral. Lebih bai
 - Laporan Steve terbaru di `insights/*.md` dan brief angka terbaru `insights/raw/analisa-*.md` (kategori yang menang, permintaan penonton, peluang pasar).
 - `insights/topik_backlog.json` dari Steve: titik awal kandidat, urut skor.
 - `python agents/ide/cek_topik.py --daftar`: semua judul channel + isi pabrik. Topik yang sudah pernah dibahas **tidak boleh** dipakai lagi, termasuk teknologi yang sama dengan kata berbeda.
+- `python agents/ide/radar.py` lalu baca `insights/radar.md`: 30 berita teknologi terbaru dari rilis universitas/lembaga & media sains, sudah diberi skor oleh script **tanpa token**. Ini sumber kandidat utamamu.
 
-### 2. Longlist (8–10 kandidat)
-Gabungkan: backlog Steve, permintaan komentar, peluang pasar, lalu scouting sendiri lewat web search. Tempat terbaik untuk teknologi nyata yang segar (≤ 12 bulan):
+### Anggaran riset (hemat token, wajib)
+Kuota Claude Zona terbatas. Setiap pencarian & halaman yang dibuka memakan token.
+- Mode otomatis: maksimal **5 WebSearch** dan **8 WebFetch** untuk seluruh tugas. Mode 3 ide: maksimal 10 dan 15.
+- Kandidat diambil dari radar + backlog dulu. Web search hanya untuk (a) sumber kedua/tier 1 dan (b) cek nasib terbaru, bukan untuk mencari topik dari nol (kecuali radar & backlog kosong atau arahan Zona tidak ada di sana).
+- Buka link radar langsung (biasanya rilis resmi = tier 1). Jangan membuka halaman yang sama dua kali; catat kutipan saat pertama membaca.
+- Berhenti segera setelah ide yang cukup **LOLOS** `cek_ide.py`. Jangan mengejar skor sempurna dengan riset tambahan.
+- Jawaban akhir ringkas (≤ 15 baris). Jangan menyalin isi file yang panjang ke chat.
+
+### 2. Longlist (8–10 kandidat; mode otomatis cukup 5)
+Gabungkan: **radar** (skor tertinggi dulu), backlog Steve, permintaan komentar, peluang pasar. Scouting web hanya kalau itu semua kurang. Tempat terbaik untuk teknologi nyata yang segar (≤ 12 bulan):
 - rilis berita universitas & lembaga riset (newsroom kampus, EurekAlert, NASA, A*STAR, KAIST, MIT News);
 - media sains/teknologi: IEEE Spectrum, MIT Technology Review, New Scientist, Nature News;
 - pengumuman resmi perusahaan, pameran (CES, MWC, IFA, Computex), regulator (izin edar).
@@ -33,7 +42,7 @@ Utamakan yang **menyentuh tubuh & keseharian** (makanan, pakaian, kesehatan, rum
 Buang kandidat yang: duplikat (`python agents/ide/cek_topik.py "<judul kerja>"`), abstrak tanpa visual, hanya paten/konsep, hanya ada di medsos, kontroversial berat (politik, SARA, medis yang bisa menyesatkan), atau mempromosikan merek secara berlebihan.
 
 ### 4. Cek ketersediaan visual (sebelum riset dalam)
-Untuk setiap kandidat shortlist:
+Untuk setiap kandidat shortlist (mode otomatis: 3 teratas saja):
 ```bash
 python agents/ide/cek_visual.py "<2–4 kata kunci Inggris>"
 ```
@@ -107,7 +116,7 @@ Per ide: judul kerja · skor/100 · status teknologi · slot (andalan/eksplorasi
 - **Duplikat terselubung:** sudut pandang baru untuk teknologi yang sudah dibahas tetap duplikat.
 - **Bible:** hindari topik abstrak tanpa visual (baca pikiran, mimpi, telepati) dan hook yang hanya mengandalkan nama superhero.
 - Jangan menyalin paragraf dari sumber; klaim ditulis dengan kalimatmu sendiri, kutipan hanya potongan pendek sebagai bukti.
-- Hanya jalankan `agents/pabrik.py`, `agents/ide/cek_topik.py`, `agents/ide/cek_visual.py`, dan `agents/ide/cek_ide.py`. Status video hanya boleh kamu ubah menjadi `ditolak` untuk ide buatanmu sendiri yang gagal verifikasi.
+- Hanya jalankan `agents/pabrik.py`, `agents/ide/radar.py`, `agents/ide/cek_topik.py`, `agents/ide/cek_visual.py`, dan `agents/ide/cek_ide.py`. Status video hanya boleh kamu ubah menjadi `ditolak` untuk ide buatanmu sendiri yang gagal verifikasi.
 
 ## Verification
 

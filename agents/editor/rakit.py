@@ -26,6 +26,9 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "agents" / "aset"))
 import gerak  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).parent))
+import komposisi  # noqa: E402
+
 VIDEOS = ROOT / "videos"
 CACHE = ROOT / "cache" / "editor"
 AUDIO_EXT = {".mp3", ".m4a", ".wav", ".aac", ".ogg", ".flac"}
@@ -276,6 +279,8 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Kai: rakit video final dari shot Bima + suara Dara")
     ap.add_argument("slug")
     ap.add_argument("--uji", action="store_true", help="pakai nada uji sebagai suara, status tidak diubah")
+    ap.add_argument("--mesin", choices=["auto", "hyperframes", "ffmpeg"], default="",
+                    help="auto (default di gaya-edit.json): HyperFrames kalau Node 22 + npm install siap, kalau tidak ffmpeg")
     a = ap.parse_args()
     if not re.fullmatch(r"[a-z0-9-]{3,80}", a.slug):
         sys.exit("[kai] slug tidak valid")
@@ -391,7 +396,18 @@ def main() -> None:
     else:
         chains.append("[cat]null[base]")
     fontsdir = gerak.esc(font.parent)
-    chains.append(f"[base]subtitles=filename='{gerak.esc(ass)}':fontsdir='{fontsdir}'[vout]")
+    # mesin teks: HyperFrames (HTML + GSAP: grafis gerak, subtitle animasi) atau ffmpeg/libass (cadangan)
+    mesin = a.mesin or str(st.get("mesin", "auto"))
+    hf_ok, hf_alasan = komposisi.tersedia()
+    pakai_hf = mesin == "hyperframes" or (mesin == "auto" and hf_ok)
+    if mesin == "hyperframes" and not hf_ok:
+        sys.exit(f"[kai] HyperFrames belum siap: {hf_alasan}")
+    if mesin == "auto" and not hf_ok:
+        log(f"HyperFrames belum siap ({hf_alasan}) → memakai mesin ffmpeg")
+    if pakai_hf:
+        chains.append("[base]null[vout]")
+    else:
+        chains.append(f"[base]subtitles=filename='{gerak.esc(ass)}':fontsdir='{fontsdir}'[vout]")
 
     # ---- audio: suara + musik (otomatis mengecil saat ada suara) + whoosh di pergantian kalimat
     chains.append(f"[{idx_vo}:a]aresample=48000,apad=whole_dur={akhir:.3f},asplit=2[vo1][vo2]")
@@ -418,15 +434,39 @@ def main() -> None:
     tmp = out_dir / "final.tmp.mp4"
     log(f"merakit {n} shot, {total:.1f} dtk + penutup {tutup:.1f} dtk{', musik: ' + music.name if music else ', tanpa musik'}{', whoosh' if idx_wh is not None else ''}")
     t0 = time.time()
+    keluar = out_dir / "base.mp4" if pakai_hf else tmp
     gerak.ff(*args, "-filter_complex", ";".join(chains), "-map", "[vout]", "-map", "[aout]", "-t", f"{akhir:.3f}",
-             "-c:v", "libx264", "-preset", "medium", "-crf", "19", "-pix_fmt", "yuv420p", "-r", str(gerak.FPS),
-             "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(tmp))
+             "-c:v", "libx264", "-preset", "medium", "-crf", "17" if pakai_hf else "19", "-pix_fmt", "yuv420p", "-r", str(gerak.FPS),
+             "-g", str(gerak.FPS), "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", str(keluar))
+    mesin_dipakai = "ffmpeg"
+    if pakai_hf:
+        base_mp4 = keluar
+        try:
+            t1 = time.time()
+            hook_end = waktu_hook(words.get("kalimat", []), st, total) if script.get("hook_teks") else 0.0
+            data = komposisi.data_video(st, script, read_json(vdir / "idea.json", {}), words, narasi, total, akhir, senyap,
+                                        hook_baris(script.get("hook_teks", ""), script, [str(x) for x in st["hook"].get("warna", [])]),
+                                        hook_end, tekanan(words.get("kalimat", []), narasi), kal_dari)
+            komposisi.tulis_proyek(out_dir / "hf", base_mp4, data, str(script.get("judul", a.slug)))
+            log(f"HyperFrames: {len(data['kata'])} kata subtitle, {len(data['grafis'])} grafis gerak, merender…")
+            hf_mp4 = out_dir / "hf_render.mp4"
+            komposisi.render(out_dir / "hf", hf_mp4, log)
+            gerak.ff("-i", str(hf_mp4), "-i", str(base_mp4), "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "copy",
+                     "-t", f"{akhir:.3f}", "-movflags", "+faststart", str(tmp))
+            hf_mp4.unlink(missing_ok=True)
+            mesin_dipakai = "hyperframes"
+            log(f"render HyperFrames {time.time() - t1:.0f} dtk")
+        except (RuntimeError, OSError, ValueError, KeyError) as err:
+            log(f"HyperFrames gagal ({str(err)[:300]}) → cadangan: subtitle ffmpeg")
+            gerak.ff("-i", str(base_mp4), "-vf", f"subtitles=filename='{gerak.esc(ass)}':fontsdir='{fontsdir}'",
+                     "-c:v", "libx264", "-preset", "medium", "-crf", "19", "-pix_fmt", "yuv420p", "-c:a", "copy",
+                     "-movflags", "+faststart", str(tmp))
     tmp.replace(final)
     gerak.ff("-ss", "0.8", "-i", str(final), "-frames:v", "1", "-q:v", "3", str(out_dir / "sampul.jpg"))
     info = {"dibuat": datetime.now().isoformat(timespec="seconds"), "uji": a.uji, "durasi": round(gerak.duration(final), 2),
             "shot": n, "musik": music.name if music else None, "font": family, "pakai_ai": bool(man.get("pakai_ai")),
             "suara_detik": round(total, 2), "penutup_detik": round(tutup, 2),
-            "transisi": transisi_pakai, "denyut_tekanan": len(titik)}
+            "transisi": transisi_pakai, "denyut_tekanan": len(titik), "mesin": mesin_dipakai}
     (out_dir / "info.json").write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
     log(f"selesai dalam {time.time() - t0:.0f} dtk: videos/{a.slug}/export/final.mp4 ({info['durasi']} dtk)")
     if not music:

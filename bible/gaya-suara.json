@@ -1,0 +1,21 @@
+{
+  "_catatan": "Gaya suara Dara. mesin: auto = VoxCPM2 (natural, gratis, lokal di GPU NVIDIA) kalau sudah setup_suara.bat, kalau tidak edge-tts. Desain suara ditulis dalam bahasa Inggris (lebih dipahami model). Suara khas dibuat sekali lalu disimpan di suara-khas/; hapus file di sana kalau ingin membuat suara baru dari desain yang diubah.",
+  "mesin": "auto",
+  "voxcpm": {
+    "desain_pria": "(A young Indonesian man in his twenties, warm, energetic and curious tech YouTuber, clear articulation, lively fast pace, expressive and natural)",
+    "desain_wanita": "(A young Indonesian woman in her twenties, bright, friendly and energetic tech YouTuber, clear articulation, lively pace, expressive and natural)",
+    "ref_teks": "Tau nggak, teknologi yang dulu cuma ada di film fiksi ilmiah, sekarang sudah benar-benar ada. Ini Yofamo Technology.",
+    "cfg": 2.0,
+    "langkah": 10,
+    "seed": 42,
+    "jeda": 0.1,
+    "jeda_hook": 0.18,
+    "perangkat": "auto",
+    "wajib_gpu": true
+  },
+  "edge": {
+    "suara_pria": "id-ID-ArdiNeural",
+    "suara_wanita": "id-ID-GadisNeural",
+    "kecepatan": "+15%"
+  }
+}

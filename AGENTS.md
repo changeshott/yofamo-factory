@@ -9,11 +9,11 @@ Pemilik: Zona. Semua jawaban dan laporan ditulis dalam **bahasa Indonesia**.
 | Nama | Peran | Skill | Status |
 | --- | --- | --- | --- |
 | Steve | Kepala analis: statistik, retensi & kurva penonton, komentar, radar pasar, eksperimen, post-mortem → laporan mingguan, `insights/topik_backlog.json` (dipakai Nova), `pelajaran.md`, `eksperimen.md` | `/steve-analis` | aktif |
-| Nova | Kepala riset & ide: longlist → saring → cek ketersediaan footage (`cek_visual.py`) → verifikasi jurnalis (≥3 fakta, kutipan, sumber tier 1) → paket ide (3+ varian hook, angka kunci, salah kaprah, kata kunci visual) → `cek_ide.py` (validasi + skor 0–100); portofolio 2 andalan + 1 eksplorasi; selalu belum pernah dibahas → `videos/<slug>/idea.json` | `/ide-riset [tema]` / `/ide-riset --otomatis [arahan]` | aktif |
+| Nova | Kepala riset & ide: radar RSS gratis (`radar.py`, hemat token) → longlist → saring → cek ketersediaan footage (`cek_visual.py`) → verifikasi jurnalis (≥3 fakta, kutipan, sumber tier 1) → paket ide (3+ varian hook, angka kunci, salah kaprah, kata kunci visual) → `cek_ide.py` (validasi + skor 0–100); portofolio 2 andalan + 1 eksplorasi; selalu belum pernah dibahas → `videos/<slug>/idea.json` | `/ide-riset [tema]` / `/ide-riset --otomatis [arahan]` | aktif |
 | Raka | Kepala penulis: target durasi sesuai topik, struktur beat (pembuka khas "Tau nggak, …" → konteks → cara kerja → wow → penutup tuntas), lembar produksi per kalimat (jenis visual, kata kunci Inggris, teks layar, penekanan), judul + 2 alternatif, komentar pin → `script.json`, `naskah.md` (divalidasi `cek_naskah.py`) | `/penulis <slug>` | aktif |
-| Dara | Suara: voice-over gratis (edge-tts) + timing kata + subtitle + transkrip bertimestamp → `vo.mp3`, `words.json` (+ target durasi), `captions.srt`, `transkrip.txt` | `/suara <slug>` | aktif |
+| Dara | Suara: voice-over gratis — **VoxCPM2** natural lokal (GPU NVIDIA, `setup_suara.bat`) atau cadangan edge-tts — + timing kata + subtitle + transkrip bertimestamp → `vo.mp3`, `words.json` (+ target durasi), `captions.srt`, `transkrip.txt` | `/suara <slug>` | aktif |
 | Bima | Visual: 1–3 shot 1080x1920 per kalimat, **utamakan potongan YouTube CC BY** (≥ 75% footage asli), lalu NASA/Wikimedia Commons (Pexels/Pixabay opsional), gambar AI gratis (Cloudflare FLUX + Ken Burns), atau kartu grafis → `aset/NN-a.mp4`, `aset/manifest.json` | `/aset <slug>` | aktif |
-| Kai | Editor: rakit video final (ffmpeg, font Poppins Black di `fonts/`) — gaya khas Yofamo: hook bertingkat putih/kuning/biru muncul bertahap, subtitle 1 kata di tengah (penekanan kuning), gerak keyframe, transisi antar-kalimat sinkron suara, denyut zoom, whoosh, musik per suasana, layar penutup → `export/final.mp4` | `/editor <slug>` | aktif |
+| Kai | Editor: rakit video final (**HyperFrames** HTML+GSAP, cadangan ffmpeg; font Poppins Black di `fonts/`) — grafis gerak sesuai kalimat (angka, langkah, perbandingan, kata, label, sumber), gaya khas Yofamo: hook bertingkat putih/kuning/biru muncul bertahap, subtitle 1 kata di tengah (penekanan kuning), gerak keyframe, transisi antar-kalimat sinkron suara, denyut zoom, whoosh, musik per suasana, layar penutup → `export/final.mp4` | `/editor <slug>` | aktif |
 | Rara | QC: cek otomatis (gelap/beku/durasi/LUFS/porsi AI) + lihat frame tiap shot, tolak yang jelek → Bima ganti → Kai rakit ulang (maks 2 putaran) → `export/qc.json`, `qc_review.json` | `/qc <slug>` | aktif |
 | Uli | Upload: video `export` → YouTube **private** (+ jadwal, kredit, label konten sintetis) → `export/upload.json` | `/upload <slug>` | aktif |
 
@@ -27,6 +27,9 @@ Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetu
 
 - `bible/gaya-edit.json` — gaya editan Kai (font, warna & ukuran subtitle, hook bertingkat, gerak & transisi, musik).
 - `fonts/` — font khas Yofamo (Poppins Black/ExtraBold, lisensi OFL).
+- `package.json` — mesin video Kai (hyperframes, gsap). Pasang sekali: `npm install` di folder project (butuh Node.js 22+).
+- `bible/gaya-suara.json` — gaya suara Dara (mesin, desain suara VoxCPM2, edge-tts). `suara-khas/` — referensi suara khas yang dibuat sekali (tidak di-commit). `.venv-suara/` — Python 3.12 khusus suara (dibuat `setup_suara.bat`).
+- `insights/radar.md` — 30 kandidat berita teknologi terbaru (dibuat `radar.py`, tanpa token).
 - `musik/`, `sfx/` — musik latar & efek suara bebas royalti milik Zona (tidak di-commit).
 - `bible/channel-bible.md` — aturan gaya & konten. **Wajib dibaca** sebelum membuat ide, naskah, atau menilai video.
 - `agents/<nama>/` — script Python milik tiap agent. Jalankan dari root project.
@@ -70,6 +73,8 @@ python agents/aset/cari_aset.py semua <slug> # Bima cepat: cari + pilih otomatis
 python agents/aset/cari_aset.py cari <slug>  # Bima: kandidat + lembar kontak (lalu pilihan.json → unduh)
 python agents/editor/rakit.py <slug>        # Kai: rakit export/final.mp4
 python agents/produser.py ["arahan tema"]  # satu klik → tim pilih topik baru → video jadi
+python agents/ide/radar.py                   # Nova: kandidat topik dari RSS tepercaya, gratis tanpa token
+python agents/suara/cek_gpu.py              # cek kesiapan suara natural (GPU) & mesin HyperFrames
 python agents/ide/cek_topik.py "judul"      # cek topik belum pernah dibahas (--daftar: semua judul)
 python agents/ide/cek_visual.py "kata"      # Nova: ada footage legal untuk topik ini? (skor 0–10)
 python agents/ide/cek_ide.py <slug> --tulis # Nova: validasi sumber/kutipan/angka + skor ide 0–100
