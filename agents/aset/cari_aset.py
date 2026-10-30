@@ -196,6 +196,9 @@ def search_all(query: str, english: bool) -> list[dict]:
             except (urllib.error.URLError, TimeoutError, ValueError) as err:
                 log(f"  {name}: tidak bisa dihubungi ({err}), dilewati")
                 per[name] = []
+            except Exception as err:  # respons aneh dari satu sumber tidak boleh menghentikan pencarian
+                log(f"  {name}: error {type(err).__name__} ({str(err)[:80]}), dilewati")
+                per[name] = []
     out, rnd = [], 0
     while any(per.values()) and len(out) < 24:
         for name in ("youtube", "nasa", "wikimedia", "pexels", "pixabay"):
@@ -240,11 +243,11 @@ def fetch_thumb(url: str, dest: Path, label: str) -> bool:
         gerak.placeholder(dest, label, "0x2A4A6B", "480x270" if "yt" in label or "nasa" in label else "270x480")
         return True
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": sumber.UA})
+        req = urllib.request.Request(sumber.aman_url(url), headers={"User-Agent": sumber.UA})
         with urllib.request.urlopen(req, timeout=20) as r:
             dest.write_bytes(r.read(5_000_000))
         return True
-    except (urllib.error.URLError, OSError, TimeoutError, ValueError):
+    except Exception:  # thumbnail rusak/URL aneh/koneksi putus: lewati kandidat ini saja, jangan hentikan Bima
         return False
 
 
@@ -310,7 +313,7 @@ def http_download(url: str, dest: Path) -> Path:
     part = dest.with_suffix(".part")
     size = 0
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": sumber.UA})
+        req = urllib.request.Request(sumber.aman_url(url), headers={"User-Agent": sumber.UA})
         with urllib.request.urlopen(req, timeout=90) as r, part.open("wb") as f:
             while chunk := r.read(1 << 16):
                 size += len(chunk)

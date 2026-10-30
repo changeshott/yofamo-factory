@@ -116,6 +116,15 @@ def videos() -> dict[str, str]:
         return {}
 
 
+URUT = ["ide", "disetujui", "naskah", "suara", "aset", "draft", "export", "terbit"]
+
+
+def sudah(slug: str, tahap: str) -> bool:
+    """Status video sudah mencapai (atau melewati) tahap ini."""
+    st = videos().get(slug)
+    return st in URUT and URUT.index(st) >= URUT.index(tahap)
+
+
 def pabrik(*args: str) -> None:
     subprocess.run([PY, str(ROOT / "agents" / "pabrik.py"), *args], cwd=ROOT, check=True)
 
@@ -172,6 +181,7 @@ def main() -> None:
     ap.add_argument("--visual", choices=["teliti", "cepat"], default="teliti")
     ap.add_argument("--id", default="")
     ap.add_argument("--uji", action="store_true", help="tanpa Claude & internet: data contoh, untuk mengetes alur")
+    ap.add_argument("--lanjut", default="", help="lanjutkan video yang berhenti di tengah jalan (slug); tahap yang sudah beres dilewati")
     a = ap.parse_args()
     teks = re.sub(r"[^\w\s,.\-?!]", "", a.permintaan, flags=re.UNICODE).strip()[:200]
     judul_req = teks if len(teks) >= 3 else "Topik dipilih tim"
@@ -181,80 +191,98 @@ def main() -> None:
     cat = Catatan(pid, judul_req, {"suara": a.suara, "visual": a.visual, "uji": a.uji})
     slug = ""
     try:
-        # 0. Steve: daftar video channel terbaru, supaya Nova tidak mengulang topik lama
-        cat.tahap("steve", "jalan")
         if a.uji:
-            cat.tahap("steve", "ok", "mode uji: memakai snapshot yang ada")
-        elif jalan([PY, "agents/steve/fetch_stats.py"], 5 * 60) == 0:
-            cat.tahap("steve", "ok", "daftar video channel terbaru")
+            sys.path.insert(0, str(ROOT / "agents"))
+            import tes_pabrik as fx
+        lanjut = a.lanjut if re.fullmatch(r"[a-z0-9-]{3,80}", a.lanjut or "") else ""
+        if lanjut:
+            st0 = videos().get(lanjut)
+            if st0 not in URUT or st0 == "ide":
+                cat.tahap("steve", "gagal", f"Video '{lanjut}' tidak bisa dilanjutkan (status {st0}).")
+                return cat.akhir("gagal", "Video tidak ditemukan atau belum disetujui.")
+            slug = lanjut
+            cat.d["slug"] = slug
+            judul_l = rj(ROOT / "videos" / slug / "idea.json").get("judul_kerja", slug)
+            cat.d["permintaan"] = f"Lanjutkan: {judul_l}"
+            for k in ("steve", "nova", "setuju"):
+                cat.tahap(k, "ok", "sudah beres sebelumnya" if k != "nova" else judul_l)
         else:
-            cat.tahap("steve", "ok", "gagal mengambil data baru; memakai snapshot terakhir")
-
-        # 1. Nova: tim memilih topik (arahan Zona hanya arah), wajib belum pernah dibahas
-        cat.tahap("nova", "jalan")
-        sys.path.insert(0, str(ROOT / "agents"))
-        slug, alasan_tolak = "", ""
-        for coba in range(2):
-            before = videos()
+            # 0. Steve: daftar video channel terbaru, supaya Nova tidak mengulang topik lama
+            cat.tahap("steve", "jalan")
             if a.uji:
-                import tes_pabrik as fx
-                pabrik("new", fx.IDEA["judul_kerja"])
+                cat.tahap("steve", "ok", "mode uji: memakai snapshot yang ada")
+            elif jalan([PY, "agents/steve/fetch_stats.py"], 5 * 60) == 0:
+                cat.tahap("steve", "ok", "daftar video channel terbaru")
             else:
-                extra = "" if coba == 0 else f" (percobaan ke-2: ide sebelumnya ditolak karena {alasan_tolak}, pilih teknologi lain)"
-                jalan([PY, "agents/ide/radar.py"], 3 * 60)          # kandidat gratis tanpa token (cache 12 jam)
-                claude(f"/ide-riset --otomatis {teks}{extra}".strip(),
-                       tools("agents/pabrik.py", "agents/ide/radar.py", "agents/ide/cek_topik.py", "agents/ide/cek_visual.py", "agents/ide/cek_ide.py", web=True),
-                       45 * 60, turns=40)
-            new = [x for x, st in videos().items() if x not in before and st in ("ide", "disetujui")]
-            if not new:
-                break
-            cand = sorted(new)[-1]
-            for extra_slug in sorted(new)[:-1]:  # mode otomatis = 1 ide; sisanya ditolak supaya antrean bersih
-                pabrik("set", extra_slug, "ditolak", "--note", "kelebihan ide di mode otomatis")
-            jk = json.loads((ROOT / "videos" / cand / "idea.json").read_text(encoding="utf-8-sig")).get("judul_kerja", cand) if (ROOT / "videos" / cand / "idea.json").exists() else cand
-            dup = subprocess.run([PY, "agents/ide/cek_topik.py", jk, "--abaikan", cand], cwd=ROOT, capture_output=True, text=True, encoding="utf-8")
-            if dup.returncode == 2 and not a.uji:
-                print(dup.stdout, flush=True)
-                pabrik("set", cand, "ditolak", "--note", "duplikat topik yang sudah ada di channel")
-                cat.tahap("nova", "jalan", f"'{jk}' ternyata mirip video lama, cari topik lain")
-                alasan_tolak = "duplikat topik lama"
-                continue
-            if not a.uji:   # editor riset: ide harus lolos validasi sumber, kutipan, angka, dan punya skor
-                v = subprocess.run([PY, "agents/ide/cek_ide.py", cand, "--tulis"], cwd=ROOT, capture_output=True, text=True, encoding="utf-8")
-                print(v.stdout, flush=True)
-                if v.returncode != 0:
-                    pabrik("set", cand, "ditolak", "--note", "gagal validasi ide (sumber/kutipan/angka)")
-                    cat.tahap("nova", "jalan", f"'{jk}' belum lolos validasi sumber, cari lagi")
-                    alasan_tolak = "tidak lolos validasi sumber/kutipan/angka"
-                    continue
-            slug = cand
-            break
-        if not slug:
-            cat.tahap("nova", "gagal", "Nova tidak menemukan topik baru yang lolos verifikasi 2 sumber dan belum pernah dibahas. Coba lagi, atau beri arahan tema.")
-            return cat.akhir("gagal", "Berhenti di tahap ide.")
-        cat.d["slug"] = slug
-        if a.uji:
-            (ROOT / "videos" / slug).mkdir(parents=True, exist_ok=True)
-            (ROOT / "videos" / slug / "idea.json").write_text(json.dumps({**fx.IDEA, "slug": slug}, ensure_ascii=False), encoding="utf-8")
-        idea_now = json.loads((ROOT / "videos" / slug / "idea.json").read_text(encoding="utf-8-sig"))
-        judul = idea_now.get("judul_kerja", slug)
-        sk = (idea_now.get("skor") or {}).get("total")
-        cat.tahap("nova", "ok", f"{judul}{f' · skor {sk}/100' if sk is not None else ''}")
+                cat.tahap("steve", "ok", "gagal mengambil data baru; memakai snapshot terakhir")
 
-        # 2. disetujui oleh permintaan Zona
-        cat.tahap("setuju", "jalan")
-        if videos().get(slug) == "ide":
-            pabrik("set", slug, "disetujui", "--note", f"disetujui lewat tombol Buat video Zona{(': ' + teks[:80]) if teks else ' (topik dipilih tim)'}")
-        cat.tahap("setuju", "ok")
+            # 1. Nova: tim memilih topik (arahan Zona hanya arah), wajib belum pernah dibahas
+            cat.tahap("nova", "jalan")
+            sys.path.insert(0, str(ROOT / "agents"))
+            slug, alasan_tolak = "", ""
+            for coba in range(2):
+                before = videos()
+                if a.uji:
+                    import tes_pabrik as fx
+                    pabrik("new", fx.IDEA["judul_kerja"])
+                else:
+                    extra = "" if coba == 0 else f" (percobaan ke-2: ide sebelumnya ditolak karena {alasan_tolak}, pilih teknologi lain)"
+                    jalan([PY, "agents/ide/radar.py"], 3 * 60)          # kandidat gratis tanpa token (cache 12 jam)
+                    claude(f"/ide-riset --otomatis {teks}{extra}".strip(),
+                           tools("agents/pabrik.py", "agents/ide/radar.py", "agents/ide/cek_topik.py", "agents/ide/cek_visual.py", "agents/ide/cek_ide.py", web=True),
+                           45 * 60, turns=40)
+                new = [x for x, st in videos().items() if x not in before and st in ("ide", "disetujui")]
+                if not new:
+                    break
+                cand = sorted(new)[-1]
+                for extra_slug in sorted(new)[:-1]:  # mode otomatis = 1 ide; sisanya ditolak supaya antrean bersih
+                    pabrik("set", extra_slug, "ditolak", "--note", "kelebihan ide di mode otomatis")
+                jk = json.loads((ROOT / "videos" / cand / "idea.json").read_text(encoding="utf-8-sig")).get("judul_kerja", cand) if (ROOT / "videos" / cand / "idea.json").exists() else cand
+                dup = subprocess.run([PY, "agents/ide/cek_topik.py", jk, "--abaikan", cand], cwd=ROOT, capture_output=True, text=True, encoding="utf-8")
+                if dup.returncode == 2 and not a.uji:
+                    print(dup.stdout, flush=True)
+                    pabrik("set", cand, "ditolak", "--note", "duplikat topik yang sudah ada di channel")
+                    cat.tahap("nova", "jalan", f"'{jk}' ternyata mirip video lama, cari topik lain")
+                    alasan_tolak = "duplikat topik lama"
+                    continue
+                if not a.uji:   # editor riset: ide harus lolos validasi sumber, kutipan, angka, dan punya skor
+                    v = subprocess.run([PY, "agents/ide/cek_ide.py", cand, "--tulis"], cwd=ROOT, capture_output=True, text=True, encoding="utf-8")
+                    print(v.stdout, flush=True)
+                    if v.returncode != 0:
+                        pabrik("set", cand, "ditolak", "--note", "gagal validasi ide (sumber/kutipan/angka)")
+                        cat.tahap("nova", "jalan", f"'{jk}' belum lolos validasi sumber, cari lagi")
+                        alasan_tolak = "tidak lolos validasi sumber/kutipan/angka"
+                        continue
+                slug = cand
+                break
+            if not slug:
+                cat.tahap("nova", "gagal", "Nova tidak menemukan topik baru yang lolos verifikasi 2 sumber dan belum pernah dibahas. Coba lagi, atau beri arahan tema.")
+                return cat.akhir("gagal", "Berhenti di tahap ide.")
+            cat.d["slug"] = slug
+            if a.uji:
+                (ROOT / "videos" / slug).mkdir(parents=True, exist_ok=True)
+                (ROOT / "videos" / slug / "idea.json").write_text(json.dumps({**fx.IDEA, "slug": slug}, ensure_ascii=False), encoding="utf-8")
+            idea_now = json.loads((ROOT / "videos" / slug / "idea.json").read_text(encoding="utf-8-sig"))
+            judul = idea_now.get("judul_kerja", slug)
+            sk = (idea_now.get("skor") or {}).get("total")
+            cat.tahap("nova", "ok", f"{judul}{f' · skor {sk}/100' if sk is not None else ''}")
+
+            # 2. disetujui oleh permintaan Zona
+            cat.tahap("setuju", "jalan")
+            if videos().get(slug) == "ide":
+                pabrik("set", slug, "disetujui", "--note", f"disetujui lewat tombol Buat video Zona{(': ' + teks[:80]) if teks else ' (topik dipilih tim)'}")
+            cat.tahap("setuju", "ok")
 
         # 3. Raka
         cat.tahap("raka", "jalan")
-        if a.uji:
+        if sudah(slug, "naskah"):
+            pass
+        elif a.uji:
             (ROOT / "videos" / slug / "script.json").write_text(json.dumps({**fx.SCRIPT, "slug": slug}, ensure_ascii=False), encoding="utf-8")
             pabrik("set", slug, "naskah")
         else:
             claude(f"/penulis {slug}", tools("agents/pabrik.py", "agents/penulis/cek_naskah.py"), 30 * 60)
-        if videos().get(slug) != "naskah":
+        if not sudah(slug, "naskah"):
             cat.tahap("raka", "gagal", "Naskah belum lolos validasi. Buka log, lalu minta Raka menulis ulang dari kartu video.")
             return cat.akhir("gagal", "Berhenti di tahap naskah.")
         cat.tahap("raka", "ok", json.loads((ROOT / "videos" / slug / "script.json").read_text(encoding="utf-8-sig")).get("judul", ""))
@@ -262,10 +290,10 @@ def main() -> None:
         # 4. Dara
         cat.tahap("dara", "jalan")
         voice = ["--voice", "id-ID-GadisNeural"] if a.suara == "wanita" else []
-        code = jalan([PY, "agents/suara/buat_suara.py", slug, *voice, *(["--uji"] if a.uji else [])], 10 * 60)
+        code = 0 if sudah(slug, "aset") else jalan([PY, "agents/suara/buat_suara.py", slug, *voice, *(["--uji"] if a.uji else [])], 10 * 60)
         if a.uji and code == 0:
             pabrik("set", slug, "suara")
-        if code != 0 or videos().get(slug) != "suara":
+        if code != 0 or not sudah(slug, "suara"):
             cat.tahap("dara", "gagal", "Suara gagal dibuat (cek internet / edge-tts).")
             return cat.akhir("gagal", "Berhenti di tahap suara.")
         w = json.loads((ROOT / "videos" / slug / "words.json").read_text(encoding="utf-8"))
@@ -273,7 +301,7 @@ def main() -> None:
         d = float(w.get("durasi") or 0)
         tg = w.get("target") or {}
         t_det, t_lo, t_hi = float(tg.get("detik") or 40), float(tg.get("min") or 28), float(tg.get("maks") or 45)
-        if not a.uji and (d > t_hi or d < t_lo):
+        if not a.uji and not sudah(slug, "aset") and (d > t_hi or d < t_lo):
             rate = round((1.15 * d / t_det - 1) * 100)
             if d > t_hi and rate > 28:
                 cat.tahap("dara", "jalan", f"{d:.1f} dtk kepanjangan, Raka memangkas naskah")
@@ -291,7 +319,9 @@ def main() -> None:
 
         # 5. Bima
         cat.tahap("bima", "jalan")
-        if a.uji:
+        if sudah(slug, "aset"):
+            pass
+        elif a.uji:
             (ROOT / "videos" / slug / "aset").mkdir(exist_ok=True)
             (ROOT / "videos" / slug / "aset" / "rencana.json").write_text(json.dumps(fx.RENCANA), encoding="utf-8")
             code = jalan([PY, "agents/aset/cari_aset.py", "semua", slug, "--uji"], 30 * 60)
@@ -301,7 +331,16 @@ def main() -> None:
             jalan([PY, "agents/aset/cari_aset.py", "semua", slug], 40 * 60)
         else:
             claude(f"/aset {slug}", tools("agents/pabrik.py", "agents/aset/cari_aset.py"), 50 * 60)
-        if videos().get(slug) != "aset":
+        if not a.uji and not sudah(slug, "aset"):
+            # cadangan tanpa Claude: script Bima memilih otomatis (memakai rencana.json kalau sudah ditulis)
+            cat.tahap("bima", "jalan", "visual belum lengkap, Bima mencoba mode otomatis")
+            mf = ROOT / "videos" / slug / "aset" / "manifest.json"
+            kurang = rj(mf).get("kurang") or []
+            if kurang and (ROOT / "videos" / slug / "aset" / "kandidat.json").exists():
+                jalan([PY, "agents/aset/cari_aset.py", "unduh", slug, "--otomatis", *[x for k in kurang for x in ("--ulang", str(k))]], 30 * 60)
+            if not sudah(slug, "aset"):
+                jalan([PY, "agents/aset/cari_aset.py", "semua", slug], 40 * 60)
+        if not sudah(slug, "aset"):
             cat.tahap("bima", "gagal", "Visual belum lengkap. Buka kartu video untuk melihat kalimat yang kurang.")
             return cat.akhir("gagal", "Berhenti di tahap visual.")
         m = json.loads((ROOT / "videos" / slug / "aset" / "manifest.json").read_text(encoding="utf-8"))

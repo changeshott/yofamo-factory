@@ -18,6 +18,7 @@ import argparse
 import asyncio
 import json
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -58,6 +59,97 @@ async def synth(text: str, voice: str, rate: str, out: Path) -> list[dict]:
                 start = chunk["offset"] / TICKS
                 words.append({"kata": chunk["text"], "mulai": round(start, 3), "selesai": round(start + chunk["duration"] / TICKS, 3)})
     return words
+
+
+# Gaya bicara per bagian naskah (edge-tts tidak punya emosi, jadi "akting" dibuat dari tempo, nada, dan jeda).
+PROSODI = {
+    "hook":       {"tempo": 6,  "nada": 6,  "jeda_sebelum": 0.0},   # lebih cepat & tinggi: energi pembuka "Tau nggak, …"
+    "konteks":    {"tempo": -3, "nada": 0,  "jeda_sebelum": 0.22},
+    "cara_kerja": {"tempo": -5, "nada": -1, "jeda_sebelum": 0.12},  # lebih tenang supaya penjelasan jelas
+    "wow":        {"tempo": 3,  "nada": 5,  "jeda_sebelum": 0.38},  # jeda tegang sebelum kejutan, lalu nada naik
+    "bukti":      {"tempo": -2, "nada": 1,  "jeda_sebelum": 0.14},
+    "dampak":     {"tempo": 0,  "nada": 2,  "jeda_sebelum": 0.16},
+    "penutup":    {"tempo": -4, "nada": -2, "jeda_sebelum": 0.3},   # melambat & turun: terasa selesai, bukan terpotong
+}
+
+
+def prosodi_konfig() -> dict:
+    try:
+        import mesin_suara  # noqa: E402
+        p = mesin_suara.konfig().get("edge", {}).get("prosodi")
+        if isinstance(p, dict):
+            return {**PROSODI, **{k: {**PROSODI.get(k, {}), **v} for k, v in p.items() if isinstance(v, dict)}}
+    except Exception:
+        pass
+    return PROSODI
+
+
+async def synth_prosodi(narasi: list[dict], voice: str, rate: str, out: Path) -> list[dict]:
+    """Rekam per kalimat dengan tempo/nada sesuai bagian naskah, lalu sambung dengan jeda yang diatur.
+    Timing kata tetap akurat: offset tiap kalimat = durasi audio sebelumnya + jeda."""
+    import tempfile
+    try:
+        import edge_tts  # type: ignore
+    except ImportError:
+        sys.exit("[dara] Paket edge-tts belum terpasang. Jalankan: python -m pip install -r requirements.txt")
+    pr = prosodi_konfig()
+    dasar = int(re.match(r"([+-]\d+)%", rate).group(1)) if re.match(r"([+-]\d+)%", rate) else 15
+    sem = asyncio.Semaphore(4)
+    with tempfile.TemporaryDirectory(prefix="dara-") as td:
+        tdp = Path(td)
+
+        async def satu(i: int, n: dict):
+            g = pr.get(str(n.get("bagian", "")), {})
+            r = max(-30, min(60, dasar + int(g.get("tempo", 0))))
+            nada = int(g.get("nada", 0))
+            async with sem:
+                for coba in range(3):
+                    try:
+                        comm = edge_tts.Communicate(n["kalimat"].strip(), voice, rate=f"{r:+d}%", pitch=f"{nada:+d}Hz", boundary="WordBoundary")
+                        kata, f = [], tdp / f"{i:02d}.mp3"
+                        with f.open("wb") as fh:
+                            async for ch in comm.stream():
+                                if ch["type"] == "audio":
+                                    fh.write(ch["data"])
+                                elif ch["type"] == "WordBoundary":
+                                    a0 = ch["offset"] / TICKS
+                                    kata.append({"kata": ch["text"], "mulai": a0, "selesai": a0 + ch["duration"] / TICKS})
+                        if kata and f.stat().st_size > 0:
+                            return f, kata
+                    except Exception as err:  # gangguan jaringan sesaat
+                        if coba == 2:
+                            raise RuntimeError(f"kalimat {i + 1}: {err}") from err
+                    await asyncio.sleep(1.5 * (coba + 1))
+            raise RuntimeError(f"kalimat {i + 1}: tidak ada audio")
+
+        hasil = await asyncio.gather(*(satu(i, n) for i, n in enumerate(narasi)))
+        args, rantai, words, t = [], [], [], 0.0
+        for i, ((f, kata), n) in enumerate(zip(hasil, narasi)):
+            jeda = float(pr.get(str(n.get("bagian", "")), {}).get("jeda_sebelum", 0.12)) if i > 0 else 0.0
+            dur = durasi_audio(f)
+            t += jeda
+            args += ["-i", str(f)]
+            rantai.append(f"[{i}:a]aresample=24000,aformat=channel_layouts=mono,adelay={int(jeda * 1000)}|{int(jeda * 1000)},"
+                          f"atrim=duration={jeda + dur:.3f}[a{i}]")
+            for w in kata:
+                words.append({"kata": w["kata"], "mulai": round(t + w["mulai"], 3), "selesai": round(t + w["selesai"], 3)})
+            t += dur
+        k = len(hasil)
+        rantai.append("".join(f"[a{i}]" for i in range(k)) + f"concat=n={k}:v=0:a=1[o]")
+        r = subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-y", *args, "-filter_complex", ";".join(rantai),
+                            "-map", "[o]", "-c:a", "libmp3lame", "-b:a", "160k", str(out)], capture_output=True, text=True)
+        if r.returncode != 0:
+            raise RuntimeError(f"ffmpeg gagal menyambung suara: {r.stderr[-200:]}")
+    return words
+
+
+def durasi_audio(f: Path) -> float:
+    r = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nw=1:nk=1", str(f)],
+                       capture_output=True, text=True)
+    try:
+        return float(r.stdout.strip())
+    except ValueError:
+        return 0.0
 
 
 def estimate(sentences: list[str], rate: str) -> list[dict]:
@@ -183,7 +275,16 @@ def main() -> None:
     if not args.uji and words is None:
         tmp = folder / "vo.tmp.mp3"  # vo.mp3 lama tetap utuh kalau gagal di tengah jalan
         try:
-            words = asyncio.run(synth(text, args.voice, args.rate, tmp))
+            words = None
+            if shutil.which("ffmpeg") and any(n.get("bagian") for n in narasi):
+                try:
+                    words = asyncio.run(synth_prosodi(narasi, args.voice, args.rate, tmp))
+                    print("[dara] edge-tts berekspresi: tempo, nada & jeda mengikuti bagian naskah (hook, wow, penutup)")
+                except RuntimeError as err:
+                    print(f"[dara] mode ekspresif gagal ({str(err)[:120]}), memakai rekaman satu tarikan")
+                    words = None
+            if words is None:
+                words = asyncio.run(synth(text, args.voice, args.rate, tmp))
         except Exception as err:  # jaringan / layanan TTS
             tmp.unlink(missing_ok=True)
             sys.exit(f"[dara] Gagal membuat suara: {err}. Cek koneksi internet lalu coba lagi.")

@@ -17,8 +17,14 @@ import urllib.request
 UA = "YofamoFactory/1.0 (+https://www.youtube.com/@yofamoo_technology)"
 
 
+def aman_url(url: str) -> str:
+    """URL dari API kadang berisi spasi/karakter non-ASCII (contoh thumbnail NASA '...Heat~thumb.jpg'):
+    di-encode supaya urllib tidak crash dengan InvalidURL."""
+    return urllib.parse.quote(str(url).strip(), safe=":/?&=%#+,;@~!$'()*[]")
+
+
 def http_json(url: str, headers: dict | None = None, data: bytes | None = None) -> dict:
-    req = urllib.request.Request(url, data=data, headers={"User-Agent": UA, **(headers or {})})
+    req = urllib.request.Request(aman_url(url), data=data, headers={"User-Agent": UA, **(headers or {})})
     with urllib.request.urlopen(req, timeout=40) as resp:
         return json.load(resp)
 

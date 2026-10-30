@@ -617,6 +617,8 @@ export function ProduksiPanel({ ctx }: { ctx: PanelCtx }) {
           <div className="mt-1 flex flex-wrap gap-2">
             <Btn size="sm" tone="ghost" onClick={() => ctx.hapus("produksi", p.id, `Catatan permintaan "${p.permintaan}" (videonya tetap ada).`)}>Hapus catatan</Btn>
             {v && <Btn size="sm" tone="danger" onClick={() => ctx.hapus("video", v.slug, `Video "${v.judul_kerja}" dan semua filenya.`)}>Hapus videonya</Btn>}
+            {v && p.status !== "selesai" && p.status !== "berjalan" && ["disetujui", "naskah", "suara", "aset", "draft"].includes(v.status) &&
+              <Btn size="sm" tone="primary" disabled={busy(ctx.state)} onClick={() => ctx.run("produksi", `lanjut|${p.opsi.suara ?? "pria"}|${p.opsi.visual ?? "teliti"}|${v.slug}`)}>Lanjutkan dari tahap terakhir</Btn>}
           </div>
           {p.status !== "selesai" && <><Stepper p={p} />{p.pesan && <Muted className="mt-1">{p.pesan}</Muted>}</>}
           {v && <VideoCard v={v} ctx={ctx} defaultOpen={i === 0 && p.status === "selesai"} />}

@@ -16,6 +16,44 @@
   "edge": {
     "suara_pria": "id-ID-ArdiNeural",
     "suara_wanita": "id-ID-GadisNeural",
-    "kecepatan": "+15%"
+    "kecepatan": "+15%",
+    "prosodi": {
+      "hook": {
+        "tempo": 6,
+        "nada": 6,
+        "jeda_sebelum": 0.0
+      },
+      "konteks": {
+        "tempo": -3,
+        "nada": 0,
+        "jeda_sebelum": 0.22
+      },
+      "cara_kerja": {
+        "tempo": -5,
+        "nada": -1,
+        "jeda_sebelum": 0.12
+      },
+      "wow": {
+        "tempo": 3,
+        "nada": 5,
+        "jeda_sebelum": 0.38
+      },
+      "bukti": {
+        "tempo": -2,
+        "nada": 1,
+        "jeda_sebelum": 0.14
+      },
+      "dampak": {
+        "tempo": 0,
+        "nada": 2,
+        "jeda_sebelum": 0.16
+      },
+      "penutup": {
+        "tempo": -4,
+        "nada": -2,
+        "jeda_sebelum": 0.3
+      }
+    },
+    "_catatan": "prosodi: per bagian naskah. tempo = tambahan % dari kecepatan dasar, nada = Hz, jeda_sebelum = detik hening sebelum kalimat itu."
   }
 }

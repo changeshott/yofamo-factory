@@ -84,6 +84,11 @@ async function command(job: JobName, arg: string): Promise<{ cmd: string; args: 
   if (job === "produksi") {
     if (!py) return "Python tidak ditemukan.";
     if (!which("ffmpeg")) return "ffmpeg belum terpasang. Jalankan: winget install Gyan.FFmpeg";
+    if (arg.startsWith("lanjut|")) {     // lanjutkan video yang berhenti di tengah jalan
+      const [, suaraL, visualL, slugL] = arg.split("|");
+      if (!SLUG.test(slugL ?? "")) return "Video tidak ditemukan.";
+      return { cmd: py, args: ["agents/produser.py", "--lanjut", slugL, "--suara", suaraL === "wanita" ? "wanita" : "pria", "--visual", visualL === "cepat" ? "cepat" : "teliti"] };
+    }
     const [suara, visual, ...rest] = arg.split("|");
     const teks = rest.join(" ").replace(/[^\p{L}\p{N}\s,.\-?!]/gu, "").trim().slice(0, 200);
     if (!which("claude")) return "Perintah 'claude' tidak ditemukan. Install Claude Code CLI dulu.";
