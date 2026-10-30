@@ -382,6 +382,9 @@ def main() -> None:
         raise
 
 
+os.environ.setdefault("PYTHONIOENCODING", "utf-8")   # semua script anak mencetak UTF-8 (Windows: pipa cp1252)
+os.environ.setdefault("PYTHONUTF8", "1")
+
 if __name__ == "__main__":
     t0 = time.time()
     main()

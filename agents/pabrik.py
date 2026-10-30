@@ -163,6 +163,12 @@ def delete(slug: str) -> dict:
 
 
 def main() -> None:
+    # Studio memanggil script ini lewat pipa; di Windows pipa default cp1252 dan gagal mencetak "→"
+    for aliran in (sys.stdout, sys.stderr):
+        try:
+            aliran.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
     ap = argparse.ArgumentParser(description="Antrean video pabrik Yofamo")
     sub = ap.add_subparsers(dest="cmd", required=True)
     p_new = sub.add_parser("new"); p_new.add_argument("judul")
