@@ -15,6 +15,7 @@ const TITLES: Record<string, string> = {
   founder: "Meja Zona", queue: "Papan antrean video", analytics: "Analitik Shorts", reports: "Laporan Steve",
   bible: "Channel bible", activity: "Log kantor", health: "Cek sistem", server: "Server agent", produksi: "Buat video", galeri: "Galeri video", kelola: "Kelola hasil",
 };
+const FOKUS = /^(agent:|founder$|queue$|analytics$|bible$|server$)/;
 const JOB_TXT: Record<string, string> = { steve: "Steve menganalisis", fetch: "Steve mengambil data", check: "Cek koneksi YouTube", ide: "Nova mencari ide", penulis: "Raka menulis naskah", suara: "Dara membuat suara", aset: "Bima mencari klip", editor: "Kai merakit video", produksi: "Produksi video", qc: "Rara memeriksa video", data: "Steve mengumpulkan data", upload: "Uli mengunggah", login: "Menghubungkan YouTube" };
 
 interface Toast { id: number; text: string; tone: "ok" | "err" | "info" }
@@ -28,6 +29,12 @@ export default function Studio() {
   const [konfirmasi, setKonfirmasi] = useState<{ judul: string; aksi: () => Promise<void> } | null>(null);
   const [kelolaTick, setKelolaTick] = useState(0);
   const [palette, setPalette] = useState(false);
+  const [lipat, setLipat] = useState(false);
+  useEffect(() => { try { setLipat(localStorage.getItem("yofamo.sidebar") === "lipat"); } catch { /* abaikan */ } }, []);
+  const setLipatSimpan = (v: boolean) => { setLipat(v); try { localStorage.setItem("yofamo.sidebar", v ? "lipat" : "buka"); } catch { /* abaikan */ } };
+  const [lebar, setLebar] = useState(1600);
+  useEffect(() => { const f = () => setLebar(window.innerWidth); f(); window.addEventListener("resize", f); return () => window.removeEventListener("resize", f); }, []);
+  const sidebarW = lebar < 1024 ? 0 : lipat ? 64 : 252;
   const prevJob = useRef<string>("");
   const avatar = useRef<HTMLCanvasElement>(null);
   const closeBtn = useRef<HTMLButtonElement>(null);
@@ -117,10 +124,11 @@ export default function Studio() {
 
   return (
     <main className="fixed inset-0 overflow-hidden bg-ink-900">
-      <Office state={state} onOpen={open} />
+      <Office state={state} onOpen={open} fokus={panel && FOKUS.test(panel) ? panel : null} kiri={sidebarW + 24} kanan={panel ? 540 : 0} />
 
       {/* HUD kiri atas */}
-      <header className="pointer-events-none absolute top-3 left-3 z-10 max-w-[min(560px,calc(100vw-24px))]">
+      <div className="pointer-events-none absolute top-3 bottom-[88px] left-3 z-[25] flex max-w-[min(560px,calc(100vw-24px))] flex-col gap-3">
+      <header>
         <div className="pointer-events-auto rounded-xl border border-line/80 bg-ink-800/85 px-4 py-3 shadow-xl backdrop-blur-md">
           <h1 className="font-pixel text-[22px] leading-none font-bold tracking-wide">Studio <span className="text-brand">Yofamo</span></h1>
           <p className="mt-1.5 text-sm text-muted" aria-live="polite">
@@ -138,6 +146,8 @@ export default function Studio() {
           )}
         </div>
       </header>
+      {state && <TimSidebar state={state} open={open} panel={panel} busyKey={busyKey} inbox={inbox} lipat={lipat} setLipat={setLipatSimpan} />}
+      </div>
 
       {/* statistik kanan atas */}
       {state && (
@@ -180,7 +190,7 @@ export default function Studio() {
       </div>
 
       {/* panel kanan */}
-      <div className={`absolute inset-0 z-20 bg-[#050a12]/45 transition-opacity ${panel ? "opacity-100" : "pointer-events-none opacity-0"}`} onClick={close} aria-hidden />
+      <div className={`absolute inset-0 z-20 bg-[#050a12]/20 transition-opacity ${panel ? "opacity-100" : "pointer-events-none opacity-0"}`} onClick={close} aria-hidden />
       <aside aria-labelledby="panel-title" aria-hidden={!panel} inert={!panel}
         className={`absolute top-0 right-0 bottom-0 z-20 flex w-[min(540px,100vw)] flex-col border-l-2 border-ink-950 bg-ink-800 shadow-2xl transition-transform duration-200 ${panel ? "translate-x-0" : "translate-x-full"}`}>
         <div className="flex items-center gap-3 border-b border-line px-4 py-3.5">
@@ -262,7 +272,7 @@ function Dock({ state, open, inbox, busyKey, problems, onPalette }: { state: Stu
           <span className="text-base leading-none">+</span><span className="max-sm:hidden">Buat video</span>
         </button>
         <span className="mx-1 h-7 w-px bg-line/70" aria-hidden />
-        <DockIcon label="Tim" active={menu === "tim"} onClick={() => toggle("tim")} expanded={menu === "tim"}>
+        <DockIcon label="Tim" className="lg:hidden" active={menu === "tim"} onClick={() => toggle("tim")} expanded={menu === "tim"}>
           <span className="flex -space-x-1.5">{TEAM.slice(0, 4).map((t) => <i key={t.id} className="block size-2.5 rounded-full ring-2 ring-ink-800" style={{ background: t.color }} />)}</span>
           {sibuk.length > 0 && <span className="absolute -top-1 -right-1 size-2.5 animate-pulse rounded-full bg-brand ring-2 ring-ink-800 motion-reduce:animate-none" aria-label="ada yang bekerja" />}
         </DockIcon>
@@ -320,9 +330,9 @@ function MenuGrid({ items, go }: { items: [string, string, string][]; go: (id: s
   );
 }
 
-function DockIcon({ children, label, onClick, count, dot, active, expanded }: { children: React.ReactNode; label: string; onClick: () => void; count?: number; dot?: string; active?: boolean; expanded?: boolean }) {
+function DockIcon({ children, label, onClick, count, dot, active, expanded, className = "" }: { children: React.ReactNode; label: string; onClick: () => void; count?: number; dot?: string; active?: boolean; expanded?: boolean; className?: string }) {
   return (
-    <button onClick={onClick} aria-expanded={expanded} className={`group relative flex items-center gap-2 rounded-xl px-3 py-2.5 font-pixel text-sm leading-none transition ${active ? "bg-ink-700 text-ink-50" : "text-muted hover:bg-ink-700 hover:text-ink-50"}`}>
+    <button onClick={onClick} aria-expanded={expanded} className={`${className} group relative flex items-center gap-2 rounded-xl px-3 py-2.5 font-pixel text-sm leading-none transition ${active ? "bg-ink-700 text-ink-50" : "text-muted hover:bg-ink-700 hover:text-ink-50"}`}>
       <span className="relative grid place-items-center">{children}</span>
       <span className="max-md:hidden">{label}</span>
       {dot && <span className="size-2 rounded-full" style={{ background: dot }} aria-hidden />}
@@ -401,6 +411,55 @@ function CommandPalette({ ctx, onClose }: { ctx: PanelCtx; onClose: () => void }
         </ul>
       </div>
     </div>
+  );
+}
+
+/* ---------------------------------------------------------------- sidebar tim (kiri) */
+function TimSidebar({ state, open, panel, busyKey, inbox, lipat, setLipat }: { state: StudioState; open: (id: string) => void; panel: string | null; busyKey: string; inbox: number; lipat: boolean; setLipat: (v: boolean) => void }) {
+  const running = state.job.status === "running";
+  const urut = ["steve", "nova", "raka", "dara", "bima", "kai", "rara", "uli"];
+  const tahap = state.produksi[0]?.status === "berjalan" ? state.produksi[0].tahap : [];
+  const statusTahap = (id: string) => tahap.find((t) => t.kunci === id)?.status;
+  return (
+    <aside aria-label="Tim agent" className={`pointer-events-auto flex min-h-0 flex-col overflow-hidden rounded-2xl border border-line/70 bg-ink-800/75 shadow-[0_18px_50px_rgba(0,0,0,.4)] backdrop-blur-xl transition-[width] duration-300 max-lg:hidden ${lipat ? "w-[64px]" : "w-[252px]"}`}>
+      <div className={`flex items-center border-b border-line/60 px-3 py-2.5 ${lipat ? "justify-center" : "justify-between"}`}>
+        {!lipat && <h2 className="font-pixel text-sm tracking-wide text-muted">Tim · {running ? "bekerja" : "siap"}</h2>}
+        <button onClick={() => setLipat(!lipat)} aria-label={lipat ? "Lebarkan sidebar" : "Ciutkan sidebar"} className="grid size-7 place-items-center rounded-lg text-muted hover:bg-ink-700 hover:text-ink-50">
+          <svg viewBox="0 0 24 24" className={`size-4 transition-transform ${lipat ? "rotate-180" : ""}`} fill="currentColor" aria-hidden><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4L10.8 12z" /></svg>
+        </button>
+      </div>
+      <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2">
+        {urut.map((id) => {
+          const t = agentById(id)!;
+          const on = running && !!t.busy[busyKey];
+          const st = statusTahap(id), sel = panel === `agent:${id}`;
+          const sub = on ? t.busy[busyKey] : st === "ok" ? "Selesai ✓" : st === "gagal" ? "Gagal, cek log" : t.role;
+          return (
+            <li key={id}>
+              <button onClick={() => open(`agent:${id}`)} title={lipat ? `${t.name} · ${sub}` : undefined}
+                className={`group relative flex w-full items-center gap-2.5 rounded-xl p-1.5 text-left transition ${sel ? "bg-ink-700 ring-1 ring-brand/70" : "hover:bg-ink-700/70"} ${lipat ? "justify-center" : ""}`}>
+                {on && <span className="absolute inset-0 rounded-xl ring-1 ring-brand/60 shadow-[0_0_18px_rgba(61,155,255,.35)]" aria-hidden />}
+                <span className="relative shrink-0">
+                  <AgentAvatar id={id} />
+                  <span className={`absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full ring-2 ring-ink-800 ${on ? "animate-pulse bg-brand motion-reduce:animate-none" : st === "gagal" ? "bg-bad" : "bg-leaf"}`} aria-hidden />
+                </span>
+                {!lipat && (
+                  <span className="min-w-0 flex-1">
+                    <b className="block font-pixel text-[14px] leading-tight" style={{ color: t.color }}>{t.name}</b>
+                    <span className={`block truncate text-[12px] leading-tight ${on ? "text-brand-2" : "text-muted"}`}>{sub}</span>
+                    {on && <span className="mt-1 block h-1 overflow-hidden rounded-full bg-ink-600"><i className="block h-full w-1/3 animate-[geser_1.4s_ease-in-out_infinite] rounded-full bg-brand motion-reduce:animate-none" /></span>}
+                  </span>
+                )}
+              </button>
+            </li>);
+        })}
+      </ul>
+      <button onClick={() => open("founder")} className={`flex items-center gap-2.5 border-t border-line/60 p-2.5 text-left hover:bg-ink-700/70 ${lipat ? "justify-center" : ""} ${panel === "founder" ? "bg-ink-700" : ""}`}>
+        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-gradient-to-b from-brand-2 to-brand font-pixel text-sm font-bold text-[#06132B]">Z</span>
+        {!lipat && <span className="min-w-0 flex-1"><b className="block font-pixel text-[14px] leading-tight">Meja Zona</b><span className="block text-[12px] text-muted">{inbox ? `${inbox} menunggu keputusanmu` : "Tidak ada yang menunggu"}</span></span>}
+        {!!inbox && <span className="rounded-full bg-bad px-1.5 py-0.5 font-pixel text-[11px] text-white">{inbox}</span>}
+      </button>
+    </aside>
   );
 }
 

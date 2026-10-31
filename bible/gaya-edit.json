@@ -76,9 +76,11 @@
   "audio": {
     "loudness_lufs": -14,
     "musik": "acak",
-    "volume_musik_db": -20,
     "whoosh": true,
-    "volume_whoosh_db": -16
+    "volume_whoosh_db": -16,
+    "volume_musik_persen": 10,
+    "musik_redam_saat_bicara": false,
+    "_catatan": "Musik latar diambil dari folder musik/ (subfolder per suasana: tegang, ceria, misterius, epik, haru). volume_musik_persen 10 = 10% dari kerasnya suara narasi, stabil sepanjang video."
   },
   "penutup": {
     "tampil": true,

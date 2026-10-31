@@ -30,7 +30,7 @@ Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetu
 - `package.json` — mesin video Kai (hyperframes, gsap). Pasang sekali: `npm install` di folder project (butuh Node.js 22+).
 - `bible/gaya-suara.json` — gaya suara Dara (mesin, desain suara VoxCPM2, edge-tts). `suara-khas/` — referensi suara khas yang dibuat sekali (tidak di-commit). `.venv-suara/` — Python 3.12 khusus suara (dibuat `setup_suara.bat`).
 - `insights/radar.md` — 30 kandidat berita teknologi terbaru (dibuat `radar.py`, tanpa token).
-- `musik/`, `sfx/` — musik latar & efek suara bebas royalti milik Zona (tidak di-commit).
+- `musik/<suasana>/` (tegang, ceria, misterius, epik, haru) — perpustakaan musik latar Zona (mis. dari YouTube Audio Library); dipilih otomatis sesuai suasana naskah & digilir, volume 10% (`bible/gaya-edit.json` → `audio`); pilihan per video di `videos/<slug>/musik.json` (meja Uli di Studio); kredit lagu di `<lagu>.txt` masuk deskripsi. Jangan pernah mengambil lagu dari video YouTube biasa. `sfx/` — efek suara. Tidak di-commit.
 - `bible/channel-bible.md` — aturan gaya & konten. **Wajib dibaca** sebelum membuat ide, naskah, atau menilai video.
 - `agents/<nama>/` — script Python milik tiap agent. Jalankan dari root project.
 - `insights/raw/` — data mentah statistik (JSON) dari script Steve. Jangan diedit manual.

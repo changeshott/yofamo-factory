@@ -9,35 +9,41 @@ interface Cam { s: number; x: number; y: number; fit: number }
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
-export default function Office({ state, onOpen }: { state: StudioState | null; onOpen: (id: string) => void }) {
+export default function Office({ state, onOpen, fokus = null, kiri = 0, kanan = 0 }: { state: StudioState | null; onOpen: (id: string) => void; fokus?: string | null; kiri?: number; kanan?: number }) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const overlay = useRef<HTMLDivElement>(null);
   const engine = useRef<OfficeEngine | null>(null);
   const cam = useRef<Cam>({ s: 1, x: 0, y: 0, fit: 1 });
   const openRef = useRef(onOpen);
+  const ruang = useRef({ kiri, kanan });
+  ruang.current = { kiri, kanan };
+  const api = useRef<{ fokus: (id: string | null) => void } | null>(null);
   const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
   openRef.current = onOpen;
 
   useEffect(() => {
     if (engine.current) engine.current.state = state;
   }, [state]);
+  useEffect(() => { const t = setTimeout(() => api.current?.fokus(fokus), 30); return () => clearTimeout(t); }, [fokus, kiri]);
 
   useEffect(() => {
     const eng = new OfficeEngine();
     eng.reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     engine.current = eng;
     const cv = canvas.current!, ctx = cv.getContext("2d")!, el = wrap.current!, ov = overlay.current!;
-    let w = 0, h = 0, dpr = 1, userZoomed = false;
+    let w = 0, h = 0, dpr = 1, userZoomed = false, anim = 0;
+    const bokeh = Array.from({ length: 14 }, (_, i) => ({ x: ((i * 97) % 100) / 100, y: ((i * 61 + 17) % 100) / 100, r: 40 + ((i * 37) % 90), a: 0.03 + ((i * 13) % 5) / 100 }));
 
     const fit = () => {
       const r = el.getBoundingClientRect();
       w = r.width; h = r.height; dpr = window.devicePixelRatio || 1;
       cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
-      let f = Math.min(w / BW, (h - 8) / BH);
+      const L = w < 900 ? 0 : ruang.current.kiri, aw = w - L;
+      let f = Math.min(aw / BW, (h - 70) / BH);
       if (w < 700) f = Math.max(f, Math.min((w * 1.7) / BW, (h * 0.62) / BH)); // HP: tampilkan lebih dekat, geser untuk melihat sisanya
       const c = cam.current;
-      if (!userZoomed) { c.s = f; c.x = (w - BW * f) / 2; c.y = (h - BH * f) / 2 + 4; }
+      if (!userZoomed && !anim) { c.s = f; c.x = L + (aw - BW * f) / 2; c.y = (h - BH * f) / 2 - 18; }
       c.fit = f;
     };
     const draw = () => {
@@ -46,6 +52,16 @@ export default function Office({ state, onOpen }: { state: StudioState | null; o
       const bg = ctx.createRadialGradient(cv.width / 2, cv.height * 0.45, 0, cv.width / 2, cv.height * 0.45, Math.max(cv.width, cv.height) * 0.7);
       bg.addColorStop(0, "#15284A"); bg.addColorStop(0.55, "#0D1A30"); bg.addColorStop(1, "#070E1B");
       ctx.fillStyle = bg; ctx.fillRect(0, 0, cv.width, cv.height);
+      for (const b of bokeh) {   // cahaya lembut melayang di latar (tanpa garis)
+        const bx = b.x * cv.width, by = b.y * cv.height, r = b.r * dpr, gr = ctx.createRadialGradient(bx, by, 0, bx, by, r);
+        gr.addColorStop(0, `rgba(80,160,255,${b.a})`); gr.addColorStop(1, "rgba(80,160,255,0)"); ctx.fillStyle = gr; ctx.fillRect(bx - r, by - r, r * 2, r * 2);
+      }
+      { // bayangan & pantulan di bawah ruangan
+        const c0 = cam.current, cx = (c0.x + (BW / 2) * c0.s) * dpr, cy = (c0.y + (BH * 0.86) * c0.s) * dpr, rx = BW * 0.46 * c0.s * dpr;
+        ctx.save(); ctx.translate(cx, cy); ctx.scale(1, 0.32);
+        const gr = ctx.createRadialGradient(0, 0, 0, 0, 0, rx); gr.addColorStop(0, "rgba(0,0,0,.45)"); gr.addColorStop(0.7, "rgba(20,60,140,.10)"); gr.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(0, 0, rx, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+      }
       ctx.imageSmoothingEnabled = false;
       ctx.setTransform(dpr * c.s, 0, 0, dpr * c.s, dpr * c.x, dpr * c.y);
       ctx.drawImage(eng.canvas, 0, 0);
@@ -106,12 +122,34 @@ export default function Office({ state, onOpen }: { state: StudioState | null; o
     const reset = () => { userZoomed = false; fit(); draw(); };
     const zoomBy = (f: number) => { const c = cam.current, mx = w / 2, my = h / 2, ns = Math.min(c.fit * 4, Math.max(c.fit * 0.85, c.s * f)); c.x = mx - ((mx - c.x) * ns) / c.s; c.y = my - ((my - c.y) * ns) / c.s; c.s = ns; userZoomed = true; draw(); };
     (el as unknown as { __zoom: (f: number) => void; __reset: () => void }).__zoom = zoomBy;
+    // transisi zoom halus ke objek yang dibuka (dan kembali saat ditutup)
+    const terbang = (ts: number, tx: number, ty: number) => {
+      cancelAnimationFrame(anim);
+      const c = cam.current, s0 = c.s, x0 = c.x, y0 = c.y, t0 = performance.now(), dur = eng.reduced ? 1 : 700;
+      const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+      const langkah = (now: number) => {
+        const k = Math.min(1, (now - t0) / dur), e = ease(k);
+        c.s = s0 + (ts - s0) * e; c.x = x0 + (tx - x0) * e; c.y = y0 + (ty - y0) * e; draw();
+        anim = k < 1 ? requestAnimationFrame(langkah) : 0;
+      };
+      anim = requestAnimationFrame(langkah);
+    };
+    api.current = {
+      fokus: (id) => {
+        const c = cam.current, L = w < 900 ? 0 : ruang.current.kiri;
+        if (!id) { userZoomed = false; const aw = w - L; terbang(c.fit, L + (aw - BW * c.fit) / 2, (h - BH * c.fit) / 2 - 18); return; }
+        const p = eng.anchor(id);
+        if (!p) return;
+        const R = w < 700 ? 0 : Math.min(ruang.current.kanan, w * 0.6), vw = w - L - R, ts = Math.min(c.fit * 4, c.fit * (id.startsWith("agent:") || id === "founder" ? 2.3 : 1.8));
+        userZoomed = true; terbang(ts, L + vw / 2 - p[0] * ts, h * 0.46 - p[1] * ts);
+      },
+    };
     (el as unknown as { __reset: () => void }).__reset = reset;
 
     cv.addEventListener("pointerdown", down); cv.addEventListener("pointermove", move); cv.addEventListener("pointerup", up);
     cv.addEventListener("wheel", wheel, { passive: false }); cv.addEventListener("pointerleave", leave); cv.addEventListener("dblclick", reset);
     return () => {
-      window.clearInterval(timer); ro.disconnect();
+      window.clearInterval(timer); ro.disconnect(); cancelAnimationFrame(anim);
       cv.removeEventListener("pointerdown", down); cv.removeEventListener("pointermove", move); cv.removeEventListener("pointerup", up);
       cv.removeEventListener("wheel", wheel); cv.removeEventListener("pointerleave", leave); cv.removeEventListener("dblclick", reset);
     };

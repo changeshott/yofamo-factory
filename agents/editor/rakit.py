@@ -14,6 +14,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import re
 import subprocess
 import sys
@@ -248,9 +249,19 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
 
 # ------------------------------------------------------------------ audio pendukung
 def pick_music(slug: str, mode: str, suasana: str = "") -> Path | None:
-    """Pilih lagu dari musik/. Kalau naskah punya 'suasana' (tegang/ceria/misterius/epik/haru), utamakan
-    lagu di musik/<suasana>/ atau yang namanya mengandung kata itu."""
-    semua = sorted(f for f in (ROOT / "musik").rglob("*") if f.suffix.lower() in AUDIO_EXT)
+    """Pilih lagu dari musik/ (perpustakaan musik Zona, mis. dari YouTube Audio Library).
+    1) pilihan Zona untuk video ini (videos/<slug>/musik.json, dipilih di Studio → meja Uli/kartu video);
+    2) lagu di musik/<suasana>/ (tegang/ceria/misterius/epik/haru) atau yang namanya mengandung suasana;
+    3) yang paling jarang dipakai video lain (supaya tidak itu-itu saja)."""
+    folder = ROOT / "musik"
+    semua = sorted(f for f in folder.rglob("*") if f.suffix.lower() in AUDIO_EXT)
+    pilihan = read_json(VIDEOS / slug / "musik.json", {}).get("file")
+    if pilihan == "tanpa":
+        return None
+    if pilihan:
+        f = (folder / pilihan).resolve()
+        if f.exists() and folder.resolve() in f.parents:
+            return f
     cocok = [f for f in semua if suasana and (suasana in f.parent.name.lower() or suasana in f.stem.lower())] if suasana else []
     files = cocok or semua
     if not files or mode == "tidak":
@@ -259,7 +270,22 @@ def pick_music(slug: str, mode: str, suasana: str = "") -> Path | None:
         named = [f for f in files if f.name == mode]
         if named:
             return named[0]
-    return files[int(hashlib.sha1(slug.encode()).hexdigest(), 16) % len(files)]
+    dipakai: dict[str, int] = {}
+    for info in VIDEOS.glob("*/export/info.json"):
+        if info.parent.parent.name != slug:
+            m = read_json(info, {}).get("musik")
+            if m:
+                dipakai[m] = dipakai.get(m, 0) + 1
+    acak = int(hashlib.sha1(slug.encode()).hexdigest(), 16)
+    return min(files, key=lambda f: (dipakai.get(f.name, 0), (acak + files.index(f) * 7919) % 1000))
+
+
+def kredit_musik(f: Path | None) -> str:
+    """Kalau lagu butuh atribusi, Zona menaruh teks kreditnya di <nama-lagu>.txt di sebelah file lagu."""
+    if not f:
+        return ""
+    k = f.with_suffix(".txt")
+    return k.read_text(encoding="utf-8-sig").strip()[:400] if k.exists() else ""
 
 
 def whoosh_file() -> Path:
@@ -413,10 +439,16 @@ def main() -> None:
     chains.append(f"[{idx_vo}:a]aresample=48000,apad=whole_dur={akhir:.3f},asplit=2[vo1][vo2]")
     mix = ["[vo1]"]
     if idx_bgm is not None:
-        chains.append(f"[{idx_bgm}:a]aresample=48000,atrim=duration={akhir:.3f},volume={st['audio'].get('volume_musik_db', -20)}dB,"
+        persen = float(st["audio"].get("volume_musik_persen", 10))           # 10 = 10% dari kerasnya suara narasi
+        db = 20 * math.log10(max(1.0, min(100.0, persen)) / 100)
+        chains.append(f"[{idx_bgm}:a]aresample=48000,atrim=duration={akhir:.3f},volume={db:.2f}dB,afade=t=in:d=0.6,"
                       f"afade=t=out:st={max(0, akhir - max(1.2, tutup + 0.6)):.2f}:d={max(1.2, tutup + 0.6):.2f}[bg]")
-        chains.append("[bg][vo2]sidechaincompress=threshold=0.02:ratio=8:attack=20:release=350[bgd]")
-        mix.append("[bgd]")
+        if st["audio"].get("musik_redam_saat_bicara", False):
+            chains.append("[bg][vo2]sidechaincompress=threshold=0.02:ratio=4:attack=30:release=400[bgd]")
+            mix.append("[bgd]")
+        else:
+            chains.append("[vo2]anullsink")
+            mix.append("[bg]")
     else:
         chains.append("[vo2]anullsink")
     if idx_wh is not None:
@@ -467,7 +499,8 @@ def main() -> None:
     info = {"dibuat": datetime.now().isoformat(timespec="seconds"), "uji": a.uji, "durasi": round(gerak.duration(final), 2),
             "shot": n, "musik": music.name if music else None, "font": family, "pakai_ai": bool(man.get("pakai_ai")),
             "suara_detik": round(total, 2), "penutup_detik": round(tutup, 2),
-            "transisi": transisi_pakai, "denyut_tekanan": len(titik), "mesin": mesin_dipakai}
+            "transisi": transisi_pakai, "denyut_tekanan": len(titik), "mesin": mesin_dipakai,
+            "musik_kredit": kredit_musik(music), "volume_musik_persen": float(st["audio"].get("volume_musik_persen", 10)) if music else None}
     (out_dir / "info.json").write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
     log(f"selesai dalam {time.time() - t0:.0f} dtk: videos/{a.slug}/export/final.mp4 ({info['durasi']} dtk)")
     if not music:

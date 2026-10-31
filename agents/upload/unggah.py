@@ -103,7 +103,8 @@ def metadata(slug: str) -> dict:
     sc, man = rj(vdir / "script.json"), rj(vdir / "aset" / "manifest.json")
     kredit = (vdir / "aset" / "kredit_deskripsi.txt").read_text(encoding="utf-8").strip() if (vdir / "aset" / "kredit_deskripsi.txt").exists() else ""
     judul = re.sub(r"[<>]", "", sc.get("judul") or slug)[:100]
-    desk = "\n\n".join(x for x in [sc.get("deskripsi", "").strip(), kredit] if x)
+    musik = str(rj(vdir / "export" / "info.json").get("musik_kredit") or "").strip()
+    desk = "\n\n".join(x for x in [sc.get("deskripsi", "").strip(), kredit, f"Musik: {musik}" if musik else ""] if x)
     desk = re.sub(r"[<>]", "", desk)[:4900]
     tags, n = [], 0
     for t in sc.get("tag", []):

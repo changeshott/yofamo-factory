@@ -222,6 +222,10 @@ def offline() -> None:
         subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "sine=frequency=330:duration=12", str(tmp / "musik" / "uji.mp3")], check=False)
         shutil.copy(ROOT / "bible" / "gaya-edit.json", tmp / "bible" / "gaya-edit.json") if (ROOT / "bible" / "gaya-edit.json").exists() else None
         t0 = time.time()
+        (tmp / "musik" / "misterius").mkdir(parents=True, exist_ok=True)     # perpustakaan musik contoh (suasana naskah: misterius)
+        subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "sine=frequency=330:duration=60", "-c:a", "libmp3lame",
+                        str(tmp / "musik" / "misterius" / "lagu-uji.mp3")], check=False)
+        (tmp / "musik" / "misterius" / "lagu-uji.txt").write_text("Lagu Uji oleh Contoh (CC BY 4.0)", encoding="utf-8")
         r = run(tmp, "agents/editor/rakit.py", slug, "--uji")
         fin = vdir / "export" / "final.mp4"
         wd, ht, d = ffprobe_size(fin) if fin.exists() else (0, 0, 0)
@@ -254,6 +258,8 @@ def offline() -> None:
             for t in (0.15, 0.5, 1.2, 4.0, 6.0):
                 subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", str(t), "-i", str(fin), "-frames:v", "1", "-vf", "scale=360:-2",
                                 str(Path(fdir) / f"f{t:.2f}.jpg")], check=False)
+        cek("Kai: musik latar sesuai suasana, volume 10%, kredit tercatat", inf.get("musik") == "lagu-uji.mp3" and inf.get("volume_musik_persen") == 10
+            and "Lagu Uji" in str(inf.get("musik_kredit")), f"{inf.get('musik')} · {inf.get('volume_musik_persen')}%")
         cek("Kai: penutup, teks layar & penekanan tampil", ",Akhir," in ass_txt and ",Layar," in ass_txt and "PROTOTIPE" in ass_txt and "REFLEKS!" not in ass_txt and "&H003FD2FF&" in ass_txt)
         ar = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=codec_name", "-of", "csv=p=0", str(fin)], capture_output=True, text=True)
         cek("Kai: ada audio AAC", "aac" in ar.stdout)

@@ -121,6 +121,8 @@ export function AgentPanel({ def, ctx }: { def: AgentDef; ctx: PanelCtx }) {
           <H3>Siap upload ({ok.length})</H3>
           {ok.length ? ok.map((v) => <VideoCard key={v.slug} v={v} ctx={ctx} />) : <Muted>Belum ada video yang kamu setujui.</Muted>}
           <Muted className="mt-2">Upload selalu PRIVATE. Project Google Cloud yang belum diaudit YouTube memang hanya boleh private; kamu mengubahnya ke publik/terjadwal di YouTube Studio. Kuota API ±6 upload per hari.</Muted>
+          <H3>Musik latar</H3>
+          <MusikPanel ctx={ctx} />
         </>);
       })()}
       {def.id === "kai" && (() => {
@@ -132,7 +134,7 @@ export function AgentPanel({ def, ctx }: { def: AgentDef; ctx: PanelCtx }) {
                 <Btn size="sm" tone="primary" disabled={busy(state) || !state.health.ffmpeg} onClick={() => ctx.run("editor", v.slug)}>{v.final.ada ? "Rakit ulang" : "Rakit video"}</Btn></li>))}
             </ul>
           ) : <Muted>Belum ada video yang visualnya sudah disiapkan Bima.</Muted>}
-          <Muted className="mt-2">Gratis, tanpa kuota Claude. Gaya editan (font, warna subtitle, hook, musik) diatur di <code>bible/gaya-edit.json</code>. Musik latar: taruh lagu bebas royalti di folder <code>musik/</code>.</Muted>
+          <Muted className="mt-2">Gratis, tanpa kuota Claude. Gaya editan (font, warna subtitle, hook, musik) diatur di <code>bible/gaya-edit.json</code>. Musik latar dipilih Uli dari folder <code>musik/</code> (volume 10%); atur di meja Uli.</Muted>
         </>);
       })()}
       {def.id === "bima" && (() => {
@@ -695,3 +697,59 @@ export function KelolaPanel({ ctx }: { ctx: PanelCtx }) {
 }
 
 export const agentById = (id: string) => TEAM.find((t) => t.id === id);
+
+/* ---------------------------------------------------------------- musik latar (meja Uli) */
+interface Lagu { file: string; nama: string; suasana: string; mb: number; kredit: boolean }
+export function MusikPanel({ ctx }: { ctx: PanelCtx }) {
+  const [data, setData] = useState<{ lagu: Lagu[]; pilihan: Record<string, string>; ada_folder: boolean } | null>(null);
+  const [pesan, setPesan] = useState("");
+  const muat = () => fetch("/api/musik", { cache: "no-store" }).then((r) => r.json()).then(setData).catch(() => setData({ lagu: [], pilihan: {}, ada_folder: false }));
+  useEffect(() => { void muat(); }, []);
+  const vids = ctx.state.videos.filter((v) => ["suara", "aset", "draft", "export"].includes(v.status));
+  const pilih = async (slug: string, file: string) => {
+    try { const r = await api<{ message: string }>("/api/musik", { slug, file }); setPesan(r.message); } catch (e) { setPesan((e as Error).message); }
+    void muat();
+  };
+  if (!data) return <Muted>Memuat perpustakaan musik…</Muted>;
+  const grup = data.lagu.reduce<Record<string, Lagu[]>>((g, l) => ((g[l.suasana] ??= []).push(l), g), {});
+  return (<>
+    <Muted>Uli memilih lagu dari perpustakaanmu sesuai suasana naskah (tegang, ceria, misterius, epik, haru) dan menggilir lagu yang paling jarang dipakai. Volumenya <b className="text-ink-50">10%</b> dari suara narasi, stabil sepanjang video.</Muted>
+    {data.lagu.length === 0 ? (
+      <div className="mt-3 rounded-lg border border-line bg-ink-950 p-3 text-sm">
+        <b className="font-pixel">Perpustakaan masih kosong</b>
+        <ol className="mt-2 list-decimal space-y-1 pl-5 text-muted">
+          <li>Buka YouTube Studio → <b className="text-ink-50">Audio Library</b> (gratis untuk channel YouTube).</li>
+          <li>Unduh lagu yang lisensinya <i>tidak</i> wajib atribusi, atau yang wajib atribusi juga boleh.</li>
+          <li>Taruh di <code>musik/tegang</code>, <code>musik/ceria</code>, <code>musik/misterius</code>, <code>musik/epik</code>, atau <code>musik/haru</code>.</li>
+          <li>Kalau lagunya wajib atribusi, salin teks kreditnya ke file <code>nama-lagu.txt</code> di sebelah lagunya; Uli menambahkannya ke deskripsi.</li>
+        </ol>
+      </div>
+    ) : Object.entries(grup).map(([sua, ls]) => (
+      <div key={sua} className="mt-3">
+        <h4 className="mb-1 font-pixel text-sm capitalize text-muted">{sua} · {ls.length}</h4>
+        <ul className="space-y-1.5">{ls.map((l) => (
+          <li key={l.file} className="rounded-lg border border-line/70 bg-ink-950/60 px-2.5 py-2">
+            <div className="flex items-center justify-between gap-2 text-sm"><span className="truncate">{l.nama}</span><small className="shrink-0 text-faint">{l.mb} MB{l.kredit ? " · ada kredit" : ""}</small></div>
+            <audio controls preload="none" className="mt-1.5 h-8 w-full" src={`/api/musik?file=${encodeURIComponent(l.file)}`} />
+          </li>))}</ul>
+      </div>))}
+    {vids.length > 0 && data.lagu.length > 0 && (<>
+      <h4 className="mt-4 mb-1 font-pixel text-sm text-muted">Lagu per video</h4>
+      <ul className="divide-y divide-line">{vids.map((v) => (
+        <li key={v.slug} className="py-2 text-sm">
+          <span className="block truncate">{v.judul_kerja}</span>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <select value={data.pilihan[v.slug] ?? ""} onChange={(e) => void pilih(v.slug, e.target.value)} className="min-w-0 flex-1 rounded-md border border-line bg-ink-950 px-2 py-1.5 text-sm">
+              <option value="">Otomatis (sesuai suasana)</option>
+              <option value="tanpa">Tanpa musik</option>
+              {data.lagu.map((l) => <option key={l.file} value={l.file}>{l.suasana} · {l.nama}</option>)}
+            </select>
+            {(v.status === "draft" || v.status === "aset") && <Btn size="sm" disabled={busy(ctx.state) || !ctx.state.health.ffmpeg} onClick={() => ctx.run("editor", v.slug)}>Rakit ulang</Btn>}
+          </div>
+        </li>))}</ul>
+    </>)}
+    {pesan && <Muted className="mt-2 text-leaf">{pesan}</Muted>}
+    <Muted className="mt-2">Lagu dari video YouTube biasa tidak dipakai: musik itu hampir selalu kena Content ID (video diblokir atau monetisasi diambil pemilik lagu). YouTube Audio Library aman untuk channelmu.</Muted>
+  </>);
+}
+

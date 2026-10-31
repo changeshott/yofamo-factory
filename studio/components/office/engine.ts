@@ -179,8 +179,6 @@ export class OfficeEngine {
     this.poly([P(0, 0), P(16, 0), P(16, 0, 30), P(0, 0, 30)], "#1C2E50");
     this.poly([P(0, 0, 30), P(0, RD, 30), P(0, RD, 32), P(0, 0, 32)], "#6FD3FF");
     this.poly([P(0, 0, 30), P(16, 0, 30), P(16, 0, 32), P(0, 0, 32)], "#4FB9F0");
-    for (let y = 0.5; y < RD; y += 1.0) { const g = this.g; g.strokeStyle = "rgba(255,255,255,.07)"; g.beginPath(); g.moveTo(...P(0, y, 2)); g.lineTo(...P(0, y, 28)); g.stroke(); }
-    for (let x = 0.5; x < 16; x += 1.0) { const g = this.g; g.strokeStyle = "rgba(255,255,255,.06)"; g.beginPath(); g.moveTo(...P(x, 0, 2)); g.lineTo(...P(x, 0, 28)); g.stroke(); }
     this.poly([P(16, 0), P(RW, 0), P(RW, 0, WALL), P(16, 0, WALL)], "#16233B"); // dinding ruang founder (navy gelap)
     this.poly([P(0, 0, WALL), P(0, RD, WALL), P(-0.35, RD, WALL), P(-0.35, -0.35, WALL), P(RW, -0.35, WALL), P(RW, 0, WALL)], "#7F93AE");
     // panel kayu bilah di belakang neon
@@ -203,16 +201,16 @@ export class OfficeEngine {
     // lantai: kayu walnut (kerja), karpet navy (founder), marmer (pantry)
     for (let i = 0; i < RW; i++) for (let j = 0; j < RD; j++) {
       let c: string;
-      if (i >= 16 && j < 6) c = (i + j) % 2 ? "#1E2D48" : "#1B2A44";
-      else if (j >= 13 && i >= 8 && i < 16) c = (i + j) % 2 ? "#EEF2F7" : "#E1E7EF";
-      else { const plank = Math.floor((i + (j % 3) * 0.7) / 2.5); c = ["#C9A37A", "#C49D73", "#CDA77F", "#C29A71"][(plank * 7 + j * 3) % 4]; }
-      this.poly([P(i, j), P(i + 1, j), P(i + 1, j + 1), P(i, j + 1)], c);
+      if (i >= 16 && j < 6) c = "#1D2C47";
+      else if (j >= 13 && i >= 8 && i < 16) c = "#E8EDF3";
+      else c = "#C7A07A";
+      this.poly([P(i - 0.02, j - 0.02), P(i + 1.02, j - 0.02), P(i + 1.02, j + 1.02), P(i - 0.02, j + 1.02)], c);
     }
     const g = this.g;
-    g.globalAlpha = 0.18; g.strokeStyle = "#7A5636";
-    for (let j = 0; j <= 13; j++) { g.beginPath(); g.moveTo(...P(0, j)); g.lineTo(...P(16, j)); g.stroke(); }          // garis papan
-    for (let i = 0; i < 16; i++) for (let j = 0; j < 13; j++) if ((i * 2 + j * 3) % 5 === 0) { g.beginPath(); g.moveTo(...P(i + 0.5, j)); g.lineTo(...P(i + 0.5, j + 1)); g.stroke(); }
-    g.globalAlpha = 1;
+    // cahaya ruangan: terang di tengah, meredup ke tepi (tanpa garis)
+    { const [cx, cy] = P(8, 6.5), gr = g.createRadialGradient(cx, cy, 10, cx, cy, 330);
+      gr.addColorStop(0, "rgba(255,244,226,.20)"); gr.addColorStop(0.6, "rgba(255,244,226,.04)"); gr.addColorStop(1, "rgba(40,24,10,.16)");
+      this.poly([P(0, 0), P(16, 0), P(16, 6), P(RW, 6), P(RW, RD), P(0, RD)], gr); }
     // bayangan lembut di pertemuan dinding & lantai (ambient occlusion)
     const ao = (pts: Pt[], x0: Pt, x1: Pt) => { const gr = g.createLinearGradient(x0[0], x0[1], x1[0], x1[1]); gr.addColorStop(0, "rgba(10,18,34,.32)"); gr.addColorStop(1, "rgba(10,18,34,0)"); this.poly(pts, gr); };
     ao([P(0, 0), P(0, RD), P(0.9, RD), P(0.9, 0)], P(0, 7), P(0.9, 7));
@@ -522,6 +520,16 @@ export class OfficeEngine {
     const n = (st?.videos ?? []).filter((v) => v.status === "ide" || v.status === "naskah").length;
     if (n) { const [bx, by] = P(fx + 0.3, fy + 0.85, 36); ov.push({ kind: "badge", x: bx, y: by - 6, text: String(n) }); }
     this.overlay = ov;
+  }
+
+  /** Titik tengah objek (koordinat buffer) untuk transisi zoom kamera ke agent/meja yang dibuka. */
+  anchor(id: string): Pt | null {
+    const hs = this.hits.filter((h) => h.id === id);
+    const h = hs.find((x) => x.person) ?? hs[0];
+    if (!h) return null;
+    const desk = hs.find((x) => !x.person);
+    const b = desk && h.person ? [Math.min(h.bbox[0], desk.bbox[0]), Math.min(h.bbox[1], desk.bbox[1]), Math.max(h.bbox[2], desk.bbox[2]), Math.max(h.bbox[3], desk.bbox[3])] : h.bbox;
+    return [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2];
   }
 
   hitAt(x: number, y: number): Hit | undefined {

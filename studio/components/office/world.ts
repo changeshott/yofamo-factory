@@ -33,13 +33,13 @@ export const TEAM: AgentDef[] = [
   },
   {
     id: "raka", skill: "penulis", job: "penulis", name: "Raka", role: "Penulis naskah", desk: [9.2, 2.6], color: "#FF9A4D",
-    about: "Menulis naskah 30–45 detik, judul, teks hook, deskripsi, dan tag dari ide yang kamu setujui.",
+    about: "Kepala penulis: naskah dengan pembuka khas \"Tau nggak, …\", durasi sesuai topik, penutup yang tuntas, grafis gerak per kalimat, judul + 2 alternatif, deskripsi, tag, dan komentar pin.",
     look: { skin: "#C99068", hair: "#1A1A1A", shirt: "#F08A3C", pants: "#2B2B33", accent: "#2C3B57", style: "cap" },
     busy: { penulis: "Menulis naskah…" },
   },
   {
     id: "dara", skill: "suara", job: "suara", name: "Dara", role: "Suara & subtitle", desk: [1.6, 7.0], color: "#C792EA",
-    about: "Mengubah naskah Raka menjadi voice-over, timing per kata, dan subtitle SRT. Gratis (edge-tts), tidak memakai kuota Claude.",
+    about: "Mengubah naskah Raka menjadi voice-over ekspresif (tempo, nada & jeda mengikuti bagian naskah), timing per kata, subtitle, dan transkrip. Gratis, tanpa kuota Claude.",
     look: { skin: "#E8B892", hair: "#2E2140", shirt: "#9B6BD3", pants: "#2B2B3A", accent: "#F4F1E8", style: "bun" },
     busy: { suara: "Merekam suara…" },
   },
@@ -51,7 +51,7 @@ export const TEAM: AgentDef[] = [
   },
   {
     id: "kai", skill: "editor", job: "editor", name: "Kai", role: "Editor video", desk: [9.2, 7.0], color: "#F2C94C",
-    about: "Merakit video final: shot Bima + suara Dara, subtitle kata-per-kata yang menyala, teks hook, punch zoom, whoosh, dan musik yang otomatis mengecil saat ada suara. Gratis, tanpa kuota Claude.",
+    about: "Merakit video final dengan HyperFrames: hook bertingkat, subtitle 1 kata, grafis gerak biru sesuai kalimat, transisi halus, musik latar 10%, dan penutup Subscribe. Gratis, tanpa kuota Claude.",
     look: { skin: "#E0AC86", hair: "#3B2A20", shirt: "#E3B23C", pants: "#2A2F3A", accent: "#1C1C1C", style: "short", glasses: true },
     busy: { editor: "Merender video…" },
   },
@@ -63,7 +63,7 @@ export const TEAM: AgentDef[] = [
   },
   {
     id: "uli", skill: "upload", job: "upload", name: "Uli", role: "Upload YouTube", desk: [16.8, 7.0], color: "#82AAFF",
-    about: "Mengunggah video yang sudah kamu setujui ke YouTube sebagai PRIVATE (bisa dijadwalkan), lengkap dengan judul, deskripsi, kredit, tag, dan label konten sintetis. Tidak pernah menyentuh video lain di channel.",
+    about: "Mengunggah video yang sudah kamu setujui ke YouTube sebagai PRIVATE, lengkap dengan judul, deskripsi, kredit, tag, dan label konten sintetis. Juga mengurus musik latar: memilih lagu dari perpustakaanmu sesuai suasana. Tidak pernah menyentuh video lain di channel.",
     look: { skin: "#C68E6A", hair: "#121212", shirt: "#4E7BD9", pants: "#30323D", accent: "#F4F1E8", style: "cap" },
     busy: { upload: "Mengunggah…", login: "Menghubungkan YouTube…" },
   },
