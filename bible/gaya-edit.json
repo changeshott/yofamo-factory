@@ -1,24 +1,31 @@
 {
   "_catatan": "Gaya editan Kai (agent editor), meniru gaya channel Yofamo. Ubah di sini, berlaku untuk semua video berikutnya. Warna hex RRGGBB. Font default fonts/Poppins-Black.ttf.",
   "mesin": "auto",
+  "palet": {
+    "utama": "2D8CFF",
+    "terang": "6FD3FF",
+    "gelap": "071631",
+    "kuning": "FFD23F",
+    "_catatan": "Warna khas Yofamo (biru). utama = tombol/stabilo/bar, terang = angka & aksen, kuning = baris tengah hook."
+  },
   "hyperframes": {
-    "subtitle_px": 104,
-    "subtitle_min": 60,
+    "subtitle_px": 88,
+    "subtitle_min": 54,
     "subtitle_y": 1180,
     "hook_px_maks": 230,
     "hook_y": 1000,
     "zona_grafis_atas": 430,
-    "aksen": "FF9A4D",
+    "aksen": "2D8CFF",
     "_catatan": "Dipakai mesin HyperFrames (Node 22 + npm install). Subtitle y=1180 berada di zona aman Shorts (168–1330 px); grafis gerak di 430–1000 px."
   },
   "font": "",
   "subtitle": {
     "posisi": "tengah",
     "y": 960,
-    "ukuran": 130,
-    "ukuran_min": 72,
+    "ukuran": 112,
+    "ukuran_min": 64,
     "warna": "FFFFFF",
-    "warna_tekan": "FFD23F",
+    "warna_tekan": "6FD3FF",
     "garis": 7,
     "bayangan": 5,
     "maks_kata": 1,
@@ -44,19 +51,20 @@
     "tinggi_maks": 900
   },
   "gerak": {
-    "punch_zoom": 0.08,
+    "punch_zoom": 0,
     "punch_detik": 0.28,
-    "dorong": 0.06,
-    "denyut_tekanan": 0.05,
-    "transisi_detik": 0.3,
+    "dorong": 0.05,
+    "denyut_tekanan": 0,
+    "transisi_detik": 0.4,
     "transisi": [
       "smoothleft",
-      "zoomin",
+      "fade",
       "smoothup",
-      "slideleft",
-      "circleopen"
+      "zoomin",
+      "smoothright"
     ],
-    "transisi_wow": "fadewhite"
+    "transisi_wow": "fadewhite",
+    "_catatan": "Gerak halus: tanpa hentakan zoom (punch_zoom 0) & tanpa denyut; hanya dorongan pelan terus-menerus + transisi lembut."
   },
   "teks_layar": {
     "tampil": true,
@@ -74,9 +82,11 @@
   },
   "penutup": {
     "tampil": true,
-    "detik": 1.2,
-    "teks": "Follow buat teknologi gila berikutnya",
-    "ukuran": 96
+    "detik": 2.2,
+    "teks": "Subscribe buat teknologi gila berikutnya",
+    "ukuran": 96,
+    "warna_kotak": "2D8CFF",
+    "warna_teks": "FFFFFF"
   },
   "handle": {
     "tampil": true,

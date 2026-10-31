@@ -67,7 +67,7 @@ Jangan: "Tau nggak, di video ini kita bahas…" (basa-basi), "Tau nggak tentang 
 Untuk setiap kalimat di `narasi`:
 - `visual`: deskripsi konkret dalam bahasa Indonesia (benda, aksi, close-up).
 - `jenis_visual`: `footage` (default, footage asli), `ai` (hanya kalau footage tidak mungkin: konsep, dalam tubuh, masa depan), atau `grafis` (kalimat yang menyebut angka kunci, maksimal 2 per video). Ikuti aturan campuran visual di bible: **≥ 75% footage** (Bima mengutamakan potongan YouTube CC), AI ≤ 15%, tidak ada 2 AI berturut-turut.
-- `kata_kunci_visual`: 1–3 kata kunci **bahasa Inggris** untuk mencari footage (ambil/kembangkan dari `kata_kunci_visual` Nova). Wajib untuk footage/ai.
+- `kata_kunci_visual`: 1–3 kata kunci **bahasa Inggris** untuk mencari footage (ambil/kembangkan dari `kata_kunci_visual` Nova). Wajib untuk footage/ai. Kata kunci pertama harus **menyebut teknologi yang dibahas secara spesifik** (misalnya `biohybrid swimming robot`, bukan `robot` atau `science lab`), supaya visual menonjolkan topiknya; kata kunci umum hanya sebagai cadangan.
 - `teks_layar` (opsional, ≤ 4 kata): teks penegas di atas layar, misalnya "PROTOTIPE", "0,1 DETIK!". Maksimal 1 setiap 2 kalimat; jangan di kalimat hook.
 - `penekanan` (opsional): 1–2 kata dari kalimat itu yang harus disorot di subtitle (angka, kata kunci emosi).
 - `grafis_gerak` (opsional, **disarankan ±1 dari tiap 2–3 kalimat**): animasi motion graphic yang Kai gambar di atas footage (zona atas layar), **harus sesuai yang sedang diucapkan**. Pilih satu tipe:

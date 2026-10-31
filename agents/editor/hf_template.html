@@ -10,60 +10,83 @@
   @font-face { font-family: "YofamoXB"; src: url("assets/fonts/Poppins-ExtraBold.ttf") format("truetype"); font-weight: 800; }
   *, *::before, *::after { box-sizing: border-box; }
   html, body { width: 1080px; height: 1920px; margin: 0; overflow: hidden; background: #000; }
-  #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #000; font-family: "Yofamo", "Poppins", sans-serif; }
+  #root { position: relative; width: 1080px; height: 1920px; overflow: hidden; background: #000; font-family: "Yofamo", "Poppins", sans-serif;
+          --utama: #2D8CFF; --terang: #6FD3FF; --gelap: #071631; --kuning: #FFD23F; }
   #base { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; object-fit: cover; z-index: 1; }
   #ui { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
   .lapis { position: absolute; left: 0; width: 100%; text-align: center; color: #fff; opacity: 0; visibility: hidden; }
-  /* teks bergaris tebal ala Shorts: garis digambar di belakang isi huruf */
-  .tebal { paint-order: stroke fill; -webkit-text-stroke: var(--garis, 12px) #000; text-shadow: 0 8px 0 rgba(0,0,0,.35), 0 14px 28px rgba(0,0,0,.45); }
-  /* hook */
-  .hook-baris { font-weight: 900; line-height: .95; letter-spacing: -.01em; white-space: nowrap; }
-  #scrim { position: absolute; inset: 0; background: radial-gradient(ellipse 80% 45% at 50% 58%, rgba(0,0,0,.55), rgba(0,0,0,0) 70%); opacity: 0; }
+  /* garis hitam tebal di belakang huruf + bayangan */
+  .tebal { paint-order: stroke fill; -webkit-text-stroke: var(--garis, 12px) #000; text-shadow: 0 6px 0 rgba(0,0,0,.4), 0 12px 26px rgba(0,0,0,.45); }
+  /* HOOK: bayangan tebal berlapis (permintaan Zona) */
+  .hook-baris { font-weight: 900; line-height: .95; letter-spacing: -.01em; white-space: nowrap;
+                text-shadow: 0 10px 0 rgba(0,0,0,.75), 0 18px 0 rgba(0,0,0,.35), 0 26px 60px rgba(0,0,0,.85), 0 0 34px rgba(0,0,0,.5); }
+  #scrim { position: absolute; inset: 0; background: radial-gradient(ellipse 85% 42% at 50% 52%, rgba(3,10,26,.62), rgba(3,10,26,0) 72%); opacity: 0; }
   /* subtitle 1 kata */
   .kata { font-weight: 900; white-space: nowrap; line-height: 1; }
   .kata .isi { display: inline-block; position: relative; }
-  .kata.tekan .isi { color: var(--kuning); }
-  .stabilo { position: absolute; left: -14px; right: -14px; top: 18%; bottom: 8%; background: var(--oranye); border-radius: 14px;
-             transform-origin: left center; z-index: -1; opacity: .92; }
-  /* kartu kaca (glass) untuk grafis gerak */
-  .kartu { position: absolute; left: 70px; right: 70px; border-radius: 40px; padding: 38px 44px; color: #fff;
-           background: linear-gradient(160deg, rgba(28,30,40,.82), rgba(10,11,16,.78)); border: 2px solid rgba(255,255,255,.14);
-           box-shadow: 0 30px 80px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.18); opacity: 0; visibility: hidden; }
-  .kartu .kecil { font-family: "YofamoXB", "Poppins", sans-serif; font-weight: 800; font-size: 40px; letter-spacing: .06em; color: rgba(255,255,255,.72); text-transform: uppercase; }
-  .angka-besar { font-weight: 900; font-size: 210px; line-height: .95; color: var(--kuning); letter-spacing: -.02em; }
-  .angka-besar .akh { font-size: .55em; color: #fff; margin-left: 10px; }
-  .bar { height: 22px; border-radius: 11px; background: rgba(255,255,255,.12); overflow: hidden; margin-top: 26px; }
-  .bar i { display: block; height: 100%; width: 100%; border-radius: 11px; background: linear-gradient(90deg, var(--oranye), var(--kuning)); transform-origin: left; }
-  .pil { position: absolute; left: 0; right: 0; display: flex; justify-content: center; opacity: 0; visibility: hidden; }
-  .pil span { display: inline-flex; align-items: center; gap: 22px; padding: 22px 44px; border-radius: 999px; font-weight: 900; font-size: 64px; color: #111;
-              background: var(--kuning); box-shadow: 0 18px 50px rgba(0,0,0,.45); white-space: nowrap; }
-  .pil span b { width: 26px; height: 26px; border-radius: 50%; background: #111; display: inline-block; }
-  .cap { position: absolute; left: 0; right: 0; display: flex; justify-content: center; opacity: 0; visibility: hidden; }
-  .cap span { font-weight: 900; font-size: 150px; color: #fff; padding: 6px 40px; border: 10px solid #fff; border-radius: 28px; transform: rotate(-6deg);
-              text-shadow: 0 10px 30px rgba(0,0,0,.5); background: rgba(255,59,48,.88); white-space: nowrap; }
-  .ring { position: absolute; left: 50%; top: 50%; width: 300px; height: 300px; margin: -150px 0 0 -150px; border-radius: 50%; border: 10px solid #fff; opacity: 0; }
-  .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 26px; }
-  .vs > div { border-radius: 28px; padding: 26px 26px 30px; background: rgba(255,255,255,.08); }
-  .vs .nil { font-weight: 900; font-size: 92px; line-height: 1; margin-top: 10px; }
-  .vs .kanan { background: linear-gradient(160deg, rgba(255,154,77,.35), rgba(255,154,77,.12)); }
+  .stabilo { position: absolute; left: -16px; right: -16px; top: 14%; bottom: 6%; border-radius: 16px; z-index: -1;
+             background: linear-gradient(100deg, var(--utama), #1A6BFF); box-shadow: 0 10px 30px rgba(20,90,255,.45); transform-origin: left center; }
+  /* kartu kaca biru */
+  .kartu { position: absolute; left: 80px; right: 120px; border-radius: 42px; padding: 40px 46px; color: #fff;
+           background: linear-gradient(160deg, rgba(14,36,82,.86), rgba(5,14,34,.84)); border: 2px solid rgba(111,211,255,.28);
+           box-shadow: 0 34px 90px rgba(0,0,0,.5), 0 0 60px rgba(45,140,255,.18), inset 0 1px 0 rgba(255,255,255,.2); opacity: 0; visibility: hidden; }
+  .kartu .kecil { font-family: "YofamoXB", sans-serif; font-weight: 800; font-size: 38px; letter-spacing: .08em; color: var(--terang); text-transform: uppercase; }
+  .angka-besar { font-weight: 900; font-size: 200px; line-height: .95; letter-spacing: -.02em;
+                 background: linear-gradient(180deg, #fff 20%, var(--terang)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .angka-besar .akh { font-size: .5em; margin-left: 10px; }
+  .bar { height: 18px; border-radius: 9px; background: rgba(255,255,255,.1); overflow: hidden; margin-top: 26px; }
+  .bar i { display: block; height: 100%; width: 100%; border-radius: 9px; background: linear-gradient(90deg, var(--utama), var(--terang)); transform-origin: left; }
+  .pil { position: absolute; left: 0; right: 40px; display: flex; justify-content: center; opacity: 0; visibility: hidden; }
+  .pil span { display: inline-flex; align-items: center; gap: 22px; padding: 22px 46px; border-radius: 999px; font-weight: 900; font-size: 60px; color: #fff;
+              background: linear-gradient(100deg, var(--utama), #1A5BFF); box-shadow: 0 18px 50px rgba(0,0,0,.45), 0 0 40px rgba(45,140,255,.35); white-space: nowrap; }
+  .pil span b { width: 22px; height: 22px; border-radius: 50%; background: #fff; display: inline-block; box-shadow: 0 0 18px #fff; }
+  .cap { position: absolute; left: 0; right: 40px; display: flex; justify-content: center; opacity: 0; visibility: hidden; }
+  .cap span { font-weight: 900; font-size: 140px; color: #fff; padding: 6px 44px 10px; border-radius: 30px; transform: rotate(-4deg); white-space: nowrap;
+              background: linear-gradient(100deg, var(--utama), #1452E0); box-shadow: 0 0 0 8px rgba(255,255,255,.95), 0 30px 70px rgba(0,0,0,.55); }
+  .vs { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .vs > div { border-radius: 28px; padding: 26px 26px 30px; background: rgba(255,255,255,.07); }
+  .vs .nil { font-weight: 900; font-size: 84px; line-height: 1; margin-top: 10px; }
+  .vs .kanan { background: linear-gradient(160deg, rgba(45,140,255,.42), rgba(45,140,255,.14)); }
   .langkah { display: flex; flex-direction: column; gap: 22px; }
-  .langkah .lk { display: flex; align-items: center; gap: 26px; font-weight: 900; font-size: 62px; opacity: 0; }
-  .langkah .no { width: 92px; height: 92px; border-radius: 26px; display: grid; place-items: center; background: var(--oranye); color: #111; font-size: 56px; flex: none; }
-  .chip-sumber { position: absolute; left: 60px; top: 1360px; display: flex; gap: 14px; align-items: center; padding: 14px 26px; border-radius: 999px;
-                 background: rgba(10,11,16,.72); border: 2px solid rgba(255,255,255,.16); color: #fff; font-family: "YofamoXB", sans-serif; font-weight: 800; font-size: 34px; opacity: 0; visibility: hidden; }
-  .chip-sumber b { width: 16px; height: 16px; border-radius: 50%; background: #4DFF88; display: inline-block; }
-  #progres { position: absolute; left: 60px; right: 60px; top: 196px; height: 10px; border-radius: 5px; background: rgba(255,255,255,.18); overflow: hidden; z-index: 12; }
-  #progres i { display: block; width: 100%; height: 100%; background: linear-gradient(90deg, var(--oranye), var(--kuning)); transform-origin: left; transform: scaleX(0); }
-  #handle { position: absolute; right: 44px; top: 222px; font-family: "YofamoXB", sans-serif; font-weight: 800; font-size: 32px; color: rgba(255,255,255,.62); z-index: 12; }
-  .sapuan { position: absolute; top: -20%; width: 260px; height: 140%; left: -400px; z-index: 11; opacity: 0;
-            background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.28), rgba(255,255,255,0)); transform: rotate(14deg); }
-  #kilat { position: absolute; inset: 0; background: #fff; opacity: 0; z-index: 11; }
-  #grain { position: absolute; inset: 0; z-index: 13; opacity: .07; mix-blend-mode: overlay;
+  .langkah .lk { display: flex; align-items: center; gap: 26px; font-weight: 900; font-size: 58px; opacity: 0; }
+  .langkah .no { width: 88px; height: 88px; border-radius: 26px; display: grid; place-items: center; background: var(--utama); color: #fff; font-size: 52px; flex: none; }
+  .chip-sumber { position: absolute; left: 60px; top: 250px; display: flex; gap: 14px; align-items: center; padding: 12px 24px; border-radius: 999px;
+                 background: rgba(5,14,34,.7); border: 2px solid rgba(111,211,255,.3); color: #fff; font-family: "YofamoXB", sans-serif; font-weight: 800; font-size: 32px; opacity: 0; visibility: hidden; }
+  .chip-sumber b { width: 14px; height: 14px; border-radius: 50%; background: var(--terang); display: inline-block; box-shadow: 0 0 12px var(--terang); }
+  /* layar penuh (pengganti kartu grafis Bima): latar biru tua + kisi bergerak pelan + cahaya */
+  .layar { position: absolute; inset: 0; z-index: 9; overflow: hidden; opacity: 0; visibility: hidden;
+           background: radial-gradient(ellipse 120% 80% at 50% 30%, #0E3B86 0%, #071631 55%, #030914 100%); }
+  .layar .kisi { position: absolute; inset: -200px; opacity: .22;
+                 background-image: linear-gradient(rgba(111,211,255,.5) 2px, transparent 2px), linear-gradient(90deg, rgba(111,211,255,.5) 2px, transparent 2px);
+                 background-size: 120px 120px; transform: perspective(900px) rotateX(58deg) translateY(380px); }
+  .layar .orb { position: absolute; width: 900px; height: 900px; left: 90px; top: 380px; border-radius: 50%;
+                background: radial-gradient(circle, rgba(45,140,255,.55), rgba(45,140,255,0) 65%); filter: blur(10px); }
+  .layar .isi { position: absolute; left: 90px; right: 130px; top: 560px; color: #fff; }
+  .layar .garis { width: 200px; height: 14px; border-radius: 7px; background: linear-gradient(90deg, var(--utama), var(--terang)); transform-origin: left; margin-bottom: 40px; }
+  .layar .besar { font-weight: 900; line-height: .92; letter-spacing: -.02em; background: linear-gradient(180deg, #fff 25%, var(--terang));
+                  -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 18px 40px rgba(0,0,0,.5)); }
+  .layar .lbl { font-weight: 900; font-size: 74px; line-height: 1.08; margin-top: 26px; }
+  .layar .lbl .w { display: inline-block; margin-right: .26em; opacity: 0; }
+  .layar .lbl .w.biru { color: var(--terang); }
+  #progres { position: absolute; left: 60px; right: 60px; top: 196px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.16); overflow: hidden; z-index: 12; }
+  #progres i { display: block; width: 100%; height: 100%; background: linear-gradient(90deg, var(--utama), var(--terang)); transform-origin: left; transform: scaleX(0); box-shadow: 0 0 12px var(--utama); }
+  #handle { position: absolute; right: 44px; top: 216px; font-family: "YofamoXB", sans-serif; font-weight: 800; font-size: 30px; color: rgba(255,255,255,.6); z-index: 12; }
+  .sapuan { position: absolute; top: -20%; width: 300px; height: 140%; left: -420px; z-index: 11; opacity: 0;
+            background: linear-gradient(90deg, rgba(111,211,255,0), rgba(170,225,255,.22), rgba(111,211,255,0)); transform: rotate(14deg); }
+  #kilat { position: absolute; inset: 0; background: radial-gradient(circle at 50% 45%, #fff, #BFE6FF); opacity: 0; z-index: 11; }
+  #grain { position: absolute; inset: 0; z-index: 13; opacity: .06; mix-blend-mode: overlay;
            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
-  #penutup { position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 34px; opacity: 0; visibility: hidden; z-index: 14; }
-  #penutup .tbl { display: inline-flex; align-items: center; gap: 22px; padding: 30px 64px; border-radius: 999px; background: var(--oranye); color: #111; font-weight: 900; font-size: 84px; box-shadow: 0 24px 70px rgba(0,0,0,.5); }
-  #penutup .sub { font-weight: 900; font-size: 64px; color: #fff; text-align: center; padding: 0 80px; line-height: 1.08; }
-  #penutup .hd { font-family: "YofamoXB", sans-serif; font-weight: 800; font-size: 44px; color: rgba(255,255,255,.85); }
+  /* PENUTUP: ajakan subscribe */
+  #penutup { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 40px; opacity: 0; visibility: hidden; z-index: 14;
+             background: radial-gradient(ellipse 90% 60% at 50% 48%, rgba(7,22,49,.78), rgba(3,9,20,.55) 70%); }
+  #penutup .sub { font-weight: 900; font-size: 66px; color: #fff; text-align: center; padding: 0 110px; line-height: 1.08; text-shadow: 0 10px 30px rgba(0,0,0,.6); }
+  #penutup .sub em { font-style: normal; color: var(--terang); }
+  #penutup .tbl { position: relative; display: inline-flex; align-items: center; gap: 24px; padding: 32px 70px; border-radius: 999px; font-weight: 900; font-size: 82px; color: #fff;
+                  background: linear-gradient(100deg, var(--utama), #1452E0); box-shadow: 0 26px 70px rgba(0,0,0,.55), 0 0 60px rgba(45,140,255,.5); }
+  #penutup .tbl .ok { position: absolute; inset: 0; border-radius: 999px; display: flex; align-items: center; justify-content: center; gap: 20px;
+                      background: #2B3446; color: rgba(255,255,255,.85); font-size: 70px; opacity: 0; }
+  #penutup .hd { font-family: "YofamoXB", sans-serif; font-weight: 800; font-size: 44px; color: rgba(255,255,255,.9); }
+  #jari { position: absolute; width: 120px; height: 120px; border-radius: 50%; border: 8px solid #fff; background: rgba(255,255,255,.25); z-index: 15; opacity: 0; left: 640px; top: 950px; }
 </style>
 </head>
 <body>
@@ -73,158 +96,195 @@
   <div id="progres"><i></i></div>
   <div id="handle"></div>
   <div id="grain"></div>
-  <div id="penutup"><div class="sub" id="pn-sub"></div><div class="tbl"><svg width="70" height="70" viewBox="0 0 24 24"><path fill="#111" d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3a1.5 1.5 0 0 0-3 0v1.16A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg><span id="pn-tbl">FOLLOW</span></div><div class="hd" id="pn-hd"></div></div>
+  <div id="penutup"><div class="sub" id="pn-sub"></div>
+    <div class="tbl"><svg width="72" height="72" viewBox="0 0 24 24"><path fill="#fff" d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22Zm7-6V11a7 7 0 0 0-5.5-6.84V3a1.5 1.5 0 0 0-3 0v1.16A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2Z"/></svg><span id="pn-tbl">SUBSCRIBE</span>
+      <div class="ok">✓ <span>SUBSCRIBED</span></div></div>
+    <div class="hd" id="pn-hd"></div></div>
+  <div id="jari"></div>
 </div>
 <script>
-/* Data video ditulis Kai (agents/editor/komposisi.py). Semua gerak = fungsi waktu timeline (deterministik). */
+/* Data video ditulis Kai (agents/editor/komposisi.py). Semua gerak = fungsi waktu timeline (deterministik).
+   Gaya gerak: halus — masuk dengan ease keluar panjang (expo/power3), tanpa memantul; keluar lebih singkat dari masuk. */
 const D = __DATA__;
 (function () {
   window.__timelines = window.__timelines || {};
   const R = document.getElementById("root"), UI = document.getElementById("ui");
-  R.style.setProperty("--kuning", "#" + D.warna.kuning);
-  R.style.setProperty("--oranye", "#" + D.warna.oranye);
-  R.style.setProperty("--biru", "#" + D.warna.biru);
+  const W = D.warna || {};
+  if (W.utama) R.style.setProperty("--utama", "#" + W.utama);
+  if (W.terang) R.style.setProperty("--terang", "#" + W.terang);
+  if (W.gelap) R.style.setProperty("--gelap", "#" + W.gelap);
+  if (W.kuning) R.style.setProperty("--kuning", "#" + W.kuning);
   const cv = document.createElement("canvas").getContext("2d");
   const lebar = (t, px, fam) => { cv.font = `900 ${px}px ${fam || "Yofamo"}`; return cv.measureText(t).width; };
   const pas = (t, maks, min, ruang, fam) => { let s = maks; while (s > min && lebar(t, s, fam) > ruang) s -= 2; return s; };
   const el = (tag, cls, html, parent) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; (parent || UI).appendChild(e); return e; };
   const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
   const tampil = (tl, e, a, b) => { tl.set(e, { visibility: "visible" }, a); tl.set(e, { visibility: "hidden", opacity: 0 }, b); };
+  const MASUK = "expo.out", HALUS = "power3.out", KELUAR = "power2.in";
+
+  function hitung(tl, nEl, angka, a, dur) {
+    const s = String(angka), target = Number(s.replace(/\./g, "").replace(",", ".")), des = s.includes(",");
+    if (!isFinite(target)) { nEl.textContent = s; return; }
+    const o = { v: 0 };
+    tl.fromTo(o, { v: 0 }, { v: target, duration: dur, ease: "power2.out",
+      onUpdate: () => { nEl.textContent = des ? o.v.toFixed(1).replace(".", ",") : Math.round(o.v).toLocaleString("id-ID"); } }, a);
+  }
 
   function bangun() {
     const tl = gsap.timeline({ paused: true });
     document.getElementById("handle").textContent = D.handle || "";
-    // progres tonton (tren retensi): bar tipis mengisi sepanjang video
     tl.fromTo("#progres i", { scaleX: 0 }, { scaleX: 1, duration: D.total, ease: "none" }, 0);
 
-    // ---------------- HOOK bertingkat: tiap baris jatuh + blur → tajam, memantul
+    // ---------------- HOOK bertingkat: tiap baris naik pelan + blur → tajam, lalu diam (tanpa memantul)
     if (D.hook && D.hook.baris.length) {
       const H = D.hook;
-      H.baris.forEach((b) => { b.px = pas(b.teks, b.maks, 60, 900); });
+      H.baris.forEach((b) => { b.px = pas(b.teks, b.maks, 60, 860); });
       const muat = H.tinggi_maks / H.baris.reduce((s, b) => s + b.px * H.rapat, 0);
       if (muat < 1) H.baris.forEach((b) => { b.px = Math.floor(b.px * muat); });
       const tinggi = H.baris.map((b) => b.px * H.rapat);
       let y = H.y - tinggi.reduce((s, x) => s + x, 0) / 2;
-      tl.fromTo("#scrim", { opacity: 0 }, { opacity: 1, duration: .25, ease: "power2.out" }, 0);
-      tl.to("#scrim", { opacity: 0, duration: .2, ease: "power2.in" }, H.akhir - .2);
+      tl.fromTo("#scrim", { opacity: 0 }, { opacity: 1, duration: .35, ease: HALUS }, 0);
+      tl.to("#scrim", { opacity: 0, duration: .25, ease: KELUAR }, H.akhir - .25);
       H.baris.forEach((b, i) => {
         const e = el("div", "lapis tebal hook-baris", esc(b.teks));
-        e.style.cssText += `top:${y}px;font-size:${b.px}px;color:#${b.warna};--garis:${Math.round(b.px * .085)}px;`;
+        e.style.cssText += `top:${y}px;font-size:${b.px}px;color:#${b.warna};--garis:${Math.round(b.px * .09)}px;`;
         y += tinggi[i];
         const a = i * H.jeda;
         tampil(tl, e, a, H.akhir);
-        tl.fromTo(e, { opacity: 0, y: -70, scale: 1.6, filter: "blur(14px)" },
-                     { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", duration: .42, ease: "back.out(2.2)" }, a);
-        tl.to(e, { opacity: 0, y: 30, filter: "blur(10px)", duration: .18, ease: "power2.in" }, H.akhir - .18);
+        tl.fromTo(e, { opacity: 0, y: 56, scale: .94, filter: "blur(12px)" },
+                     { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", duration: .6, ease: MASUK }, a);
+        tl.to(e, { opacity: 0, y: -24, filter: "blur(8px)", duration: .22, ease: KELUAR }, H.akhir - .22);
       });
     }
 
-    // ---------------- SUBTITLE 1 kata, posisi aman di bawah tengah, kata penekanan kuning + stabilo
-    D.kata.forEach((k, i) => {
-      const px = pas(k.t, k.tekan ? D.sub.px * 1.15 : D.sub.px, D.sub.min, 880);
+    // ---------------- SUBTITLE 1 kata: muncul halus (naik sedikit + blur → tajam); kata penekanan di atas stabilo biru
+    D.kata.forEach((k) => {
+      const px = pas(k.t, k.tekan ? D.sub.px * 1.1 : D.sub.px, D.sub.min, 800);
       const e = el("div", "lapis tebal kata" + (k.tekan ? " tekan" : ""), `<span class="isi">${k.tekan ? '<i class="stabilo"></i>' : ""}${esc(k.t)}</span>`);
       e.style.cssText += `top:${D.sub.y - px / 2}px;font-size:${px}px;--garis:${Math.round(px * .1)}px;`;
       tampil(tl, e, k.a, k.b);
       const isi = e.firstChild;
-      tl.fromTo(e, { opacity: 0 }, { opacity: 1, duration: .04 }, k.a);
-      tl.fromTo(isi, { scale: .72, rotation: (i % 2 ? 3 : -3), filter: "blur(5px)" },
-                     { scale: 1, rotation: 0, filter: "blur(0px)", duration: .16, ease: "back.out(3)" }, k.a);
-      if (k.tekan) {
-        tl.fromTo(isi.querySelector(".stabilo"), { scaleX: 0 }, { scaleX: 1, duration: .14, ease: "power3.out" }, k.a + .02);
-        tl.fromTo(isi, { scale: 1 }, { scale: 1.08, duration: .1, yoyo: true, repeat: 1, ease: "power1.inOut" }, k.a + .16);
-      }
+      tl.fromTo(e, { opacity: 0 }, { opacity: 1, duration: .08, ease: "none" }, k.a);
+      tl.fromTo(isi, { y: 16, scale: .94, filter: "blur(4px)" }, { y: 0, scale: 1, filter: "blur(0px)", duration: .18, ease: HALUS }, k.a);
+      if (k.tekan) tl.fromTo(isi.querySelector(".stabilo"), { scaleX: 0 }, { scaleX: 1, duration: .22, ease: MASUK }, k.a + .02);
     });
 
-    // ---------------- GRAFIS GERAK sesuai kalimat
-    D.grafis.forEach((g, n) => {
+    // ---------------- LAYAR PENUH (menggantikan kartu grafis Bima)
+    (D.layar || []).forEach((g) => {
+      const a = g.a, b = g.b, dur = b - a;
+      const e = el("div", "layar", `<div class="kisi"></div><div class="orb"></div><div class="isi"><div class="garis"></div>
+        ${g.gaya === "angka" ? `<div class="besar"><span class="n">0</span><span style="font-size:.5em">${esc(g.akhiran || "")}</span></div>` : ""}
+        <div class="lbl">${String(g.gaya === "angka" ? (g.label || "") : (g.teks || "")).split(/\s+/).filter(Boolean)
+          .map((w, i, arr) => `<span class="w${i === arr.length - 1 || /\d/.test(w) ? " biru" : ""}">${esc(w)}</span>`).join("")}</div></div>`, R);
+      e.style.zIndex = 9;
+      const besar = e.querySelector(".besar");
+      if (besar) besar.style.fontSize = pas(String(g.angka) + (g.akhiran || ""), 300, 120, 820) + "px";
+      const lbl = e.querySelector(".lbl");
+      if (g.gaya !== "angka") lbl.style.fontSize = Math.max(66, Math.min(104, 2400 / Math.max(10, (g.teks || "").length))) + "px";
+      tampil(tl, e, a, b);
+      tl.fromTo(e, { opacity: 0 }, { opacity: 1, duration: .3, ease: "power2.out" }, a);
+      tl.fromTo(e.querySelector(".kisi"), { y: 0 }, { y: 120, duration: dur, ease: "none" }, a);
+      tl.fromTo(e.querySelector(".orb"), { x: -60, scale: .9 }, { x: 60, scale: 1.05, duration: dur, ease: "sine.inOut" }, a);
+      tl.fromTo(e.querySelector(".garis"), { scaleX: 0 }, { scaleX: 1, duration: .6, ease: MASUK }, a + .1);
+      if (besar) {
+        tl.fromTo(besar, { y: 60, opacity: 0, filter: "blur(14px)" }, { y: 0, opacity: 1, filter: "blur(0px)", duration: .7, ease: MASUK }, a + .12);
+        hitung(tl, besar.querySelector(".n"), g.angka, a + .15, Math.min(1.3, dur * .55));
+      }
+      e.querySelectorAll(".lbl .w").forEach((w, i) =>
+        tl.fromTo(w, { opacity: 0, y: 30, filter: "blur(8px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: .45, ease: MASUK }, a + (besar ? .45 : .2) + i * .08));
+      tl.to(e.querySelector(".isi"), { opacity: 0, y: -30, duration: .25, ease: KELUAR }, b - .28);
+      tl.to(e, { opacity: 0, duration: .2, ease: KELUAR }, b - .2);
+    });
+
+    // ---------------- GRAFIS GERAK sesuai kalimat (zona atas, tidak menutupi subtitle & tombol YouTube)
+    D.grafis.forEach((g) => {
       const a = g.a, b = g.b, top = D.zona_grafis;
       if (g.tipe === "angka") {
-        const e = el("div", "kartu", `<div class="kecil">${esc(g.judul || "faktanya")}</div><div class="angka-besar"><span class="n">0</span><span class="akh">${esc(g.akhiran || "")}</span></div><div class="kecil" style="font-size:44px;color:#fff;letter-spacing:0;text-transform:none">${esc(g.label || "")}</div><div class="bar"><i></i></div>`);
+        const e = el("div", "kartu", `<div class="kecil">${esc(g.judul || "faktanya")}</div><div class="angka-besar"><span class="n">0</span><span class="akh">${esc(g.akhiran || "")}</span></div><div class="kecil" style="font-size:42px;color:#fff;letter-spacing:0;text-transform:none">${esc(g.label || "")}</div><div class="bar"><i></i></div>`);
         e.style.top = top + "px";
+        e.querySelector(".angka-besar").style.fontSize = pas(String(g.angka) + (g.akhiran || ""), 200, 100, 720) + "px";
         tampil(tl, e, a, b);
-        tl.fromTo(e, { opacity: 0, y: 80, scale: .9, rotationX: 25 }, { opacity: 1, y: 0, scale: 1, rotationX: 0, duration: .5, ease: "expo.out" }, a);
-        const target = Number(String(g.angka).replace(/\./g, "").replace(",", "."));
-        const nEl = e.querySelector(".n"), desimal = String(g.angka).includes(",");
-        if (isFinite(target)) {
-          const o = { v: 0 };
-          tl.fromTo(o, { v: 0 }, { v: target, duration: Math.min(1.1, (b - a) * .55), ease: "power3.out",
-            onUpdate: () => { nEl.textContent = desimal ? o.v.toFixed(1).replace(".", ",") : Math.round(o.v).toLocaleString("id-ID"); } }, a + .1);
-        } else nEl.textContent = g.angka;
-        tl.fromTo(e.querySelector(".bar i"), { scaleX: 0 }, { scaleX: 1, duration: Math.min(1.2, (b - a) * .6), ease: "power2.out" }, a + .15);
-        tl.to(e, { opacity: 0, y: -40, duration: .22, ease: "power2.in" }, b - .22);
+        tl.fromTo(e, { opacity: 0, y: 70, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: .6, ease: MASUK }, a);
+        hitung(tl, e.querySelector(".n"), g.angka, a + .12, Math.min(1.2, (b - a) * .55));
+        tl.fromTo(e.querySelector(".bar i"), { scaleX: 0 }, { scaleX: 1, duration: Math.min(1.3, (b - a) * .6), ease: "power2.inOut" }, a + .15);
+        tl.to(e, { opacity: 0, y: -36, filter: "blur(8px)", duration: .25, ease: KELUAR }, b - .25);
       } else if (g.tipe === "label" || g.tipe === "status") {
         const e = el("div", "pil", `<span style="${g.warna ? `background:#${g.warna}` : ""}"><b></b>${esc(g.teks)}</span>`);
         e.style.top = (top + 60) + "px";
         tampil(tl, e, a, b);
         const s = e.firstChild;
-        tl.fromTo(e, { opacity: 0 }, { opacity: 1, duration: .05 }, a);
-        tl.fromTo(s, { x: -420, skewX: -18, filter: "blur(10px)" }, { x: 0, skewX: 0, filter: "blur(0px)", duration: .45, ease: "expo.out" }, a);
-        tl.fromTo(s.querySelector("b"), { scale: 0 }, { scale: 1, duration: .3, ease: "back.out(4)" }, a + .2);
-        tl.to(s, { x: 420, skewX: 18, opacity: 0, duration: .22, ease: "power3.in" }, b - .22);
+        tl.fromTo(e, { opacity: 0 }, { opacity: 1, duration: .2 }, a);
+        tl.fromTo(s, { x: -260, filter: "blur(10px)" }, { x: 0, filter: "blur(0px)", duration: .6, ease: MASUK }, a);
+        tl.fromTo(s.querySelector("b"), { scale: 0 }, { scale: 1, duration: .4, ease: HALUS }, a + .25);
+        tl.to(s, { x: 260, opacity: 0, filter: "blur(10px)", duration: .25, ease: KELUAR }, b - .25);
       } else if (g.tipe === "kata") {
         const e = el("div", "cap", `<span>${esc(g.teks)}</span>`);
         e.style.top = (top + 20) + "px";
-        const ring = el("div", "ring", null, e);
         tampil(tl, e, a, b);
         const s = e.firstChild;
-        s.style.fontSize = pas(g.teks, 150, 70, 860) + "px";
-        tl.fromTo(e, { opacity: 0 }, { opacity: 1, duration: .04 }, a);
-        tl.fromTo(s, { scale: 2.6, rotation: -16, filter: "blur(12px)" }, { scale: 1, rotation: -6, filter: "blur(0px)", duration: .32, ease: "power4.out" }, a);
-        tl.fromTo(ring, { scale: .4, opacity: .9 }, { scale: 3.2, opacity: 0, duration: .55, ease: "power2.out" }, a + .22);
-        tl.to(s, { scale: .85, opacity: 0, duration: .18, ease: "power2.in" }, b - .18);
+        s.style.fontSize = pas(g.teks, 140, 70, 780) + "px";
+        tl.fromTo(e, { opacity: 0 }, { opacity: 1, duration: .12 }, a);
+        tl.fromTo(s, { scale: 1.35, rotation: -9, filter: "blur(14px)" }, { scale: 1, rotation: -4, filter: "blur(0px)", duration: .55, ease: MASUK }, a);
+        tl.to(s, { scale: .92, opacity: 0, filter: "blur(8px)", duration: .22, ease: KELUAR }, b - .22);
       } else if (g.tipe === "perbandingan") {
-        const e = el("div", "kartu", `<div class="vs"><div><div class="kecil">${esc(g.kiri)}</div><div class="nil">${esc(g.nilai_kiri || "")}</div></div><div class="kanan"><div class="kecil" style="color:#fff">${esc(g.kanan)}</div><div class="nil" style="color:var(--kuning)">${esc(g.nilai_kanan || "")}</div></div></div>`);
+        const e = el("div", "kartu", `<div class="vs"><div><div class="kecil">${esc(g.kiri)}</div><div class="nil">${esc(g.nilai_kiri || "")}</div></div><div class="kanan"><div class="kecil" style="color:#fff">${esc(g.kanan)}</div><div class="nil" style="color:var(--terang)">${esc(g.nilai_kanan || "")}</div></div></div>`);
         e.style.top = top + "px";
         tampil(tl, e, a, b);
         const [l, r] = e.querySelectorAll(".vs > div");
-        tl.fromTo(e, { opacity: 0, scale: .92 }, { opacity: 1, scale: 1, duration: .35, ease: "expo.out" }, a);
-        tl.fromTo(l, { x: -160, opacity: 0 }, { x: 0, opacity: 1, duration: .4, ease: "expo.out" }, a + .05);
-        tl.fromTo(r, { x: 160, opacity: 0 }, { x: 0, opacity: 1, duration: .4, ease: "expo.out" }, a + .2);
-        tl.to(e, { opacity: 0, y: -40, duration: .22, ease: "power2.in" }, b - .22);
+        tl.fromTo(e, { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: .5, ease: MASUK }, a);
+        tl.fromTo(l, { x: -120, opacity: 0 }, { x: 0, opacity: 1, duration: .55, ease: MASUK }, a + .08);
+        tl.fromTo(r, { x: 120, opacity: 0 }, { x: 0, opacity: 1, duration: .55, ease: MASUK }, a + .3);
+        tl.to(e, { opacity: 0, y: -36, duration: .25, ease: KELUAR }, b - .25);
       } else if (g.tipe === "langkah") {
         const e = el("div", "kartu", `<div class="langkah">${g.poin.map((p, i) => `<div class="lk"><span class="no">${i + 1}</span>${esc(p)}</div>`).join("")}</div>`);
         e.style.top = top + "px";
         tampil(tl, e, a, b);
-        tl.fromTo(e, { opacity: 0, y: 60 }, { opacity: 1, y: 0, duration: .4, ease: "expo.out" }, a);
-        const lk = e.querySelectorAll(".lk"), jarak = Math.min(.45, (b - a - .5) / Math.max(1, lk.length));
-        lk.forEach((x, i) => tl.fromTo(x, { opacity: 0, x: 80 }, { opacity: 1, x: 0, duration: .35, ease: "back.out(2)" }, a + .15 + i * jarak));
-        tl.to(e, { opacity: 0, y: -40, duration: .22, ease: "power2.in" }, b - .22);
+        tl.fromTo(e, { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: .5, ease: MASUK }, a);
+        const lk = e.querySelectorAll(".lk"), jarak = Math.min(.5, (b - a - .6) / Math.max(1, lk.length));
+        lk.forEach((x, i) => tl.fromTo(x, { opacity: 0, x: 60, filter: "blur(6px)" }, { opacity: 1, x: 0, filter: "blur(0px)", duration: .5, ease: MASUK }, a + .18 + i * jarak));
+        tl.to(e, { opacity: 0, y: -36, duration: .25, ease: KELUAR }, b - .25);
       } else if (g.tipe === "sumber") {
         const e = el("div", "chip-sumber", `<b></b>${esc(g.teks)}`);
         tampil(tl, e, a, b);
-        tl.fromTo(e, { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: .35, ease: "expo.out" }, a);
-        tl.to(e, { opacity: 0, duration: .2 }, b - .2);
+        tl.fromTo(e, { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: .5, ease: MASUK }, a);
+        tl.to(e, { opacity: 0, duration: .25 }, b - .25);
       }
     });
 
-    // ---------------- aksen di pergantian kalimat: sapuan cahaya (atau kilat pada kalimat 'wow')
+    // ---------------- aksen di pergantian kalimat: sapuan cahaya biru (kilat lembut pada kalimat 'wow')
     D.potong.forEach((p, i) => {
       if (p.wow) {
-        tl.fromTo("#kilat", { opacity: .0 }, { opacity: .55, duration: .05, ease: "none" }, p.t - .02);
-        tl.to("#kilat", { opacity: 0, duration: .22, ease: "power2.out" }, p.t + .03);
+        tl.fromTo("#kilat", { opacity: 0 }, { opacity: .38, duration: .08, ease: "power1.out" }, p.t - .04);
+        tl.to("#kilat", { opacity: 0, duration: .35, ease: "power2.out" }, p.t + .04);
       } else if (i % 2 === 0) {
         const s = el("div", "sapuan");
-        tl.set(s, { opacity: 1 }, p.t - .05);
-        tl.fromTo(s, { x: 0 }, { x: 1700, duration: .45, ease: "power2.inOut" }, p.t - .05);
-        tl.set(s, { opacity: 0 }, p.t + .4);
+        tl.set(s, { opacity: 1 }, p.t - .1);
+        tl.fromTo(s, { x: 0 }, { x: 1800, duration: .6, ease: "power2.inOut" }, p.t - .1);
+        tl.set(s, { opacity: 0 }, p.t + .5);
       }
     });
 
-    // ---------------- PENUTUP: kartu ajakan follow
+    // ---------------- PENUTUP: ajakan SUBSCRIBE → "jari" mengetuk → berubah jadi SUBSCRIBED
     if (D.penutup) {
-      const P = D.penutup;
-      document.getElementById("pn-sub").textContent = P.teks || "";
+      const P = D.penutup, d = P.b - P.a;
+      const kata = (P.teks || "").split(/\s+/).filter(Boolean);
+      document.getElementById("pn-sub").innerHTML = kata.map((w, i) => i === 0 ? `<em>${esc(w)}</em>` : esc(w)).join(" ");
       document.getElementById("pn-hd").textContent = D.handle || "";
       tampil(tl, "#penutup", P.a, P.b + 1);
-      tl.fromTo("#penutup", { opacity: 0 }, { opacity: 1, duration: .2 }, P.a);
-      tl.fromTo("#penutup .sub", { y: 40, opacity: 0 }, { y: 0, opacity: 1, duration: .35, ease: "expo.out" }, P.a);
-      tl.fromTo("#penutup .tbl", { scale: .4, opacity: 0 }, { scale: 1, opacity: 1, duration: .45, ease: "back.out(2.6)" }, P.a + .12);
-      tl.to("#penutup .tbl", { scale: 1.07, duration: .18, yoyo: true, repeat: 1, ease: "power1.inOut" }, P.a + .65);
-      tl.fromTo("#penutup .hd", { opacity: 0 }, { opacity: 1, duration: .3 }, P.a + .3);
+      tl.fromTo("#penutup", { opacity: 0 }, { opacity: 1, duration: .3, ease: "power2.out" }, P.a);
+      tl.fromTo("#penutup .sub", { y: 40, opacity: 0, filter: "blur(10px)" }, { y: 0, opacity: 1, filter: "blur(0px)", duration: .55, ease: MASUK }, P.a);
+      tl.fromTo("#penutup .tbl", { y: 50, opacity: 0, scale: .92 }, { y: 0, opacity: 1, scale: 1, duration: .6, ease: MASUK }, P.a + .12);
+      tl.fromTo("#penutup .hd", { opacity: 0 }, { opacity: 1, duration: .4 }, P.a + .3);
+      if (d >= 1.6) {
+        const t = P.a + Math.min(.95, d * .5);
+        tl.fromTo("#jari", { opacity: 0, x: 120, y: 160 }, { opacity: 1, x: 0, y: 0, duration: .45, ease: HALUS }, t - .45);
+        tl.to("#jari", { scale: .82, duration: .1, ease: "power1.inOut" }, t);
+        tl.to("#jari", { scale: 1, opacity: 0, duration: .3, ease: "power2.out" }, t + .1);
+        tl.to("#penutup .tbl .ok", { opacity: 1, duration: .25, ease: "power2.out" }, t + .05);
+      }
     }
     window.__timelines["main"] = tl;
   }
-  // ukur huruf setelah font termuat supaya teks tidak keluar layar
   const siap = document.fonts && document.fonts.load ? Promise.all([document.fonts.load('900 100px "Yofamo"'), document.fonts.load('800 40px "YofamoXB"')]) : Promise.resolve();
   siap.then(bangun, bangun);
 })();

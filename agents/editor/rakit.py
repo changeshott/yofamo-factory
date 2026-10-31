@@ -446,7 +446,8 @@ def main() -> None:
             hook_end = waktu_hook(words.get("kalimat", []), st, total) if script.get("hook_teks") else 0.0
             data = komposisi.data_video(st, script, read_json(vdir / "idea.json", {}), words, narasi, total, akhir, senyap,
                                         hook_baris(script.get("hook_teks", ""), script, [str(x) for x in st["hook"].get("warna", [])]),
-                                        hook_end, tekanan(words.get("kalimat", []), narasi), kal_dari)
+                                        hook_end, tekanan(words.get("kalimat", []), narasi), kal_dari,
+                                        [k for k in klip if k.get("jenis") == "grafis"])
             komposisi.tulis_proyek(out_dir / "hf", base_mp4, data, str(script.get("judul", a.slug)))
             log(f"HyperFrames: {len(data['kata'])} kata subtitle, {len(data['grafis'])} grafis gerak, merender…")
             hf_mp4 = out_dir / "hf_render.mp4"

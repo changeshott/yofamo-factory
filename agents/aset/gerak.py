@@ -11,7 +11,7 @@ import textwrap
 from pathlib import Path
 
 W, H, FPS = 1080, 1920, 30
-INK, INK2, ORANGE, WHITE = "0x0B1220", "0x16304F", "0xFF9A4D", "0xF4F1E8"
+INK, INK2, ORANGE, WHITE = "0x071631", "0x0B2A5C", "0x3D9BFF", "0xF4F7FF"   # ORANGE = warna aksen (sekarang biru khas Yofamo)
 
 FONT_CANDIDATES = [
     str(Path(__file__).resolve().parents[2] / "fonts" / "Poppins-Black.ttf"),       # font khas Yofamo (ikut di repo, lisensi OFL)

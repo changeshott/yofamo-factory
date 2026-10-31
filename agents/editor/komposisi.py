@@ -23,7 +23,7 @@ TEMPLATE = Path(__file__).with_name("hf_template.html")
 HF_BIN = ROOT / "node_modules" / "hyperframes" / "bin" / "hyperframes.mjs"
 GSAP = ROOT / "node_modules" / "gsap" / "dist" / "gsap.min.js"
 FONTS = ROOT / "fonts"
-WARNA_STATUS = {"riset": "B388FF", "prototipe": "FF9A4D", "dipakai": "4DFF88", "dijual": "4DFF88"}
+WARNA_STATUS = {"riset": "7B6CFF", "prototipe": "2D8CFF", "dipakai": "13B981", "dijual": "13B981"}
 LABEL_STATUS = {"riset": "MASIH RISET", "prototipe": "PROTOTIPE", "dipakai": "SUDAH DIPAKAI", "dijual": "SUDAH DIJUAL"}
 
 
@@ -86,9 +86,24 @@ def grafis_kalimat(i: int, n: dict, kal: dict, idea: dict, senyap: list[tuple[fl
     return out
 
 
+def layar_penuh(klip: list[dict]) -> list[dict]:
+    """Kartu grafis Bima (shot jenis 'grafis') digambar ulang HyperFrames sebagai layar penuh bergerak."""
+    out = []
+    for k in klip:
+        sp = k.get("spec") if isinstance(k.get("spec"), dict) else {"gaya": "teks", "teks": k.get("judul", "")}
+        gaya = "angka" if sp.get("gaya") == "angka" and str(sp.get("angka", "")).strip() else "teks"
+        teks = str(sp.get("teks") or k.get("judul") or "").strip()
+        if gaya == "teks" and not teks:
+            continue
+        out.append({"gaya": gaya, "a": round(float(k["mulai"]), 3), "b": round(float(k["selesai"]), 3),
+                    "angka": str(sp.get("angka", "")), "akhiran": str(sp.get("akhiran", "")), "label": str(sp.get("label", ""))[:60],
+                    "teks": teks[:90]})
+    return out
+
+
 def data_video(st: dict, script: dict, idea: dict, words: dict, narasi: list[dict], total: float, akhir: float,
                senyap: list[tuple[float, float]], hook_baris: list[tuple[str, str, float]], hook_end: float,
-               tekan: set[tuple[int, str]], kal_dari) -> dict:
+               tekan: set[tuple[int, str]], kal_dari, klip_grafis: list[dict] | None = None) -> dict:
     hf = st.get("hyperframes", {})
     sub, hk = st["subtitle"], st["hook"]
     kalimat = words.get("kalimat", [])
@@ -119,13 +134,13 @@ def data_video(st: dict, script: dict, idea: dict, words: dict, narasi: list[dic
     pn = st.get("penutup", {})
     return {
         "total": round(total, 3), "akhir": round(akhir, 3), "handle": st.get("handle", {}).get("teks", ""),
-        "warna": {"kuning": sub.get("warna_tekan", "FFD23F"), "oranye": hf.get("aksen", "FF9A4D"), "biru": "2D8CFF"},
+        "warna": {k: str(v).lstrip("#") for k, v in (st.get("palet") or {}).items() if k in ("utama", "terang", "gelap", "kuning")},
         "sub": {"px": int(hf.get("subtitle_px", 104)), "min": int(hf.get("subtitle_min", 60)), "y": int(hf.get("subtitle_y", 1180))},
         "zona_grafis": int(hf.get("zona_grafis_atas", 430)),
         "hook": {"akhir": round(hook_end, 3), "y": int(hf.get("hook_y", 1000)), "rapat": float(hk.get("jarak_baris", 0.8)) + 0.12,
                  "tinggi_maks": int(hk.get("tinggi_maks", 900)), "jeda": float(hk.get("jeda_baris", 0.09)) + 0.03,
                  "baris": [{"teks": t, "warna": w, "maks": int(float(hf.get("hook_px_maks", 230)) * sk)} for t, w, sk in hook_baris]},
-        "kata": kata, "grafis": grafis, "potong": potong,
+        "kata": kata, "grafis": grafis, "potong": potong, "layar": layar_penuh(klip_grafis or []),
         "penutup": {"a": round(total, 3), "b": round(akhir, 3), "teks": str(pn.get("teks", ""))} if akhir > total + 0.05 and pn.get("teks") else None,
     }
 

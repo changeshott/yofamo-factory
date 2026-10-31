@@ -258,6 +258,15 @@ def cmd_cari(slug: str) -> None:
     (aset / "lembar").mkdir(parents=True, exist_ok=True)
     log(f"{len(narasi)} kalimat, durasi {total:.1f} dtk. Rencana: {'aset/rencana.json' if plan[0]['inggris'] else 'kolom visual naskah'}")
     result = []
+    # kandidat TOPIK: footage teknologi yang sedang dibahas (dicari sekali, dibagi ke semua kalimat) → visual menonjolkan topiknya
+    idea = read_json(folder / "idea.json", {})
+    kv = [str(x) for x in (idea.get("kata_kunci_visual") or []) if str(x).strip()]
+    kunci_topik = kata_kunci(kv)
+    topik: list[dict] = []
+    if kv and any(p["jenis"] == "footage" for p in plan):
+        for c in search_all(kv[0], True):
+            topik.append({**c, "kueri": kv[0]})
+        log(f"topik '{kv[0]}': {len(topik)} kandidat footage")
     for p, span in zip(plan, spans):
         i, n_shot = p["i"], shots_for(span, p["jenis"])
         entry = {"i": i, "kalimat": narasi[i]["kalimat"], "jenis": p["jenis"], "mulai": span[0], "selesai": span[1],
@@ -274,7 +283,15 @@ def cmd_cari(slug: str) -> None:
                         cands.append({**c, "kueri": q})
                 if len(cands) >= 8:
                     break
-            cands = cands[:8]
+            kunci_kal = kata_kunci(p["kata"] + [narasi[i].get("visual", "")])
+            for c in sorted(topik, key=lambda c: -relevansi(c, kunci_kal, kunci_topik))[:3]:
+                if (c["sumber"], c["id"]) not in seen:
+                    seen.add((c["sumber"], c["id"]))
+                    cands.append(c)
+            milik = [c for c in cands if c["sumber"] == "milik"]
+            lain = sorted((c for c in cands if c["sumber"] != "milik"),
+                          key=lambda c: (-relevansi(c, kunci_kal, kunci_topik), URUT_SUMBER.get(c["sumber"], 9)))
+            cands = (milik + lain)[:8]
             tmp = aset / "lembar" / f"_{i + 1:02}"
             tmp.mkdir(exist_ok=True)
             thumbs = []
@@ -417,10 +434,30 @@ def ai_prompt(p: dict, kalimat: str, shot: int = 0, varian: int = 0) -> str:
             f"no words, no numbers, no signs, no screens with writing, no captions, no labels, no watermark, no logo")
 
 
-def auto_pick(entry: dict, n: int, taken: set) -> list:
-    """Kandidat teratas yang belum dipakai kalimat lain (supaya visual tidak berulang)."""
+KATA_UMUM = set("the a an of and or in on for with to from by at is are video new how this that what your you best top amazing "
+                "footage stock clip hd 4k free cc".split())
+
+
+def kata_kunci(teks: list[str]) -> set[str]:
+    out = set()
+    for t in teks:
+        for w in re.findall(r"[a-z0-9]{3,}", str(t).lower()):
+            if w not in KATA_UMUM:
+                out.add(w[:-1] if w.endswith("s") and len(w) > 4 else w)
+    return out
+
+
+def relevansi(c: dict, kunci_kal: set[str], kunci_topik: set[str]) -> float:
+    """Seberapa jelas kandidat memperlihatkan hal yang sedang dibahas: kata kunci kalimat (bobot 2) + topik video (bobot 1)."""
+    judul = kata_kunci([c.get("judul", ""), c.get("kueri", "")])
+    return 2.0 * len(judul & kunci_kal) + 1.0 * len(judul & kunci_topik)
+
+
+def auto_pick(entry: dict, n: int, taken: set, kunci_kal: set[str] | None = None, kunci_topik: set[str] | None = None) -> list:
+    """Kandidat yang paling relevan dengan kalimat & topik, belum dipakai kalimat lain; seri → YouTube CC lebih dulu."""
     free = [k + 1 for k, c in enumerate(entry["kandidat"]) if (c["sumber"], c["id"]) not in taken]
-    free.sort(key=lambda k: URUT_SUMBER.get(entry["kandidat"][k - 1]["sumber"], 9))     # potongan YouTube CC lebih dulu
+    kk, kt = kunci_kal or set(), kunci_topik or set()
+    free.sort(key=lambda k: (-relevansi(entry["kandidat"][k - 1], kk, kt), URUT_SUMBER.get(entry["kandidat"][k - 1]["sumber"], 9), k))
     return free[:n] or [k + 1 for k in range(min(n, len(entry["kandidat"])))]
 
 
@@ -449,6 +486,8 @@ def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
     for t in tolak:
         if t.get("jenis") == "ai":
             varian_ai[(t.get("i"), t.get("potong"))] = varian_ai.get((t.get("i"), t.get("potong")), 0) + 1
+    idea = read_json(folder / "idea.json", {})
+    kunci_topik = kata_kunci(list(idea.get("kata_kunci_visual") or []) + [str(idea.get("judul_inggris", ""))])
     klip, kurang = [], []
     taken = {(k.get("sumber"), k.get("id")) for (ii, _), k in old.items() if ii + 1 not in ulang and k.get("jenis") == "footage"} | ditolak
     streak = 0                                   # jumlah shot footage berturut-turut
@@ -457,7 +496,9 @@ def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
         e = entries.get(i, {"kandidat": [], "jenis": p["jenis"]})
         n = shots_for(span, p["jenis"])
         bounds = [span[0] + (span[1] - span[0]) * k / n for k in range(n + 1)]
-        choice = picks.get(i) or (["grafis"] if p["jenis"] == "grafis" else ["ai"] * n if p["jenis"] == "ai" else auto_pick(e, n, taken))
+        kunci_kal = kata_kunci(p["kata"] + [narasi[i].get("visual", "")] + list(narasi[i].get("kata_kunci_visual") or []))
+        choice = picks.get(i) or (["grafis"] if p["jenis"] == "grafis" else ["ai"] * n if p["jenis"] == "ai"
+                                  else auto_pick(e, n, taken, kunci_kal, kunci_topik))
         bad = {k + 1 for k, c in enumerate(e["kandidat"]) if (str(c["sumber"]), str(c["id"])) in ditolak}
         choice = [c for c in choice if c not in bad] or (["ai"] * n if p["jenis"] != "grafis" else ["grafis"])
         queue = [c for c in choice] + [k + 1 for k in range(len(e["kandidat"])) if k + 1 not in choice and k + 1 not in bad]
@@ -481,7 +522,8 @@ def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
                 try:
                     if t == "grafis":
                         gerak.grafis(p["grafis"], out, dur)
-                        meta = {"jenis": "grafis", "sumber": "grafis", "judul": p["grafis"].get("teks") or p["grafis"].get("label", ""), "lisensi": "buatan sendiri"}
+                        meta = {"jenis": "grafis", "sumber": "grafis", "judul": p["grafis"].get("teks") or p["grafis"].get("label", ""), "lisensi": "buatan sendiri",
+                                "spec": p["grafis"]}
                     elif t == "ai":
                         prompt = ai_prompt(p, narasi[i]["kalimat"], s, varian_ai.get((i, s), 0))
                         img = ai_image(prompt)
