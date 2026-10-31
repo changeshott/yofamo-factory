@@ -86,13 +86,53 @@
   #penutup .tbl .ok { position: absolute; inset: 0; border-radius: 999px; display: flex; align-items: center; justify-content: center; gap: 20px;
                       background: #2B3446; color: rgba(255,255,255,.85); font-size: 70px; opacity: 0; }
   #penutup .hd { font-family: "YofamoXB", sans-serif; font-weight: 800; font-size: 44px; color: rgba(255,255,255,.9); }
+  /* ===== VARIAN GAYA (dipilih Kai per video, lihat komposisi.VARIAN) ===== */
+  /* stabilo */
+  .st-garis .stabilo { top: 80%; bottom: -6%; border-radius: 10px; }
+  .st-miring .stabilo { left: -22px; right: -22px; border-radius: 10px; }
+  .st-teks .stabilo { display: none; }
+  .st-teks .kata.tekan .isi { color: var(--terang); }
+  /* kulit kartu */
+  .kt-solid .kartu { background: linear-gradient(150deg, var(--utama), #0A2E7A); border: 0; box-shadow: 0 34px 90px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.3); }
+  .kt-solid .kartu .kecil { color: rgba(255,255,255,.82); }
+  .kt-solid .angka-besar { background: linear-gradient(180deg, #fff 30%, #D6EEFF); -webkit-background-clip: text; background-clip: text; }
+  .kt-solid .bar i { background: #fff; }
+  .kt-solid .vs .kanan { background: rgba(255,255,255,.18); }
+  .kt-neon .kartu { background: rgba(2,8,20,.82); border: 3px solid var(--terang); border-radius: 30px;
+                    box-shadow: 0 0 0 1px rgba(111,211,255,.25), 0 0 46px rgba(111,211,255,.45), inset 0 0 40px rgba(45,140,255,.18); }
+  .kt-neon .angka-besar { background: none; color: var(--terang); -webkit-background-clip: border-box; background-clip: border-box; text-shadow: 0 0 34px var(--utama); }
+  .kt-putih .kartu { background: #F3F7FF; color: var(--gelap); border: 0; box-shadow: 0 34px 90px rgba(0,0,0,.45); }
+  .kt-putih .kartu .kecil { color: var(--utama); }
+  .kt-putih .kartu .kecil.isi-teks { color: var(--gelap) !important; }
+  .kt-putih .angka-besar { background: linear-gradient(180deg, var(--gelap) 30%, var(--utama)); -webkit-background-clip: text; background-clip: text; }
+  .kt-putih .bar { background: rgba(7,22,49,.1); }
+  .kt-putih .vs > div { background: rgba(7,22,49,.06); }
+  .kt-putih .vs .kanan { background: var(--utama); color: #fff; }
+  .kt-putih .vs .kanan .nil { color: #fff !important; }
+  /* latar layar penuh */
+  .layar .kisi.cincin { inset: -400px; opacity: .3; transform: none; background-size: auto;
+                        background-image: repeating-radial-gradient(circle at 50% 50%, rgba(111,211,255,.55) 0 3px, transparent 3px 110px); }
+  .layar .kisi.garis { inset: -600px; opacity: .16; transform: rotate(-24deg); background-size: auto;
+                       background-image: repeating-linear-gradient(90deg, rgba(111,211,255,.7) 0 6px, transparent 6px 70px); }
+  .layar .kisi.titik { inset: -200px; opacity: .32; transform: none; background-size: 46px 46px;
+                       background-image: radial-gradient(circle, rgba(111,211,255,.7) 3px, transparent 4px); }
+  /* aksen pergantian kalimat */
+  .bingkai { position: absolute; inset: 70px 60px 300px; z-index: 11; opacity: 0; }
+  .bingkai i { position: absolute; width: 120px; height: 120px; border: 0 solid var(--terang); filter: drop-shadow(0 0 10px var(--utama)); }
+  .bingkai i:nth-child(1) { left: 0; top: 0; border-left-width: 10px; border-top-width: 10px; border-top-left-radius: 26px; }
+  .bingkai i:nth-child(2) { right: 0; top: 0; border-right-width: 10px; border-top-width: 10px; border-top-right-radius: 26px; }
+  .bingkai i:nth-child(3) { left: 0; bottom: 0; border-left-width: 10px; border-bottom-width: 10px; border-bottom-left-radius: 26px; }
+  .bingkai i:nth-child(4) { right: 0; bottom: 0; border-right-width: 10px; border-bottom-width: 10px; border-bottom-right-radius: 26px; }
+  .garis-aksen { position: absolute; left: 0; right: 0; height: 6px; z-index: 11; opacity: 0;
+                 background: linear-gradient(90deg, transparent, var(--terang), transparent); box-shadow: 0 0 30px var(--utama); }
+  #denyut { position: absolute; inset: 0; z-index: 11; opacity: 0; box-shadow: inset 0 0 180px 40px var(--utama); }
   #jari { position: absolute; width: 120px; height: 120px; border-radius: 50%; border: 8px solid #fff; background: rgba(255,255,255,.25); z-index: 15; opacity: 0; left: 640px; top: 950px; }
 </style>
 </head>
 <body>
 <div id="root" data-composition-id="main" data-start="0" data-duration="__AKHIR__" data-width="1080" data-height="1920" data-fps="30">
   <video id="base" class="clip" src="assets/base.mp4" muted playsinline data-start="0" data-duration="__AKHIR__" data-track-index="0"></video>
-  <div id="ui"><div id="scrim"></div><div id="kilat"></div></div>
+  <div id="ui"><div id="scrim"></div><div id="kilat"></div><div id="denyut"></div></div>
   <div id="progres"><i></i></div>
   <div id="handle"></div>
   <div id="grain"></div>
@@ -121,6 +161,21 @@ const D = __DATA__;
   const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
   const tampil = (tl, e, a, b) => { tl.set(e, { visibility: "visible" }, a); tl.set(e, { visibility: "hidden", opacity: 0 }, b); };
   const MASUK = "expo.out", HALUS = "power3.out", KELUAR = "power2.in";
+  const G = Object.assign({ hook: "naik", sub: "naik", stabilo: "blok", kartu: "kaca", masuk: "naik", layar: "kisi", aksen: "sapuan" }, D.gaya || {});
+  R.classList.add("st-" + G.stabilo, "kt-" + G.kartu);
+  // kartu grafis: masuk & keluar sesuai varian (semua halus, tanpa memantul)
+  function masukKartu(tl, e, a) {
+    if (G.masuk === "geser") tl.fromTo(e, { opacity: 0, x: -220, filter: "blur(10px)" }, { opacity: 1, x: 0, filter: "blur(0px)", duration: .6, ease: MASUK }, a);
+    else if (G.masuk === "skala") tl.fromTo(e, { opacity: 0, scale: .82, filter: "blur(12px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: .6, ease: MASUK }, a);
+    else if (G.masuk === "lipat") { e.style.transformOrigin = "50% 0%"; tl.fromTo(e, { opacity: 0, rotationX: -75, transformPerspective: 1400 }, { opacity: 1, rotationX: 0, transformPerspective: 1400, duration: .7, ease: MASUK }, a); }
+    else tl.fromTo(e, { opacity: 0, y: 70, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: .6, ease: MASUK }, a);
+  }
+  function keluarKartu(tl, e, b) {
+    if (G.masuk === "geser") tl.to(e, { opacity: 0, x: 220, filter: "blur(8px)", duration: .25, ease: KELUAR }, b - .25);
+    else if (G.masuk === "skala") tl.to(e, { opacity: 0, scale: .9, filter: "blur(8px)", duration: .25, ease: KELUAR }, b - .25);
+    else if (G.masuk === "lipat") tl.to(e, { opacity: 0, rotationX: 60, transformPerspective: 1400, duration: .28, ease: KELUAR }, b - .28);
+    else tl.to(e, { opacity: 0, y: -36, filter: "blur(8px)", duration: .25, ease: KELUAR }, b - .25);
+  }
 
   function hitung(tl, nEl, angka, a, dur) {
     const s = String(angka), target = Number(s.replace(/\./g, "").replace(",", ".")), des = s.includes(",");
@@ -146,33 +201,53 @@ const D = __DATA__;
       tl.fromTo("#scrim", { opacity: 0 }, { opacity: 1, duration: .35, ease: HALUS }, 0);
       tl.to("#scrim", { opacity: 0, duration: .25, ease: KELUAR }, H.akhir - .25);
       H.baris.forEach((b, i) => {
-        const e = el("div", "lapis tebal hook-baris", esc(b.teks));
+        const ketik = G.hook === "ketik";
+        const isi = ketik ? b.teks.split(/\s+/).map((w) => `<span class="hw" style="display:inline-block">${esc(w)}</span>`).join(" ") : esc(b.teks);
+        const e = el("div", "lapis tebal hook-baris", isi);
         e.style.cssText += `top:${y}px;font-size:${b.px}px;color:#${b.warna};--garis:${Math.round(b.px * .09)}px;`;
         y += tinggi[i];
         const a = i * H.jeda;
         tampil(tl, e, a, H.akhir);
-        tl.fromTo(e, { opacity: 0, y: 56, scale: .94, filter: "blur(12px)" },
-                     { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", duration: .6, ease: MASUK }, a);
+        if (G.hook === "skala") {
+          tl.fromTo(e, { opacity: 0, scale: 1.55, filter: "blur(16px)" }, { opacity: 1, scale: 1, filter: "blur(0px)", duration: .65, ease: MASUK }, a);
+        } else if (G.hook === "geser") {
+          const arah = i % 2 ? 1 : -1;
+          tl.fromTo(e, { opacity: 0, x: 260 * arah, filter: "blur(12px)" }, { opacity: 1, x: 0, filter: "blur(0px)", duration: .6, ease: MASUK }, a);
+        } else if (ketik) {
+          tl.set(e, { opacity: 1 }, a);
+          e.querySelectorAll(".hw").forEach((w, j) => tl.fromTo(w, { opacity: 0, y: 40, filter: "blur(10px)" },
+            { opacity: 1, y: 0, filter: "blur(0px)", duration: .42, ease: MASUK }, a + j * .07));
+        } else if (G.hook === "sapu") {
+          tl.fromTo(e, { opacity: 1, clipPath: "inset(-40% 100% -60% -10%)", x: -30 }, { clipPath: "inset(-40% -10% -60% -10%)", x: 0, duration: .55, ease: "power3.inOut" }, a);
+        } else {
+          tl.fromTo(e, { opacity: 0, y: 56, scale: .94, filter: "blur(12px)" },
+                       { opacity: 1, y: 0, scale: 1, filter: "blur(0px)", duration: .6, ease: MASUK }, a);
+        }
         tl.to(e, { opacity: 0, y: -24, filter: "blur(8px)", duration: .22, ease: KELUAR }, H.akhir - .22);
       });
     }
 
     // ---------------- SUBTITLE 1 kata: muncul halus (naik sedikit + blur → tajam); kata penekanan di atas stabilo biru
-    D.kata.forEach((k) => {
+    D.kata.forEach((k, ki) => {
       const px = pas(k.t, k.tekan ? D.sub.px * 1.1 : D.sub.px, D.sub.min, 800);
       const e = el("div", "lapis tebal kata" + (k.tekan ? " tekan" : ""), `<span class="isi">${k.tekan ? '<i class="stabilo"></i>' : ""}${esc(k.t)}</span>`);
       e.style.cssText += `top:${D.sub.y - px / 2}px;font-size:${px}px;--garis:${Math.round(px * .1)}px;`;
       tampil(tl, e, k.a, k.b);
       const isi = e.firstChild;
       tl.fromTo(e, { opacity: 0 }, { opacity: 1, duration: .08, ease: "none" }, k.a);
-      tl.fromTo(isi, { y: 16, scale: .94, filter: "blur(4px)" }, { y: 0, scale: 1, filter: "blur(0px)", duration: .18, ease: HALUS }, k.a);
-      if (k.tekan) tl.fromTo(isi.querySelector(".stabilo"), { scaleX: 0 }, { scaleX: 1, duration: .22, ease: MASUK }, k.a + .02);
+      if (G.sub === "pop") tl.fromTo(isi, { scale: .72 }, { scale: 1, duration: .16, ease: HALUS }, k.a);
+      else if (G.sub === "geser") tl.fromTo(isi, { x: (ki % 2 ? 34 : -34), filter: "blur(4px)" }, { x: 0, filter: "blur(0px)", duration: .18, ease: HALUS }, k.a);
+      else if (G.sub === "sapu") tl.fromTo(isi, { clipPath: "inset(-30% 0% 100% -10%)", y: 18 }, { clipPath: "inset(-30% -10% -30% -10%)", y: 0, duration: .18, ease: HALUS }, k.a);
+      else if (G.sub === "fokus") tl.fromTo(isi, { scale: 1.12, filter: "blur(9px)" }, { scale: 1, filter: "blur(0px)", duration: .2, ease: HALUS }, k.a);
+      else tl.fromTo(isi, { y: 16, scale: .94, filter: "blur(4px)" }, { y: 0, scale: 1, filter: "blur(0px)", duration: .18, ease: HALUS }, k.a);
+      const stb = k.tekan ? isi.querySelector(".stabilo") : null;
+      if (stb) tl.fromTo(stb, { scaleX: 0, skewX: G.stabilo === "miring" ? -12 : 0 }, { scaleX: 1, skewX: G.stabilo === "miring" ? -12 : 0, duration: .22, ease: MASUK }, k.a + .02);
     });
 
     // ---------------- LAYAR PENUH (menggantikan kartu grafis Bima)
     (D.layar || []).forEach((g) => {
       const a = g.a, b = g.b, dur = b - a;
-      const e = el("div", "layar", `<div class="kisi"></div><div class="orb"></div><div class="isi"><div class="garis"></div>
+      const e = el("div", "layar", `<div class="kisi${G.layar !== "kisi" ? " " + G.layar : ""}"></div><div class="orb"></div><div class="isi"><div class="garis"></div>
         ${g.gaya === "angka" ? `<div class="besar"><span class="n">0</span><span style="font-size:.5em">${esc(g.akhiran || "")}</span></div>` : ""}
         <div class="lbl">${String(g.gaya === "angka" ? (g.label || "") : (g.teks || "")).split(/\s+/).filter(Boolean)
           .map((w, i, arr) => `<span class="w${i === arr.length - 1 || /\d/.test(w) ? " biru" : ""}">${esc(w)}</span>`).join("")}</div></div>`, R);
@@ -183,7 +258,11 @@ const D = __DATA__;
       if (g.gaya !== "angka") lbl.style.fontSize = Math.max(66, Math.min(104, 2400 / Math.max(10, (g.teks || "").length))) + "px";
       tampil(tl, e, a, b);
       tl.fromTo(e, { opacity: 0 }, { opacity: 1, duration: .3, ease: "power2.out" }, a);
-      tl.fromTo(e.querySelector(".kisi"), { y: 0 }, { y: 120, duration: dur, ease: "none" }, a);
+      const kisi = e.querySelector(".kisi");
+      if (G.layar === "cincin") tl.fromTo(kisi, { scale: 1 }, { scale: 1.22, duration: dur, ease: "none" }, a);
+      else if (G.layar === "garis") tl.fromTo(kisi, { x: 0 }, { x: 140, duration: dur, ease: "none" }, a);
+      else if (G.layar === "titik") tl.fromTo(kisi, { y: 0, x: 0 }, { y: -46, x: 23, duration: dur, ease: "none" }, a);
+      else tl.fromTo(kisi, { y: 0 }, { y: 120, duration: dur, ease: "none" }, a);
       tl.fromTo(e.querySelector(".orb"), { x: -60, scale: .9 }, { x: 60, scale: 1.05, duration: dur, ease: "sine.inOut" }, a);
       tl.fromTo(e.querySelector(".garis"), { scaleX: 0 }, { scaleX: 1, duration: .6, ease: MASUK }, a + .1);
       if (besar) {
@@ -200,23 +279,24 @@ const D = __DATA__;
     D.grafis.forEach((g) => {
       const a = g.a, b = g.b, top = D.zona_grafis;
       if (g.tipe === "angka") {
-        const e = el("div", "kartu", `<div class="kecil">${esc(g.judul || "faktanya")}</div><div class="angka-besar"><span class="n">0</span><span class="akh">${esc(g.akhiran || "")}</span></div><div class="kecil" style="font-size:42px;color:#fff;letter-spacing:0;text-transform:none">${esc(g.label || "")}</div><div class="bar"><i></i></div>`);
+        const e = el("div", "kartu", `<div class="kecil">${esc(g.judul || "faktanya")}</div><div class="angka-besar"><span class="n">0</span><span class="akh">${esc(g.akhiran || "")}</span></div><div class="kecil isi-teks" style="font-size:42px;color:#fff;letter-spacing:0;text-transform:none">${esc(g.label || "")}</div><div class="bar"><i></i></div>`);
         e.style.top = top + "px";
         e.querySelector(".angka-besar").style.fontSize = pas(String(g.angka) + (g.akhiran || ""), 200, 100, 720) + "px";
         tampil(tl, e, a, b);
-        tl.fromTo(e, { opacity: 0, y: 70, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: .6, ease: MASUK }, a);
+        masukKartu(tl, e, a);
         hitung(tl, e.querySelector(".n"), g.angka, a + .12, Math.min(1.2, (b - a) * .55));
         tl.fromTo(e.querySelector(".bar i"), { scaleX: 0 }, { scaleX: 1, duration: Math.min(1.3, (b - a) * .6), ease: "power2.inOut" }, a + .15);
-        tl.to(e, { opacity: 0, y: -36, filter: "blur(8px)", duration: .25, ease: KELUAR }, b - .25);
+        keluarKartu(tl, e, b);
       } else if (g.tipe === "label" || g.tipe === "status") {
         const e = el("div", "pil", `<span style="${g.warna ? `background:#${g.warna}` : ""}"><b></b>${esc(g.teks)}</span>`);
         e.style.top = (top + 60) + "px";
         tampil(tl, e, a, b);
         const s = e.firstChild;
         tl.fromTo(e, { opacity: 0 }, { opacity: 1, duration: .2 }, a);
-        tl.fromTo(s, { x: -260, filter: "blur(10px)" }, { x: 0, filter: "blur(0px)", duration: .6, ease: MASUK }, a);
+        const dari = G.masuk === "skala" || G.masuk === "lipat" ? { scale: .7, filter: "blur(10px)" } : { x: G.masuk === "geser" ? 260 : -260, filter: "blur(10px)" };
+        tl.fromTo(s, dari, { x: 0, scale: 1, filter: "blur(0px)", duration: .6, ease: MASUK }, a);
         tl.fromTo(s.querySelector("b"), { scale: 0 }, { scale: 1, duration: .4, ease: HALUS }, a + .25);
-        tl.to(s, { x: 260, opacity: 0, filter: "blur(10px)", duration: .25, ease: KELUAR }, b - .25);
+        tl.to(s, { x: G.masuk === "geser" ? -260 : 260, opacity: 0, filter: "blur(10px)", duration: .25, ease: KELUAR }, b - .25);
       } else if (g.tipe === "kata") {
         const e = el("div", "cap", `<span>${esc(g.teks)}</span>`);
         e.style.top = (top + 20) + "px";
@@ -227,22 +307,22 @@ const D = __DATA__;
         tl.fromTo(s, { scale: 1.35, rotation: -9, filter: "blur(14px)" }, { scale: 1, rotation: -4, filter: "blur(0px)", duration: .55, ease: MASUK }, a);
         tl.to(s, { scale: .92, opacity: 0, filter: "blur(8px)", duration: .22, ease: KELUAR }, b - .22);
       } else if (g.tipe === "perbandingan") {
-        const e = el("div", "kartu", `<div class="vs"><div><div class="kecil">${esc(g.kiri)}</div><div class="nil">${esc(g.nilai_kiri || "")}</div></div><div class="kanan"><div class="kecil" style="color:#fff">${esc(g.kanan)}</div><div class="nil" style="color:var(--terang)">${esc(g.nilai_kanan || "")}</div></div></div>`);
+        const e = el("div", "kartu", `<div class="vs"><div><div class="kecil">${esc(g.kiri)}</div><div class="nil">${esc(g.nilai_kiri || "")}</div></div><div class="kanan"><div class="kecil isi-teks" style="color:#fff">${esc(g.kanan)}</div><div class="nil" style="color:var(--terang)">${esc(g.nilai_kanan || "")}</div></div></div>`);
         e.style.top = top + "px";
         tampil(tl, e, a, b);
         const [l, r] = e.querySelectorAll(".vs > div");
-        tl.fromTo(e, { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: .5, ease: MASUK }, a);
+        masukKartu(tl, e, a);
         tl.fromTo(l, { x: -120, opacity: 0 }, { x: 0, opacity: 1, duration: .55, ease: MASUK }, a + .08);
         tl.fromTo(r, { x: 120, opacity: 0 }, { x: 0, opacity: 1, duration: .55, ease: MASUK }, a + .3);
-        tl.to(e, { opacity: 0, y: -36, duration: .25, ease: KELUAR }, b - .25);
+        keluarKartu(tl, e, b);
       } else if (g.tipe === "langkah") {
         const e = el("div", "kartu", `<div class="langkah">${g.poin.map((p, i) => `<div class="lk"><span class="no">${i + 1}</span>${esc(p)}</div>`).join("")}</div>`);
         e.style.top = top + "px";
         tampil(tl, e, a, b);
-        tl.fromTo(e, { opacity: 0, y: 50 }, { opacity: 1, y: 0, duration: .5, ease: MASUK }, a);
+        masukKartu(tl, e, a);
         const lk = e.querySelectorAll(".lk"), jarak = Math.min(.5, (b - a - .6) / Math.max(1, lk.length));
         lk.forEach((x, i) => tl.fromTo(x, { opacity: 0, x: 60, filter: "blur(6px)" }, { opacity: 1, x: 0, filter: "blur(0px)", duration: .5, ease: MASUK }, a + .18 + i * jarak));
-        tl.to(e, { opacity: 0, y: -36, duration: .25, ease: KELUAR }, b - .25);
+        keluarKartu(tl, e, b);
       } else if (g.tipe === "sumber") {
         const e = el("div", "chip-sumber", `<b></b>${esc(g.teks)}`);
         tampil(tl, e, a, b);
@@ -257,10 +337,24 @@ const D = __DATA__;
         tl.fromTo("#kilat", { opacity: 0 }, { opacity: .38, duration: .08, ease: "power1.out" }, p.t - .04);
         tl.to("#kilat", { opacity: 0, duration: .35, ease: "power2.out" }, p.t + .04);
       } else if (i % 2 === 0) {
-        const s = el("div", "sapuan");
-        tl.set(s, { opacity: 1 }, p.t - .1);
-        tl.fromTo(s, { x: 0 }, { x: 1800, duration: .6, ease: "power2.inOut" }, p.t - .1);
-        tl.set(s, { opacity: 0 }, p.t + .5);
+        if (G.aksen === "bingkai") {
+          const s = el("div", "bingkai", "<i></i><i></i><i></i><i></i>");
+          tl.fromTo(s, { opacity: 0, scale: 1.06 }, { opacity: .9, scale: 1, duration: .22, ease: HALUS }, p.t - .06);
+          tl.to(s, { opacity: 0, duration: .35, ease: "power2.out" }, p.t + .2);
+        } else if (G.aksen === "garis") {
+          const s = el("div", "garis-aksen");
+          tl.set(s, { opacity: 1 }, p.t - .1);
+          tl.fromTo(s, { y: 160 }, { y: 1500, duration: .55, ease: "power2.inOut" }, p.t - .1);
+          tl.set(s, { opacity: 0 }, p.t + .45);
+        } else if (G.aksen === "denyut") {
+          tl.fromTo("#denyut", { opacity: 0 }, { opacity: .55, duration: .1, ease: "power1.out" }, p.t - .05);
+          tl.to("#denyut", { opacity: 0, duration: .45, ease: "power2.out" }, p.t + .05);
+        } else {
+          const s = el("div", "sapuan");
+          tl.set(s, { opacity: 1 }, p.t - .1);
+          tl.fromTo(s, { x: 0 }, { x: 1800, duration: .6, ease: "power2.inOut" }, p.t - .1);
+          tl.set(s, { opacity: 0 }, p.t + .5);
+        }
       }
     });
 

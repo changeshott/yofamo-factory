@@ -134,7 +134,7 @@ export function AgentPanel({ def, ctx }: { def: AgentDef; ctx: PanelCtx }) {
                 <Btn size="sm" tone="primary" disabled={busy(state) || !state.health.ffmpeg} onClick={() => ctx.run("editor", v.slug)}>{v.final.ada ? "Rakit ulang" : "Rakit video"}</Btn></li>))}
             </ul>
           ) : <Muted>Belum ada video yang visualnya sudah disiapkan Bima.</Muted>}
-          <Muted className="mt-2">Gratis, tanpa kuota Claude. Gaya editan (font, warna subtitle, hook, musik) diatur di <code>bible/gaya-edit.json</code>. Musik latar dipilih Uli dari folder <code>musik/</code> (volume 10%); atur di meja Uli.</Muted>
+          <Muted className="mt-2">Gratis, tanpa kuota Claude. Gaya editan (font, warna subtitle, hook, musik) diatur di <code>bible/gaya-edit.json</code>. Musik latar dipilih Uli dari folder <code>musik/</code> (volume 10, jelas tapi di bawah suara); atur di meja Uli.</Muted>
         </>);
       })()}
       {def.id === "bima" && (() => {
@@ -619,7 +619,7 @@ export function ProduksiPanel({ ctx }: { ctx: PanelCtx }) {
           <div className="mt-1 flex flex-wrap gap-2">
             <Btn size="sm" tone="ghost" onClick={() => ctx.hapus("produksi", p.id, `Catatan permintaan "${p.permintaan}" (videonya tetap ada).`)}>Hapus catatan</Btn>
             {v && <Btn size="sm" tone="danger" onClick={() => ctx.hapus("video", v.slug, `Video "${v.judul_kerja}" dan semua filenya.`)}>Hapus videonya</Btn>}
-            {v && p.status !== "selesai" && p.status !== "berjalan" && ["disetujui", "naskah", "suara", "aset", "draft"].includes(v.status) &&
+            {v && p.status !== "selesai" && p.status !== "berjalan" && (["disetujui", "naskah", "suara", "aset"].includes(v.status) || (v.status === "draft" && !(v.final?.ada && v.qc))) &&
               <Btn size="sm" tone="primary" disabled={busy(ctx.state)} onClick={() => ctx.run("produksi", `lanjut|${p.opsi.suara ?? "pria"}|${p.opsi.visual ?? "teliti"}|${v.slug}`)}>Lanjutkan dari tahap terakhir</Btn>}
           </div>
           {p.status !== "selesai" && <><Stepper p={p} />{p.pesan && <Muted className="mt-1">{p.pesan}</Muted>}</>}
@@ -713,7 +713,7 @@ export function MusikPanel({ ctx }: { ctx: PanelCtx }) {
   if (!data) return <Muted>Memuat perpustakaan musik…</Muted>;
   const grup = data.lagu.reduce<Record<string, Lagu[]>>((g, l) => ((g[l.suasana] ??= []).push(l), g), {});
   return (<>
-    <Muted>Uli memilih lagu dari perpustakaanmu sesuai suasana naskah (tegang, ceria, misterius, epik, haru) dan menggilir lagu yang paling jarang dipakai. Volumenya <b className="text-ink-50">10%</b> dari suara narasi, stabil sepanjang video.</Muted>
+    <Muted>Uli memilih lagu dari perpustakaanmu sesuai suasana naskah (tegang, ceria, misterius, epik, haru) dan menggilir lagu yang paling jarang dipakai. Volumenya setara <b className="text-ink-50">10 dari 100</b>: kerasnya tiap lagu diukur lalu disetel ±10 dB di bawah narasi, jadi jelas terdengar tapi tidak menabrak suara. Saat narasi bicara, musik turun sedikit.</Muted>
     {data.lagu.length === 0 ? (
       <div className="mt-3 rounded-lg border border-line bg-ink-950 p-3 text-sm">
         <b className="font-pixel">Perpustakaan masih kosong</b>

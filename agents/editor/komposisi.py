@@ -11,8 +11,10 @@ Kalau tidak ada, rakit.py otomatis memakai mesin ffmpeg (subtitle ASS).
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import os
+import random
 import re
 import shutil
 import subprocess
@@ -25,6 +27,21 @@ GSAP = ROOT / "node_modules" / "gsap" / "dist" / "gsap.min.js"
 FONTS = ROOT / "fonts"
 WARNA_STATUS = {"riset": "7B6CFF", "prototipe": "2D8CFF", "dipakai": "13B981", "dijual": "13B981"}
 LABEL_STATUS = {"riset": "MASIH RISET", "prototipe": "PROTOTIPE", "dipakai": "SUDAH DIPAKAI", "dijual": "SUDAH DIJUAL"}
+
+# Variasi gaya gerak: tiap video memakai kombinasi berbeda supaya channel tidak terasa template yang itu-itu saja.
+# Semua varian tetap halus (tanpa memantul) dan tetap di palet biru channel.
+VARIAN = {
+    "hook": ["naik", "skala", "geser", "ketik", "sapu"],          # cara hook bertingkat muncul
+    "sub": ["naik", "pop", "geser", "sapu", "fokus"],             # cara subtitle 1 kata muncul
+    "stabilo": ["blok", "garis", "miring", "teks"],               # penanda kata penekanan
+    "kartu": ["kaca", "solid", "neon", "putih"],                  # kulit kartu grafis
+    "masuk": ["naik", "geser", "skala", "lipat"],                 # cara kartu grafis masuk
+    "layar": ["kisi", "cincin", "garis", "titik"],                # latar grafis layar penuh
+    "aksen": ["sapuan", "bingkai", "garis", "denyut"],            # aksen di pergantian kalimat
+    "palet": ["biru", "elektrik", "langit", "samudra", "kobalt"],  # nuansa biru (utama, terang)
+}
+PALET = {"biru": ("2D8CFF", "6FD3FF"), "elektrik": ("1F6FFF", "7FD8FF"), "langit": ("3B9BFF", "9AD8FF"),
+         "samudra": ("0EA5E9", "7DD3FC"), "kobalt": ("2563EB", "8EC5FF")}
 
 
 def tersedia() -> tuple[bool, str]:
@@ -45,6 +62,48 @@ def tersedia() -> tuple[bool, str]:
 
 def _kunci(t: str) -> str:
     return re.sub(r"[^0-9a-z]", "", t.lower())
+
+
+def pilih_gaya(slug: str, videos: Path, st: dict | None = None) -> dict:
+    """Pilih kombinasi gaya gerak untuk satu video: tiap unsur memakai varian yang paling jarang dipakai video lain
+    dan tidak sama dengan video sebelumnya. Video yang dirakit ulang (Rara) memakai gaya yang sama seperti sebelumnya."""
+    st = st or {}
+    if st.get("variasi") is False:
+        return {k: v[0] for k, v in VARIAN.items()}
+    lama = videos / slug / "export" / "info.json"
+    try:
+        g0 = json.loads(lama.read_text(encoding="utf-8")).get("gaya_gerak") if lama.exists() else None
+    except (OSError, ValueError):
+        g0 = None
+    if isinstance(g0, dict) and all(g0.get(k) in v for k, v in VARIAN.items()):
+        return {k: g0[k] for k in VARIAN} | {"transisi_acak": g0.get("transisi_acak", slug)}
+    riwayat = []
+    for f in videos.glob("*/export/info.json"):
+        if f.parent.parent.name == slug:
+            continue
+        try:
+            d = json.loads(f.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if isinstance(d.get("gaya_gerak"), dict):
+            riwayat.append((str(d.get("dibuat", "")), d["gaya_gerak"]))
+    riwayat.sort(key=lambda x: x[0])
+    lalu = [g for _, g in riwayat]
+    h = int(hashlib.sha1(slug.encode()).hexdigest(), 16)
+    gaya = {}
+    for n, (k, opsi) in enumerate(VARIAN.items()):
+        hitung = {o: sum(1 for g in lalu if g.get(k) == o) for o in opsi}
+        baru = lalu[-1].get(k) if lalu else None
+        gaya[k] = min(opsi, key=lambda o: (o == baru, hitung[o], ((h >> (n * 6)) + opsi.index(o) * 37) % 101))
+    gaya["transisi_acak"] = slug
+    return gaya
+
+
+def urut_transisi(daftar: list[str], gaya: dict) -> list[str]:
+    """Urutan transisi antar-kalimat diacak per video (tetap sama kalau video dirakit ulang)."""
+    d = list(daftar)
+    random.Random(str(gaya.get("transisi_acak", ""))).shuffle(d)
+    return d
 
 
 def grafis_kalimat(i: int, n: dict, kal: dict, idea: dict, senyap: list[tuple[float, float]]) -> list[dict]:
@@ -103,8 +162,13 @@ def layar_penuh(klip: list[dict]) -> list[dict]:
 
 def data_video(st: dict, script: dict, idea: dict, words: dict, narasi: list[dict], total: float, akhir: float,
                senyap: list[tuple[float, float]], hook_baris: list[tuple[str, str, float]], hook_end: float,
-               tekan: set[tuple[int, str]], kal_dari, klip_grafis: list[dict] | None = None) -> dict:
+               tekan: set[tuple[int, str]], kal_dari, klip_grafis: list[dict] | None = None, gaya: dict | None = None) -> dict:
     hf = st.get("hyperframes", {})
+    gaya = gaya or {k: v[0] for k, v in VARIAN.items()}
+    warna = {k: str(v).lstrip("#") for k, v in (st.get("palet") or {}).items() if k in ("utama", "terang", "gelap", "kuning")}
+    utama0 = warna.get("utama", "2D8CFF").upper()
+    if gaya.get("palet") in PALET and gaya["palet"] != "biru":
+        warna["utama"], warna["terang"] = PALET[gaya["palet"]]
     sub, hk = st["subtitle"], st["hook"]
     kalimat = words.get("kalimat", [])
     kata = []
@@ -134,12 +198,12 @@ def data_video(st: dict, script: dict, idea: dict, words: dict, narasi: list[dic
     pn = st.get("penutup", {})
     return {
         "total": round(total, 3), "akhir": round(akhir, 3), "handle": st.get("handle", {}).get("teks", ""),
-        "warna": {k: str(v).lstrip("#") for k, v in (st.get("palet") or {}).items() if k in ("utama", "terang", "gelap", "kuning")},
+        "warna": warna, "gaya": {k: v for k, v in gaya.items() if k in VARIAN},
         "sub": {"px": int(hf.get("subtitle_px", 104)), "min": int(hf.get("subtitle_min", 60)), "y": int(hf.get("subtitle_y", 1180))},
         "zona_grafis": int(hf.get("zona_grafis_atas", 430)),
         "hook": {"akhir": round(hook_end, 3), "y": int(hf.get("hook_y", 1000)), "rapat": float(hk.get("jarak_baris", 0.8)) + 0.12,
                  "tinggi_maks": int(hk.get("tinggi_maks", 900)), "jeda": float(hk.get("jeda_baris", 0.09)) + 0.03,
-                 "baris": [{"teks": t, "warna": w, "maks": int(float(hf.get("hook_px_maks", 230)) * sk)} for t, w, sk in hook_baris]},
+                 "baris": [{"teks": t, "warna": warna.get("utama", w) if w.upper().lstrip("#") == utama0 else w, "maks": int(float(hf.get("hook_px_maks", 230)) * sk)} for t, w, sk in hook_baris]},
         "kata": kata, "grafis": grafis, "potong": potong, "layar": layar_penuh(klip_grafis or []),
         "penutup": {"a": round(total, 3), "b": round(akhir, 3), "teks": str(pn.get("teks", ""))} if akhir > total + 0.05 and pn.get("teks") else None,
     }

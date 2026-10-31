@@ -78,9 +78,9 @@
     "musik": "acak",
     "whoosh": true,
     "volume_whoosh_db": -16,
-    "volume_musik_persen": 10,
+    "musik_di_bawah_narasi_db": 10,
     "musik_redam_saat_bicara": true,
-    "_catatan": "Musik dari musik/<suasana>/. Kerasnya tiap lagu diukur lalu disetel volume_musik_persen (10 = 10%, -20 dB) di bawah narasi; saat narasi berbicara musik diredam halus, dan frekuensi suara (1–3 kHz) di musik dikurangi supaya tidak bertabrakan.",
+    "_catatan": "Musik dari musik/<suasana>/. Kerasnya tiap lagu diukur lalu disetel musik_di_bawah_narasi_db (10 = setara volume 10/100 di CapCut untuk lagu yang di-master keras: jelas terdengar, tidak menabrak) di bawah narasi. Lebih pelan: 12–14. Lebih keras: 7–8. Saat narasi berbicara musik diredam halus (±2–3 dB), dan frekuensi suara (1–3 kHz) di musik dikurangi sedikit.",
     "musik_beri_ruang_suara": true
   },
   "penutup": {

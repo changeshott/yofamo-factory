@@ -291,7 +291,7 @@ def main() -> None:
         cat.tahap("dara", "jalan")
         voice = ["--voice", "id-ID-GadisNeural"] if a.suara == "wanita" else []
         code = 0 if sudah(slug, "aset") else jalan([PY, "agents/suara/buat_suara.py", slug, *voice, *(["--uji"] if a.uji else [])], 10 * 60)
-        if a.uji and code == 0:
+        if a.uji and code == 0 and not sudah(slug, "suara"):
             pabrik("set", slug, "suara")
         if code != 0 or not sudah(slug, "suara"):
             cat.tahap("dara", "gagal", "Suara gagal dibuat (cek internet / edge-tts).")
@@ -346,19 +346,23 @@ def main() -> None:
         m = json.loads((ROOT / "videos" / slug / "aset" / "manifest.json").read_text(encoding="utf-8"))
         cat.tahap("bima", "ok", f"{len(m.get('klip', []))} shot")
 
-        # 6. Kai
+        # 6. Kai (dilewati kalau video yang dilanjutkan sudah jadi: tidak merakit ulang 20+ menit tanpa alasan)
+        exp = ROOT / "videos" / slug / "export"
+        sudah_jadi = bool(lanjut) and sudah(slug, "draft") and (exp / "final.mp4").exists()
         cat.tahap("kai", "jalan")
-        code = jalan([PY, "agents/editor/rakit.py", slug, *(["--uji"] if a.uji else [])], 45 * 60)
-        if a.uji and code == 0:
+        code = 0 if sudah_jadi else jalan([PY, "agents/editor/rakit.py", slug, *(["--uji"] if a.uji else [])], 45 * 60)
+        if a.uji and code == 0 and not sudah_jadi:
             pabrik("set", slug, "draft")
-        if code != 0 or not (ROOT / "videos" / slug / "export" / "final.mp4").exists():
+        if code != 0 or not (exp / "final.mp4").exists():
             cat.tahap("kai", "gagal", "Video gagal dirakit. Cek log.")
             return cat.akhir("gagal", "Berhenti di tahap rakit.")
-        cat.tahap("kai", "ok", "export/final.mp4")
+        cat.tahap("kai", "ok", "sudah jadi sebelumnya (tidak dirakit ulang)" if sudah_jadi else "export/final.mp4")
 
         # 7. Rara (QC): periksa, ganti shot jelek, rakit ulang (maks 2 putaran)
         cat.tahap("rara", "jalan")
-        if a.uji or a.visual == "cepat":
+        if sudah_jadi and (exp / "qc_review.json").exists():
+            pass
+        elif a.uji or a.visual == "cepat":
             jalan([PY, "agents/qc/periksa.py", "otomatis", slug, *(["--uji"] if a.uji else [])], 75 * 60)
         else:
             claude(f"/qc {slug}", tools("agents/pabrik.py", "agents/qc/periksa.py"), 90 * 60)

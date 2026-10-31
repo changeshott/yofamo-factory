@@ -253,13 +253,22 @@ def offline() -> None:
             tipe = sorted({g["tipe"] for g in hfd.get("grafis", [])})
             cek("Kai: mesin HyperFrames + grafis gerak sesuai kalimat", inf.get("mesin") == "hyperframes" and len(hfd.get("grafis", [])) >= 3,
                 f"mesin {inf.get('mesin')}, grafis: {', '.join(tipe)}")
+            gg = inf.get("gaya_gerak") or {}
+            sys.path.insert(0, str(tmp / "agents" / "editor"))
+            import komposisi as _kp
+            g2 = _kp.pilih_gaya("video-uji-berikutnya", tmp / "videos")
+            beda = [k for k in _kp.VARIAN if g2.get(k) != gg.get(k)]
+            sama_lagi = _kp.pilih_gaya(slug, tmp / "videos")
+            cek("Kai: gaya gerak tercatat, video berikutnya berbeda, rakit ulang tetap sama",
+                bool(gg) and len(beda) == len(_kp.VARIAN) and all(sama_lagi.get(k) == gg.get(k) for k in _kp.VARIAN) and hfd.get("gaya", {}).get("hook") == gg.get("hook"),
+                f"video ini: {gg.get('hook')}/{gg.get('sub')}/{gg.get('kartu')} → berikutnya: {g2.get('hook')}/{g2.get('sub')}/{g2.get('kartu')}")
         fdir = os.environ.get("TES_FRAME_DIR")
         if fdir:
             for t in (0.15, 0.5, 1.2, 4.0, 6.0):
                 subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", str(t), "-i", str(fin), "-frames:v", "1", "-vf", "scale=360:-2",
                                 str(Path(fdir) / f"f{t:.2f}.jpg")], check=False)
-        cek("Kai: musik latar sesuai suasana, volume 10%, kredit tercatat", inf.get("musik") == "lagu-uji.mp3" and inf.get("volume_musik_persen") == 10
-            and "Lagu Uji" in str(inf.get("musik_kredit")), f"{inf.get('musik')} · {inf.get('volume_musik_persen')}%")
+        cek("Kai: musik latar sesuai suasana, 10 dB di bawah narasi, kredit tercatat", inf.get("musik") == "lagu-uji.mp3" and inf.get("musik_di_bawah_narasi_db") == 10
+            and "Lagu Uji" in str(inf.get("musik_kredit")), f"{inf.get('musik')} · -{inf.get('musik_di_bawah_narasi_db')} dB")
         cek("Kai: penutup, teks layar & penekanan tampil", ",Akhir," in ass_txt and ",Layar," in ass_txt and "PROTOTIPE" in ass_txt and "REFLEKS!" not in ass_txt and "&H003FD2FF&" in ass_txt)
         ar = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=codec_name", "-of", "csv=p=0", str(fin)], capture_output=True, text=True)
         cek("Kai: ada audio AAC", "aac" in ar.stdout)

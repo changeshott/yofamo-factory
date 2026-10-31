@@ -397,6 +397,8 @@ def main() -> None:
     z, zd, dorong = float(g.get("punch_zoom", 0.08)), float(g.get("punch_detik", 0.28)), float(g.get("dorong", 0.06))
     T = float(g.get("transisi_detik", 0.3))
     daftar_tr = [str(x) for x in g.get("transisi", ["smoothleft", "zoomin", "smoothup", "slideleft", "circleopen"])] or ["fade"]
+    gaya = komposisi.pilih_gaya(a.slug, VIDEOS, g)      # kombinasi gaya gerak video ini (beda dari video sebelumnya)
+    daftar_tr = komposisi.urut_transisi(daftar_tr, gaya)
     tr_wow = str(g.get("transisi_wow", "fadewhite"))
     chains = []
     for j, k in enumerate(klip):
@@ -461,18 +463,20 @@ def main() -> None:
     mix = ["[vo1]"]
     if idx_bgm is not None:
         # Kerasnya musik diukur dulu (lagu phonk/hardtekk sering di-master sangat keras, -5 LUFS), lalu disetel
-        # 10% (= -20 dB) di bawah kerasnya narasi → tiap lagu terdengar sama pelannya, tidak ada yang "nabrak" suara.
-        persen = float(st["audio"].get("volume_musik_persen", 10))
-        selisih = -20 * math.log10(max(1.0, min(100.0, persen)) / 100)
+        # N dB di bawah kerasnya narasi (bawaan 10 dB ≈ "volume 10" di telinga: jelas terdengar, tidak menabrak suara).
+        # Dulu -20 dB + kompresor kuat + EQ dalam → musik praktis hilang (±-35 dB). Sekarang redaman saat bicara halus.
+        au = st["audio"]
+        bawah = float(au.get("musik_di_bawah_narasi_db", 10))
+        bawah = max(4.0, min(24.0, bawah))
         l_vo = -18.0 if a.uji else (ukur_lufs(vdir / "vo.mp3") or -16.0)
         l_mu = ukur_lufs(music) or -14.0
-        db = max(-45.0, min(6.0, (l_vo - selisih) - l_mu))
-        ruang = ",equalizer=f=2600:t=q:w=1.3:g=-6,equalizer=f=1200:t=q:w=1.0:g=-3" if st["audio"].get("musik_beri_ruang_suara", True) else ""
-        log(f"musik {music.name}: {l_mu:.1f} LUFS → {l_mu + db:.1f} LUFS ({persen:.0f}% dari narasi {l_vo:.1f} LUFS)")
+        db = max(-40.0, min(8.0, (l_vo - bawah) - l_mu))
+        ruang = ",equalizer=f=2600:t=q:w=1.3:g=-4,equalizer=f=1200:t=q:w=1.0:g=-2" if au.get("musik_beri_ruang_suara", True) else ""
+        log(f"musik {music.name}: {l_mu:.1f} LUFS → {l_mu + db:.1f} LUFS ({bawah:.0f} dB di bawah narasi {l_vo:.1f} LUFS)")
         chains.append(f"[{idx_bgm}:a]aresample=48000,atrim=duration={akhir:.3f},volume={db:.2f}dB{ruang},afade=t=in:d=0.6,"
                       f"afade=t=out:st={max(0, akhir - max(1.2, tutup + 0.6)):.2f}:d={max(1.2, tutup + 0.6):.2f}[bg]")
-        if st["audio"].get("musik_redam_saat_bicara", True):
-            chains.append("[bg][vo2]sidechaincompress=threshold=0.03:ratio=3:attack=40:release=500:makeup=1[bgd]")
+        if au.get("musik_redam_saat_bicara", True):
+            chains.append("[bg][vo2]sidechaincompress=threshold=0.05:ratio=2:attack=60:release=600:makeup=1[bgd]")
             mix.append("[bgd]")
         else:
             chains.append("[vo2]anullsink")
@@ -507,9 +511,10 @@ def main() -> None:
             data = komposisi.data_video(st, script, read_json(vdir / "idea.json", {}), words, narasi, total, akhir, senyap,
                                         hook_baris(script.get("hook_teks", ""), script, [str(x) for x in st["hook"].get("warna", [])]),
                                         hook_end, tekanan(words.get("kalimat", []), narasi), kal_dari,
-                                        [k for k in klip if k.get("jenis") == "grafis"])
+                                        [k for k in klip if k.get("jenis") == "grafis"], gaya)
             komposisi.tulis_proyek(out_dir / "hf", base_mp4, data, str(script.get("judul", a.slug)))
-            log(f"HyperFrames: {len(data['kata'])} kata subtitle, {len(data['grafis'])} grafis gerak, merender…")
+            log(f"HyperFrames: {len(data['kata'])} kata subtitle, {len(data['grafis'])} grafis gerak, gaya "
+                + ", ".join(f"{k}={v}" for k, v in data["gaya"].items()) + ", merender…")
             hf_mp4 = out_dir / "hf_render.mp4"
             komposisi.render(out_dir / "hf", hf_mp4, log)
             gerak.ff("-i", str(hf_mp4), "-i", str(base_mp4), "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "copy",
@@ -528,7 +533,9 @@ def main() -> None:
             "shot": n, "musik": music.name if music else None, "font": family, "pakai_ai": bool(man.get("pakai_ai")),
             "suara_detik": round(total, 2), "penutup_detik": round(tutup, 2),
             "transisi": transisi_pakai, "denyut_tekanan": len(titik), "mesin": mesin_dipakai,
-            "musik_kredit": kredit_musik(music), "volume_musik_persen": float(st["audio"].get("volume_musik_persen", 10)) if music else None}
+            "gaya_gerak": gaya if mesin_dipakai == "hyperframes" else None,
+            "musik_kredit": kredit_musik(music),
+            "musik_di_bawah_narasi_db": float(st["audio"].get("musik_di_bawah_narasi_db", 10)) if music else None}
     (out_dir / "info.json").write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
     log(f"selesai dalam {time.time() - t0:.0f} dtk: videos/{a.slug}/export/final.mp4 ({info['durasi']} dtk)")
     if not music:

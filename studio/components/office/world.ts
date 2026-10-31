@@ -51,7 +51,7 @@ export const TEAM: AgentDef[] = [
   },
   {
     id: "kai", skill: "editor", job: "editor", name: "Kai", role: "Editor video", desk: [9.2, 7.0], color: "#F2C94C",
-    about: "Merakit video final dengan HyperFrames: hook bertingkat, subtitle 1 kata, grafis gerak biru sesuai kalimat, transisi halus, musik latar 10%, dan penutup Subscribe. Gratis, tanpa kuota Claude.",
+    about: "Merakit video final dengan HyperFrames: hook bertingkat, subtitle 1 kata, grafis gerak biru sesuai kalimat, transisi halus, musik latar volume 10, dan penutup Subscribe. Gratis, tanpa kuota Claude.",
     look: { skin: "#E0AC86", hair: "#3B2A20", shirt: "#E3B23C", pants: "#2A2F3A", accent: "#1C1C1C", style: "short", glasses: true },
     busy: { editor: "Merender video…" },
   },
