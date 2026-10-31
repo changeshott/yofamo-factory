@@ -43,7 +43,9 @@ export default function Office({ state, onOpen }: { state: StudioState | null; o
     const draw = () => {
       const c = cam.current;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.fillStyle = "#0B1526"; ctx.fillRect(0, 0, cv.width, cv.height);
+      const bg = ctx.createRadialGradient(cv.width / 2, cv.height * 0.45, 0, cv.width / 2, cv.height * 0.45, Math.max(cv.width, cv.height) * 0.7);
+      bg.addColorStop(0, "#15284A"); bg.addColorStop(0.55, "#0D1A30"); bg.addColorStop(1, "#070E1B");
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, cv.width, cv.height);
       ctx.imageSmoothingEnabled = false;
       ctx.setTransform(dpr * c.s, 0, 0, dpr * c.s, dpr * c.x, dpr * c.y);
       ctx.drawImage(eng.canvas, 0, 0);

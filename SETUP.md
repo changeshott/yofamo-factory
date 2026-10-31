@@ -95,6 +95,9 @@ Studio Yofamo adalah kantor virtual tim agent, memenuhi satu layar. Klik apa saj
 - **Sistem** (dok) — cek Python, Claude Code, `.env`, dan data channel, lengkap dengan cara memperbaikinya.
 - Saat tugas selesai, muncul pemberitahuan di layar (dan notifikasi Windows kalau Studio sedang tidak dibuka). Agent yang berhasil akan berjalan ke ruang founder untuk melapor.
 - Tugas yang sedang berjalan bisa dihentikan dengan tombol **Hentikan** di kiri atas.
+- **Dok bawah** (ringkas): **+ Buat video**, **Tim** (kartu 8 agent dengan status kerja), **Meja Zona**, **Video** (galeri, antrean, kelola), **Data** (analitik, laporan, bible, log), **Sistem**.
+- **Ctrl+K**: palet perintah — ketik nama agent, panel, video, atau aksi (misalnya "ide", "data", "galeri") lalu Enter.
+- Saat produksi berjalan, **strip tahap produksi** muncul di atas tengah; klik untuk membuka detailnya.
 
 Suasana kantor mengikuti jam laptop: pagi, siang, sore, dan malam dengan lampu kota di jendela.
 

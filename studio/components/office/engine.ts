@@ -172,47 +172,63 @@ export class OfficeEngine {
   }
 
   private room(ph: Phase) {
-    // dinding
-    this.poly([P(0, 0), P(0, RD), P(0, RD, WALL), P(0, 0, WALL)], "#DCE5EF");
-    this.poly([P(0, 0), P(RW, 0), P(RW, 0, WALL), P(0, 0, WALL)], "#C9D5E3");
-    this.poly([P(0, 0), P(0, RD), P(0, RD, 36), P(0, 0, 36)], "#C5D3E2");
-    this.poly([P(0, 0), P(16, 0), P(16, 0, 36), P(0, 0, 36)], "#B6C5D7");
-    this.poly([P(16, 0), P(RW, 0), P(RW, 0, WALL), P(16, 0, WALL)], "#2E3C55"); // dinding ruang founder (aksen gelap)
-    this.poly([P(0, 0, WALL), P(0, RD, WALL), P(-0.35, RD, WALL), P(-0.35, -0.35, WALL), P(RW, -0.35, WALL), P(RW, 0, WALL)], "#8EA0B6");
+    // dinding: putih kebiruan + panel bawah navy (warna khas Yofamo)
+    this.poly([P(0, 0), P(0, RD), P(0, RD, WALL), P(0, 0, WALL)], "#E4EAF2");
+    this.poly([P(0, 0), P(RW, 0), P(RW, 0, WALL), P(0, 0, WALL)], "#D3DCE8");
+    this.poly([P(0, 0), P(0, RD), P(0, RD, 30), P(0, 0, 30)], "#22355A");
+    this.poly([P(0, 0), P(16, 0), P(16, 0, 30), P(0, 0, 30)], "#1C2E50");
+    this.poly([P(0, 0, 30), P(0, RD, 30), P(0, RD, 32), P(0, 0, 32)], "#6FD3FF");
+    this.poly([P(0, 0, 30), P(16, 0, 30), P(16, 0, 32), P(0, 0, 32)], "#4FB9F0");
+    for (let y = 0.5; y < RD; y += 1.0) { const g = this.g; g.strokeStyle = "rgba(255,255,255,.07)"; g.beginPath(); g.moveTo(...P(0, y, 2)); g.lineTo(...P(0, y, 28)); g.stroke(); }
+    for (let x = 0.5; x < 16; x += 1.0) { const g = this.g; g.strokeStyle = "rgba(255,255,255,.06)"; g.beginPath(); g.moveTo(...P(x, 0, 2)); g.lineTo(...P(x, 0, 28)); g.stroke(); }
+    this.poly([P(16, 0), P(RW, 0), P(RW, 0, WALL), P(16, 0, WALL)], "#16233B"); // dinding ruang founder (navy gelap)
+    this.poly([P(0, 0, WALL), P(0, RD, WALL), P(-0.35, RD, WALL), P(-0.35, -0.35, WALL), P(RW, -0.35, WALL), P(RW, 0, WALL)], "#7F93AE");
+    // panel kayu bilah di belakang neon
+    this.poly(this.qy(0, 9.8, 13.1, 32, 104), "#3B2A22");
+    for (let x = 9.86; x < 13.05; x += 0.16) this.poly(this.qy(0, x, x + 0.09, 33, 103), (Math.round(x * 10) % 3) ? "#6B4A35" : "#5E402E");
     // jendela kiri
     [[1.0, 3.6], [4.2, 6.8], [7.4, 9.6]].forEach(([y0, y1], i) => {
-      const q = this.qx(0, y0, y1, 34, 96); this.sky(q, ph, i + 1);
-      this.poly(this.qx(0, y0 - 0.06, y1 + 0.06, 30, 34), "#9AAABD");
-      this.poly(q, undefined, "#6F8299");
-      const m = (y0 + y1) / 2, g = this.g; g.strokeStyle = "#6F8299"; g.beginPath(); g.moveTo(...P(0, m, 34)); g.lineTo(...P(0, m, 96)); g.moveTo(...P(0, y0, 66)); g.lineTo(...P(0, y1, 66)); g.stroke();
+      const q = this.qx(0, y0, y1, 38, 100); this.sky(q, ph, i + 1);
+      this.poly(this.qx(0, y0 - 0.06, y1 + 0.06, 34, 38), "#9FB2C8");
+      this.poly(q, undefined, "#5E7390");
+      const m = (y0 + y1) / 2, g = this.g; g.strokeStyle = "#5E7390"; g.beginPath(); g.moveTo(...P(0, m, 38)); g.lineTo(...P(0, m, 100)); g.moveTo(...P(0, y0, 70)); g.lineTo(...P(0, y1, 70)); g.stroke();
+      g.strokeStyle = "rgba(255,255,255,.35)"; g.beginPath(); g.moveTo(...P(0, y0 + 0.25, 46)); g.lineTo(...P(0, y0 + 0.75, 92)); g.stroke();
     });
     // jendela ruang founder
     [[16.8, 18.8], [19.2, 21.2]].forEach(([x0, x1], i) => {
       const q = this.qy(0, x0, x1, 40, 98); this.sky(q, ph, i + 7);
-      this.poly(q, undefined, "#11192A");
-      this.poly(this.qy(0, x0 - 0.06, x1 + 0.06, 36, 40), "#1B2638");
+      this.poly(q, undefined, "#0B1424");
+      this.poly(this.qy(0, x0 - 0.06, x1 + 0.06, 36, 40), "#101B2E");
     });
-    // plint
-    this.poly([P(0, 0), P(0, RD), P(0, RD, 4), P(0, 0, 4)], "#8C9CB0");
-    this.poly([P(0, 0), P(RW, 0), P(RW, 0, 4), P(0, 0, 4)], "#7D8DA2");
-    // lantai: kayu (kerja), karpet (founder), lantai keramik (pantry)
+    // lantai: kayu walnut (kerja), karpet navy (founder), marmer (pantry)
     for (let i = 0; i < RW; i++) for (let j = 0; j < RD; j++) {
       let c: string;
-      if (i >= 16 && j < 6) c = (i + j) % 2 ? "#3A4C6B" : "#36486A";
-      else if (j >= 13 && i >= 8 && i < 16) c = (i + j) % 2 ? "#E7EBF0" : "#D3DAE3";
-      else { const plank = (i + (j >> 1)) % 2; c = plank ? "#C9965F" : "#C08C57"; if ((i * 7 + j * 3) % 6 === 0) c = "#BA854F"; }
+      if (i >= 16 && j < 6) c = (i + j) % 2 ? "#1E2D48" : "#1B2A44";
+      else if (j >= 13 && i >= 8 && i < 16) c = (i + j) % 2 ? "#EEF2F7" : "#E1E7EF";
+      else { const plank = Math.floor((i + (j % 3) * 0.7) / 2.5); c = ["#C9A37A", "#C49D73", "#CDA77F", "#C29A71"][(plank * 7 + j * 3) % 4]; }
       this.poly([P(i, j), P(i + 1, j), P(i + 1, j + 1), P(i, j + 1)], c);
     }
-    const g = this.g; g.globalAlpha = 0.16; g.strokeStyle = "#6E4A2B";
-    for (let i = 0; i <= 16; i++) { g.beginPath(); g.moveTo(...P(i, i >= 16 ? 6 : 0)); g.lineTo(...P(i, 13)); g.stroke(); }
+    const g = this.g;
+    g.globalAlpha = 0.18; g.strokeStyle = "#7A5636";
+    for (let j = 0; j <= 13; j++) { g.beginPath(); g.moveTo(...P(0, j)); g.lineTo(...P(16, j)); g.stroke(); }          // garis papan
+    for (let i = 0; i < 16; i++) for (let j = 0; j < 13; j++) if ((i * 2 + j * 3) % 5 === 0) { g.beginPath(); g.moveTo(...P(i + 0.5, j)); g.lineTo(...P(i + 0.5, j + 1)); g.stroke(); }
     g.globalAlpha = 1;
-    // karpet lounge
-    this.poly([P(1.6, 10.8), P(7.0, 10.8), P(7.0, 14.6), P(1.6, 14.6)], "#7A4E8C");
-    this.poly([P(1.9, 11.1), P(6.7, 11.1), P(6.7, 14.3), P(1.9, 14.3)], undefined, "#E4B5F0");
-    this.poly([P(2.3, 11.5), P(6.3, 11.5), P(6.3, 13.9), P(2.3, 13.9)], undefined, "#A673B8");
+    // bayangan lembut di pertemuan dinding & lantai (ambient occlusion)
+    const ao = (pts: Pt[], x0: Pt, x1: Pt) => { const gr = g.createLinearGradient(x0[0], x0[1], x1[0], x1[1]); gr.addColorStop(0, "rgba(10,18,34,.32)"); gr.addColorStop(1, "rgba(10,18,34,0)"); this.poly(pts, gr); };
+    ao([P(0, 0), P(0, RD), P(0.9, RD), P(0.9, 0)], P(0, 7), P(0.9, 7));
+    ao([P(0, 0), P(RW, 0), P(RW, 0.9), P(0, 0.9)], P(8, 0), P(8, 0.9));
+    // cahaya matahari dari jendela kiri (siang/sore)
+    if (ph.night < 0.6) {
+      const a = ph.name === "sore" ? "rgba(255,190,120,.16)" : "rgba(255,246,214,.14)";
+      [[1.0, 3.6], [4.2, 6.8], [7.4, 9.6]].forEach(([y0, y1]) => this.poly([P(0, y0), P(0, y1), P(3.4, y1 + 1.6), P(3.4, y0 + 1.6)], a));
+    }
+    // karpet lounge (biru-ungu)
+    this.poly([P(1.6, 10.8), P(7.0, 10.8), P(7.0, 14.6), P(1.6, 14.6)], "#2C3F78");
+    this.poly([P(1.9, 11.1), P(6.7, 11.1), P(6.7, 14.3), P(1.9, 14.3)], undefined, "#6FD3FF");
+    this.poly([P(2.3, 11.5), P(6.3, 11.5), P(6.3, 13.9), P(2.3, 13.9)], undefined, "#4A62B0");
     // karpet founder
-    this.poly([P(17.0, 1.0), P(21.4, 1.0), P(21.4, 5.4), P(17.0, 5.4)], "#22324C");
-    this.poly([P(17.3, 1.3), P(21.1, 1.3), P(21.1, 5.1), P(17.3, 5.1)], undefined, "#FF9A4D");
+    this.poly([P(17.0, 1.0), P(21.4, 1.0), P(21.4, 5.4), P(17.0, 5.4)], "#24375C");
+    this.poly([P(17.3, 1.3), P(21.1, 1.3), P(21.1, 5.1), P(17.3, 5.1)], undefined, "#2D8CFF");
   }
 
   /* ---------- objek dinding ---------- */
@@ -254,18 +270,20 @@ export class OfficeEngine {
       A: ["010", "101", "111", "101", "101"], M: ["101", "111", "111", "101", "101"],
     };
     const g = this.g; g.save();
-    g.shadowColor = "#FF9A4D"; g.shadowBlur = ph.night ? 8 : 3;
+    g.shadowColor = "#2D8CFF"; g.shadowBlur = ph.night ? 10 : 5;
     let x = 10.15;
     for (const ch of "YOFAMO") {
-      glyph[ch].forEach((row, r) => [...row].forEach((b, c) => { if (b === "1") this.poly(this.qy(0, x + c * 0.13, x + c * 0.13 + 0.1, 90 - r * 3.4, 92.6 - r * 3.4), "#FFB070"); }));
+      glyph[ch].forEach((row, r) => [...row].forEach((b, c) => { if (b === "1") this.poly(this.qy(0, x + c * 0.13, x + c * 0.13 + 0.1, 90 - r * 3.4, 92.6 - r * 3.4), "#BFEAFF"); }));
       x += 0.5;
     }
     g.restore();
-    // poster
-    this.poly(this.qy(0, 10.4, 11.5, 40, 70), "#20304A"); this.poly(this.qy(0, 10.55, 11.35, 44, 66), "#FF5C5C");
-    this.poly([P(10.85, 0, 50), P(10.85, 0, 60), P(11.1, 0, 55)], "#FFFFFF");
-    this.poly(this.qy(0, 11.9, 12.9, 40, 70), "#20304A"); this.poly(this.qy(0, 12.05, 12.75, 44, 66), "#47B5FF");
-    this.poly(this.qy(0, 12.2, 12.6, 56, 62), "#F2C94C"); this.poly(this.qy(0, 12.3, 12.5, 48, 54), "#F4F1E8");
+    // rak dinding kecil + plakat channel di bawah neon
+    this.poly(this.qy(0, 10.2, 12.8, 56, 58), "#2A1C15");
+    this.poly(this.qy(0, 10.45, 11.15, 58, 70), "#F2C94C"); this.poly(this.qy(0, 10.55, 11.05, 60, 68), "#1C2E50");
+    this.poly([P(10.72, 0, 61), P(10.72, 0, 67), P(10.92, 0, 64)], "#6FD3FF");
+    this.poly(this.qy(0, 11.5, 11.8, 58, 66), "#6FD3FF"); this.poly(this.qy(0, 12.0, 12.5, 58, 63), "#ECF2F8");
+    this.poly(this.qy(0, 10.4, 12.6, 36, 50), "#0E1A30"); this.poly(this.qy(0, 10.5, 12.5, 38, 48), ph.night ? "#16305A" : "#1C3A6C");
+    for (let k = 0; k < 6; k++) this.poly(this.qy(0, 10.6 + k * 0.32, 10.8 + k * 0.32, 40, 41 + ((k * 3 + this.tick) % 6)), "#6FD3FF");
   }
   private door() {
     this.poly(this.qy(0, 14.6, 15.7, 0, 76), "#7C5233"); this.poly(this.qy(0, 14.72, 15.58, 4, 72), "#9C6A42");
@@ -286,11 +304,13 @@ export class OfficeEngine {
     this.poly(this.qy(y + 0.32, mx + 0.05, mx + w - 0.05, 32, 45), screen);
     art?.(mx + 0.08, mx + w - 0.08);
   }
-  private desk(x: number, y: number, o: { w?: number; d?: number; top?: string; legs?: string; screens: number; screen: (i: number) => string; art?: (i: number, x0: number, x1: number) => void; extra?: () => void }) {
+  private desk(x: number, y: number, o: { w?: number; d?: number; top?: string; legs?: string; screens: number; screen: (i: number) => string; art?: (i: number, x0: number, x1: number) => void; extra?: () => void; glow?: string }) {
     const w = o.w ?? 2, d = o.d ?? 1, legs = o.legs ?? "#E5EAF0";
+    if (o.glow) { const g = this.g, [cx, cy] = P(x + w / 2, y + d / 2), gr = g.createRadialGradient(cx, cy, 2, cx, cy, 34); gr.addColorStop(0, o.glow + "55"); gr.addColorStop(1, o.glow + "00"); g.fillStyle = gr; g.fillRect(cx - 34, cy - 34, 68, 68); }
     for (const [a, b] of [[0.06, 0.06], [w - 0.16, 0.06], [0.06, d - 0.16], [w - 0.16, d - 0.16]]) this.box(x + a, y + b, 0.1, 0.1, 22, legs);
     this.box(x + 0.1, y + 0.08, w - 0.2, 0.06, 8, shade(legs, 0.9), 14);
-    const top = this.box(x, y, w, d, 3, o.top ?? "#B98A5C", 22);
+    const top = this.box(x, y, w, d, 3, o.top ?? "#E9EDF2", 22);
+    if (o.glow) this.poly([P(x, y + d, 21), P(x + w, y + d, 21), P(x + w, y + d, 22), P(x, y + d, 22)], o.glow);
     for (let i = 0; i < o.screens; i++) {
       const mw = 0.78, mx = x + (w - o.screens * mw - (o.screens - 1) * 0.08) / 2 + i * (mw + 0.08);
       this.monitor(mx, y, mw, o.screen(i), o.art ? (a, b) => o.art!(i, a, b) : undefined);
@@ -326,7 +346,7 @@ export class OfficeEngine {
     const busy = this.state?.job.status === "running";
     for (let r = 0; r < 9; r++) {
       const z = 8 + r * 8; this.poly(this.qy(0.9, 13.3, 14.25, z, z + 6), "#2A3444");
-      for (let l = 0; l < 4; l++) { const on = (this.tick + r * 3 + l * 5) % (busy ? 4 : 11) < 2; this.poly(this.qy(0.9, 13.4 + l * 0.12, 13.47 + l * 0.12, z + 2, z + 4), on ? (l % 2 ? "#6FD29A" : "#FF9A4D") : "#3A4658"); }
+      for (let l = 0; l < 4; l++) { const on = (this.tick + r * 3 + l * 5) % (busy ? 4 : 11) < 2; this.poly(this.qy(0.9, 13.4 + l * 0.12, 13.47 + l * 0.12, z + 2, z + 4), on ? (l % 2 ? "#6FD29A" : "#47B5FF") : "#3A4658"); }
     }
     return bboxOf([...top, P(13.25, 0.9), P(14.3, 0.9)]);
   }
@@ -402,7 +422,7 @@ export class OfficeEngine {
 
   render(): void {
     const ph = dayPhase(), g = this.g, st = this.state;
-    const bg = g.createLinearGradient(0, 0, 0, BH); bg.addColorStop(0, "#0C1728"); bg.addColorStop(1, "#13243A"); g.fillStyle = bg; g.fillRect(0, 0, BW, BH);
+    g.clearRect(0, 0, BW, BH);
     this.room(ph);
     const hits: Hit[] = [this.whiteboard(), this.tv()];
     this.neon(ph); this.door(); this.trophyCabinet();
@@ -426,7 +446,12 @@ export class OfficeEngine {
           if (def.id === "steve") for (let b = 0; b < 5; b++) { const h = 3 + ((b * 5 + tk + i * 3) % 8); this.poly(this.qy(yy, x0 + b * w / 5 + 0.02, x0 + (b + 0.7) * w / 5, 34, 34 + h), b === 2 ? "#FF9A4D" : "#BFE3FF"); }
           else for (let l = 0; l < 4; l++) { const len = (((l * 3 + tk + i * 2) % 6) + 2) / 8 * w; this.poly(this.qy(yy, x0 + 0.02, x0 + Math.min(len, w), 42 - l * 3, 43 - l * 3), def.id === "nova" && l === 0 ? "#6FD29A" : "#DCEBFA"); }
         },
-        extra: () => { this.mug(x + 1.62, y + 0.55, 25, def.color); this.box(x + 0.15, y + 0.55, 0.32, 0.24, 1, "#F4F1E8", 25); },
+        glow: on ? def.color : undefined,
+        extra: () => {
+          this.mug(x + 1.62, y + 0.55, 25, def.color); this.box(x + 0.15, y + 0.55, 0.32, 0.24, 1, "#F4F1E8", 25);
+          if (def.id === "dara") { this.box(x + 1.72, y + 0.2, 0.06, 0.06, 14, "#2A3240", 25); this.box(x + 1.66, y + 0.14, 0.18, 0.14, 7, "#1A1F2B", 39); this.poly(this.qy(y + 0.14, x + 1.68, x + 1.82, 41, 44), "#C792EA"); }
+          else { this.box(x + 0.08, y + 0.12, 0.08, 0.08, 1, "#2A3240", 25); this.box(x + 0.1, y + 0.14, 0.04, 0.04, 12, "#3B4556", 26); this.box(x + 0.04, y + 0.1, 0.2, 0.12, 3, on ? "#FFE7A8" : "#C9D3E0", 37); }
+        },
       }) });
       const [sx, sy] = seatOf(def);
       objs.push({ key: sx + sy - 0.05, draw: () => this.chairBase(sx, sy) });
@@ -443,7 +468,7 @@ export class OfficeEngine {
     const [fx, fy] = FOUNDER.desk, [zx, zy] = FOUNDER.seat;
     objs.push({ key: fx + 1.3 + fy + 0.6, id: "founder", label: "Meja founder (kamu)", draw: () => this.desk(fx, fy, {
       w: 2.6, d: 1.2, top: "#8A5E3F", legs: "#2A2F3A", screens: 2, screen: () => "#2B3546",
-      art: (_i, x0, x1) => { const yy = fy + 0.32; this.poly(this.qy(yy, (x0 + x1) / 2 - 0.08, (x0 + x1) / 2 + 0.08, 37, 40), "#FF9A4D"); },
+      art: (_i, x0, x1) => { const yy = fy + 0.32; this.poly(this.qy(yy, (x0 + x1) / 2 - 0.08, (x0 + x1) / 2 + 0.08, 37, 40), "#2D8CFF"); },
       extra: () => { const [bx, by] = P(fx + 0.3, fy + 0.85, 25); this.px(bx - 3, by - 7, 6, 6, "#F2C94C"); this.px(bx - 2, by - 8, 4, 1, "#F2C94C"); this.px(bx, by - 1, 1, 1, "#8A6A1E"); this.mug(fx + 2.2, fy + 0.7, 25, "#ECF2F8"); },
     }) });
     objs.push({ key: zx + zy - 0.08, draw: () => { this.box(zx - 0.3, zy - 0.4, 0.6, 0.12, 34, "#7A2E2E", 10); this.chairBase(zx, zy); } });
@@ -455,7 +480,7 @@ export class OfficeEngine {
     objs.push({ key: 10.7, id: "bible", label: "Rak channel bible", draw: () => this.shelf() });
     objs.push({ key: 14.3, id: "server", label: "Server agent", draw: () => this.server() });
     objs.push({ key: 13.2, draw: () => this.sofa() }, { key: 15.9, draw: () => this.coffeeTable() });
-    objs.push({ key: 5.2 + 12.0, draw: () => this.beanbag(5.2, 12.0, "#FF9A4D") }, { key: 5.6 + 13.4, draw: () => this.beanbag(5.6, 13.4, "#47B5FF") });
+    objs.push({ key: 5.2 + 12.0, draw: () => this.beanbag(5.2, 12.0, "#2D8CFF") }, { key: 5.6 + 13.4, draw: () => this.beanbag(5.6, 13.4, "#47B5FF") });
     objs.push({ key: 11.2 + 10.5, draw: () => this.roundTable() });
     objs.push({ key: 26.0, draw: () => this.pantry() }, { key: 28.8, draw: () => this.cooler() });
     objs.push({ key: 1.2, draw: () => this.plant(0.6, 0.6, 1.3) }, { key: 15.4 + 6.7, draw: () => this.plant(15.4, 6.7, 1.1) }, { key: 7.4 + 10.8, draw: () => this.plant(7.4, 10.8) }, { key: 0.6 + 7.0, draw: () => this.plant(0.6, 7.0, 0.9) });
@@ -475,7 +500,8 @@ export class OfficeEngine {
       const glow = (x: number, y: number, r: number, c: string) => { const [lx, ly] = P(x, y); const gr = g.createRadialGradient(lx, ly, 2, lx, ly, r); gr.addColorStop(0, c); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(lx - r, ly - r, r * 2, r * 2); };
       if (ph.tint) { g.fillStyle = ph.tint; g.fillRect(0, 0, BW, BH); }
       g.globalCompositeOperation = "lighter";
-      for (const d of TEAM) glow(d.desk[0] + 1, d.desk[1] + 0.9, 40, "rgba(255,210,140,.16)");
+      for (const d of TEAM) glow(d.desk[0] + 1, d.desk[1] + 0.9, 40, "rgba(255,214,150,.15)");
+      glow(11.5, 1.5, 70, "rgba(80,170,255,.14)");
       glow(fx + 1.3, fy + 1.0, 50, "rgba(255,190,120,.16)"); glow(4, 12.6, 60, "rgba(200,140,255,.10)"); glow(11.2, 13.6, 50, "rgba(255,220,160,.12)");
       g.globalCompositeOperation = "source-over";
     } else if (ph.tint) { g.fillStyle = ph.tint; g.fillRect(0, 0, BW, BH); }

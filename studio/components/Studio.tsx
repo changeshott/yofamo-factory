@@ -27,6 +27,7 @@ export default function Studio() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [konfirmasi, setKonfirmasi] = useState<{ judul: string; aksi: () => Promise<void> } | null>(null);
   const [kelolaTick, setKelolaTick] = useState(0);
+  const [palette, setPalette] = useState(false);
   const prevJob = useRef<string>("");
   const avatar = useRef<HTMLCanvasElement>(null);
   const closeBtn = useRef<HTMLButtonElement>(null);
@@ -65,7 +66,10 @@ export default function Studio() {
   const open = useCallback((id: string) => { if (!panel) lastFocus.current = document.activeElement as HTMLElement; setPanel(id); }, [panel]);
   const close = useCallback(() => { setPanel(null); lastFocus.current?.focus?.(); }, []);
   useEffect(() => {
-    const k = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
+    const k = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setPalette((v) => !v); return; }
+      if (e.key === "Escape") { setPalette(false); close(); }
+    };
     window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k);
   }, [close]);
   useEffect(() => { if (panel) setTimeout(() => closeBtn.current?.focus(), 60); }, [panel]);
@@ -118,7 +122,7 @@ export default function Studio() {
       {/* HUD kiri atas */}
       <header className="pointer-events-none absolute top-3 left-3 z-10 max-w-[min(560px,calc(100vw-24px))]">
         <div className="pointer-events-auto rounded-xl border border-line/80 bg-ink-800/85 px-4 py-3 shadow-xl backdrop-blur-md">
-          <h1 className="font-pixel text-[22px] leading-none font-bold tracking-wide">Studio <span className="text-signal">Yofamo</span></h1>
+          <h1 className="font-pixel text-[22px] leading-none font-bold tracking-wide">Studio <span className="text-brand">Yofamo</span></h1>
           <p className="mt-1.5 text-sm text-muted" aria-live="polite">
             {offline ? "Server Studio tidak menjawab. Pastikan jendela start_studio masih terbuka." : state ? `${sapa}, Zona. ${todo ? todo + "." : "Tidak ada yang menunggu keputusanmu."}` : "Memuat kantor…"}
           </p>
@@ -147,23 +151,13 @@ export default function Studio() {
         </div>
       )}
 
-      {/* dok bawah */}
-      <nav aria-label="Bagian kantor" className="absolute inset-x-0 bottom-3 z-10 flex justify-center px-3">
-        <div className="flex max-w-full gap-1.5 overflow-x-auto rounded-xl border border-line/80 bg-ink-800/85 p-1.5 shadow-xl backdrop-blur-md">
-          <button onClick={() => open("produksi")} className="mr-1 shrink-0 rounded-lg bg-signal px-3 py-2 font-pixel text-sm leading-none font-bold text-[#24140A] shadow hover:brightness-110">+ Buat video</button>
-          <DockBtn onClick={() => open("founder")} color="#F4F1E8" count={inbox}>Meja Zona</DockBtn>
-          {TEAM.map((t) => <DockBtn key={t.id} onClick={() => open(`agent:${t.id}`)} color={t.color} busy={!!state && state.job.status === "running" && !!t.busy[busyKey]}>{t.name}</DockBtn>)}
-          <span className="mx-1 w-px shrink-0 bg-line" aria-hidden />
-          <DockBtn onClick={() => open("galeri")}>Galeri</DockBtn>
-          <DockBtn onClick={() => open("queue")}>Antrean</DockBtn>
-          <DockBtn onClick={() => open("kelola")}>Kelola</DockBtn>
-          <DockBtn onClick={() => open("analytics")}>Analitik</DockBtn>
-          <DockBtn onClick={() => open("reports")}>Laporan</DockBtn>
-          <DockBtn onClick={() => open("bible")}>Bible</DockBtn>
-          <DockBtn onClick={() => open("activity")}>Log</DockBtn>
-          <DockBtn onClick={() => open("health")} dot={problems.length ? "#F07178" : "#6FD29A"}>Sistem</DockBtn>
-        </div>
-      </nav>
+      {/* pipeline produksi langsung (atas tengah) */}
+      {state && <PipelineStrip state={state} onOpen={() => open("produksi")} />}
+
+      {/* dok bawah: ringkas, dikelompokkan */}
+      <Dock state={state} open={open} inbox={inbox} busyKey={busyKey} problems={problems.length} onPalette={() => setPalette(true)} />
+
+      {palette && ctx && <CommandPalette ctx={ctx} onClose={() => setPalette(false)} />}
 
       {konfirmasi && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/60 p-4" role="alertdialog" aria-modal="true" aria-labelledby="konf-judul">
@@ -234,13 +228,179 @@ function Stat({ value, label, warn, good }: { value: string; label: string; warn
   );
 }
 
-function DockBtn({ children, onClick, color, count, busy, dot }: { children: React.ReactNode; onClick: () => void; color?: string; count?: number; busy?: boolean; dot?: string }) {
+/* ---------------------------------------------------------------- dok bawah */
+const ICON = {
+  tim: "M16 11a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm-8 0a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm0 2c-2.7 0-6 1.3-6 3.5V19h12v-2.5C14 14.3 10.7 13 8 13Zm8 0c-.3 0-.7 0-1.1.1A4.2 4.2 0 0 1 16 16.5V19h6v-2.5c0-2.2-3.3-3.5-6-3.5Z",
+  zona: "M4 5h16v10H4zM2 17h20v2H2z",
+  video: "M4 6h11a2 2 0 0 1 2 2v1.5l4-2.5v10l-4-2.5V16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z",
+  data: "M4 19V9h3v10H4Zm6 0V5h3v14h-3Zm6 0v-7h3v7h-3Z",
+  sistem: "M12 8a4 4 0 1 0 4 4 4 4 0 0 0-4-4Zm8.9 3-1.6-.3a7.5 7.5 0 0 0-.9-2.1l.9-1.4-1.5-1.5-1.4.9a7.5 7.5 0 0 0-2.1-.9L14 4h-2l-.3 1.6a7.5 7.5 0 0 0-2.1.9l-1.4-.9-1.5 1.5.9 1.4a7.5 7.5 0 0 0-.9 2.1L5 11v2l1.6.3c.2.7.5 1.5.9 2.1l-.9 1.4 1.5 1.5 1.4-.9c.6.4 1.4.7 2.1.9L12 20h2l.3-1.6c.7-.2 1.5-.5 2.1-.9l1.4.9 1.5-1.5-.9-1.4c.4-.6.7-1.4.9-2.1L20.9 13Z",
+  cari: "M10 4a6 6 0 1 0 3.7 10.7l4.8 4.8 1.4-1.4-4.8-4.8A6 6 0 0 0 10 4Zm0 2a4 4 0 1 1-4 4 4 4 0 0 1 4-4Z",
+};
+const Ico = ({ d, className = "size-[18px]" }: { d: string; className?: string }) => <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden><path d={d} /></svg>;
+
+function Dock({ state, open, inbox, busyKey, problems, onPalette }: { state: StudioState | null; open: (id: string) => void; inbox: number; busyKey: string; problems: number; onPalette: () => void }) {
+  const [menu, setMenu] = useState<null | "tim" | "video" | "data">(null);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!menu) return;
+    const f = (e: PointerEvent) => { if (!ref.current?.contains(e.target as Node)) setMenu(null); };
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") setMenu(null); };
+    window.addEventListener("pointerdown", f); window.addEventListener("keydown", k);
+    return () => { window.removeEventListener("pointerdown", f); window.removeEventListener("keydown", k); };
+  }, [menu]);
+  const go = (id: string) => { setMenu(null); open(id); };
+  const running = state?.job.status === "running";
+  const sibuk = TEAM.filter((t) => running && !!t.busy[busyKey]);
+  const ideas = state?.videos.filter((v) => v.status === "ide").length ?? 0;
+  const drafts = state?.videos.filter((v) => v.status === "draft").length ?? 0;
+  const toggle = (m: "tim" | "video" | "data") => setMenu((x) => (x === m ? null : m));
   return (
-    <button onClick={onClick} className="flex shrink-0 items-center gap-2 rounded-lg border border-transparent px-3 py-2 font-pixel text-sm leading-none hover:border-line hover:bg-ink-700">
-      {color && <span className={`size-2.5 rounded-[2px] ${busy ? "animate-pulse motion-reduce:animate-none" : ""}`} style={{ background: color }} aria-hidden />}
+    <nav aria-label="Navigasi kantor" className="absolute inset-x-0 bottom-3 z-10 flex justify-center px-3">
+      <div ref={ref} className="relative flex items-center gap-1 rounded-2xl border border-line/70 bg-ink-800/80 p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.45)] backdrop-blur-xl">
+        <button onClick={() => go("produksi")} className="flex items-center gap-2 rounded-xl bg-gradient-to-b from-brand-2 to-brand px-3.5 py-2.5 font-pixel text-sm leading-none font-bold text-[#06132B] shadow-[0_6px_20px_rgba(61,155,255,.35)] hover:brightness-110">
+          <span className="text-base leading-none">+</span><span className="max-sm:hidden">Buat video</span>
+        </button>
+        <span className="mx-1 h-7 w-px bg-line/70" aria-hidden />
+        <DockIcon label="Tim" active={menu === "tim"} onClick={() => toggle("tim")} expanded={menu === "tim"}>
+          <span className="flex -space-x-1.5">{TEAM.slice(0, 4).map((t) => <i key={t.id} className="block size-2.5 rounded-full ring-2 ring-ink-800" style={{ background: t.color }} />)}</span>
+          {sibuk.length > 0 && <span className="absolute -top-1 -right-1 size-2.5 animate-pulse rounded-full bg-brand ring-2 ring-ink-800 motion-reduce:animate-none" aria-label="ada yang bekerja" />}
+        </DockIcon>
+        <DockIcon label="Meja Zona" onClick={() => go("founder")} count={inbox}><Ico d={ICON.zona} /></DockIcon>
+        <DockIcon label="Video" active={menu === "video"} onClick={() => toggle("video")} expanded={menu === "video"} count={drafts}><Ico d={ICON.video} /></DockIcon>
+        <DockIcon label="Data" active={menu === "data"} onClick={() => toggle("data")} expanded={menu === "data"}><Ico d={ICON.data} /></DockIcon>
+        <DockIcon label="Sistem" onClick={() => go("health")} dot={problems ? "#F07178" : "#6FD29A"}><Ico d={ICON.sistem} /></DockIcon>
+        <span className="mx-1 h-7 w-px bg-line/70 max-sm:hidden" aria-hidden />
+        <button onClick={onPalette} className="flex items-center gap-2 rounded-xl px-2.5 py-2 text-sm text-muted hover:bg-ink-700 hover:text-ink-50 max-sm:hidden" aria-label="Cari perintah (Ctrl+K)">
+          <Ico d={ICON.cari} className="size-4" /><span className="kbd">Ctrl K</span>
+        </button>
+
+        {menu && (
+          <div className="dock-pop absolute bottom-[calc(100%+10px)] left-1/2 w-[min(560px,calc(100vw-24px))] -translate-x-1/2 rounded-2xl border border-line/70 bg-ink-800/95 p-3 shadow-[0_24px_70px_rgba(0,0,0,.55)] backdrop-blur-xl">
+            {menu === "tim" && (<>
+              <div className="mb-2 flex items-baseline justify-between px-1"><h3 className="font-pixel text-sm text-muted">Tim agent</h3><span className="text-xs text-faint">{sibuk.length ? `${sibuk.map((t) => t.name).join(", ")} sedang bekerja` : "semua siap"}</span></div>
+              <div className="grid grid-cols-4 gap-2 max-sm:grid-cols-2">
+                {TEAM.map((t) => {
+                  const on = sibuk.includes(t);
+                  return (
+                    <button key={t.id} onClick={() => go(`agent:${t.id}`)} className={`group flex flex-col items-start gap-1 rounded-xl border p-2.5 text-left transition hover:-translate-y-0.5 hover:border-brand/60 ${on ? "border-brand/50 bg-brand/10" : "border-line/60 bg-ink-900/60"}`}>
+                      <span className="flex w-full items-center gap-2">
+                        <AgentAvatar id={t.id} />
+                        <span className={`ml-auto size-2 rounded-full ${on ? "animate-pulse bg-brand motion-reduce:animate-none" : "bg-leaf/70"}`} aria-hidden />
+                      </span>
+                      <b className="font-pixel text-sm leading-none" style={{ color: t.color }}>{t.name}</b>
+                      <span className="text-[12px] leading-tight text-muted">{on ? t.busy[busyKey] : t.role}</span>
+                    </button>);
+                })}
+              </div>
+            </>)}
+            {menu === "video" && <MenuGrid items={[
+              ["produksi", "Buat video", "Tim memilih topik & membuat video"], ["galeri", "Galeri", drafts ? `${drafts} video menunggu kamu tonton` : "Semua video jadi"],
+              ["queue", "Antrean", "Papan ide → terbit"], ["kelola", "Kelola", "Hapus hasil & bersihkan"],
+            ]} go={go} />}
+            {menu === "data" && <MenuGrid items={[
+              ["analytics", "Analitik", "Grafik & tabel semua Shorts"], ["reports", "Laporan", "Laporan mingguan Steve"],
+              ["bible", "Channel bible", "Aturan gaya & konten"], ["activity", "Log kantor", ideas ? `${ideas} ide baru tercatat` : "Riwayat aktivitas"],
+            ]} go={go} />}
+          </div>
+        )}
+      </div>
+    </nav>
+  );
+}
+
+function MenuGrid({ items, go }: { items: [string, string, string][]; go: (id: string) => void }) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {items.map(([id, t, d]) => (
+        <button key={id} onClick={() => go(id)} className="rounded-xl border border-line/60 bg-ink-900/60 p-3 text-left transition hover:-translate-y-0.5 hover:border-brand/60">
+          <b className="block font-pixel text-[15px] leading-none">{t}</b><span className="mt-1 block text-[12.5px] text-muted">{d}</span>
+        </button>))}
+    </div>
+  );
+}
+
+function DockIcon({ children, label, onClick, count, dot, active, expanded }: { children: React.ReactNode; label: string; onClick: () => void; count?: number; dot?: string; active?: boolean; expanded?: boolean }) {
+  return (
+    <button onClick={onClick} aria-expanded={expanded} className={`group relative flex items-center gap-2 rounded-xl px-3 py-2.5 font-pixel text-sm leading-none transition ${active ? "bg-ink-700 text-ink-50" : "text-muted hover:bg-ink-700 hover:text-ink-50"}`}>
+      <span className="relative grid place-items-center">{children}</span>
+      <span className="max-md:hidden">{label}</span>
       {dot && <span className="size-2 rounded-full" style={{ background: dot }} aria-hidden />}
-      {children}
-      {!!count && <span className="rounded-full bg-bad px-1.5 py-0.5 text-[11px] text-white" aria-label={`${count} perlu keputusan`}>{count}</span>}
+      {!!count && <span className="rounded-full bg-bad px-1.5 py-0.5 text-[11px] text-white" aria-label={`${count} perlu perhatian`}>{count}</span>}
+      <span className="pointer-events-none absolute -top-8 left-1/2 hidden -translate-x-1/2 rounded-md border border-line bg-ink-800 px-2 py-1 text-xs whitespace-nowrap text-ink-50 max-md:group-hover:block">{label}</span>
     </button>
   );
 }
+
+function AgentAvatar({ id }: { id: string }) {
+  const c = useRef<HTMLCanvasElement>(null);
+  const a = agentById(id);
+  useEffect(() => { if (c.current && a) drawAvatar(c.current, a.look, a.id); }, [a]);
+  return <canvas ref={c} width={16} height={16} className="size-9 rounded-lg border border-line/60 bg-ink-700 [image-rendering:pixelated]" aria-hidden />;
+}
+
+/* ---------------------------------------------------------------- pipeline produksi langsung */
+function PipelineStrip({ state, onOpen }: { state: StudioState; onOpen: () => void }) {
+  const p = state.produksi[0];
+  if (!p || p.status !== "berjalan" || state.job.status !== "running" || state.job.job !== "produksi") return null;
+  const done = p.tahap.filter((t) => t.status === "ok").length, cur = p.tahap.find((t) => t.status === "jalan");
+  const warna: Record<string, string> = { steve: "#47B5FF", nova: "#6FD29A", setuju: "#F4F1E8", raka: "#FF9A4D", dara: "#C792EA", bima: "#4FD1C5", kai: "#F2C94C", rara: "#F07178" };
+  return (
+    <button onClick={onOpen} className="absolute top-3 left-1/2 z-10 -translate-x-1/2 rounded-2xl border border-line/70 bg-ink-800/85 px-4 py-2.5 text-left shadow-xl backdrop-blur-xl hover:border-brand/60 max-lg:top-auto max-lg:bottom-[86px]">
+      <div className="flex items-center gap-1.5" aria-hidden>
+        {p.tahap.map((t) => (
+          <span key={t.kunci} title={t.nama} className={`h-2 rounded-full transition-all ${t.status === "jalan" ? "w-8 animate-pulse motion-reduce:animate-none" : "w-4"} ${t.status === "menunggu" ? "opacity-25" : t.status === "gagal" ? "!bg-bad" : ""}`}
+            style={{ background: t.status === "menunggu" ? "#66809d" : warna[t.kunci] ?? "#3D9BFF" }} />))}
+      </div>
+      <p className="mt-1.5 text-[13px] leading-none"><b className="font-pixel">{cur?.nama ?? "Menyiapkan"}</b><span className="text-muted"> · tahap {Math.min(done + 1, p.tahap.length)}/{p.tahap.length}{p.slug ? "" : ""}</span></p>
+    </button>
+  );
+}
+
+/* ---------------------------------------------------------------- palet perintah (Ctrl+K) */
+function CommandPalette({ ctx, onClose }: { ctx: PanelCtx; onClose: () => void }) {
+  const [q, setQ] = useState("");
+  const [sel, setSel] = useState(0);
+  const inp = useRef<HTMLInputElement>(null);
+  useEffect(() => { inp.current?.focus(); }, []);
+  const running = ctx.state.job.status === "running";
+  const items: { t: string; d: string; run: () => void; grup: string }[] = [
+    { grup: "Aksi", t: "Buat video baru", d: "Tim memilih topik sendiri", run: () => ctx.open("produksi") },
+    { grup: "Aksi", t: "Cari 3 ide (Nova)", d: "Riset ide untuk kamu pilih", run: () => { if (!running) void ctx.run("ide"); } },
+    { grup: "Aksi", t: "Kumpulkan data (Steve)", d: "Statistik, komentar, retensi — tanpa kuota Claude", run: () => { if (!running) void ctx.run("data"); } },
+    { grup: "Aksi", t: "Analisa lengkap (Steve)", d: "Laporan mingguan", run: () => { if (!running) void ctx.run("steve"); } },
+    ...(running ? [{ grup: "Aksi", t: "Hentikan tugas yang berjalan", d: "", run: () => void ctx.stop() }] : []),
+    ...TEAM.map((a) => ({ grup: "Tim", t: `${a.name} · ${a.role}`, d: "Buka meja", run: () => ctx.open(`agent:${a.id}`) })),
+    ...([["founder", "Meja Zona"], ["galeri", "Galeri video"], ["queue", "Papan antrean"], ["kelola", "Kelola hasil"], ["analytics", "Analitik"], ["reports", "Laporan Steve"], ["bible", "Channel bible"], ["activity", "Log kantor"], ["health", "Cek sistem"]] as const)
+      .map(([id, t]) => ({ grup: "Buka", t, d: "", run: () => ctx.open(id) })),
+    ...ctx.state.videos.slice(0, 30).map((v) => ({ grup: "Video", t: v.judul_kerja, d: v.label, run: () => ctx.open("queue") })),
+  ];
+  const f = q.trim().toLowerCase();
+  const list = f ? items.filter((x) => `${x.t} ${x.d} ${x.grup}`.toLowerCase().includes(f)) : items.slice(0, 14);
+  const pick = (i: number) => { const x = list[i]; if (x) { onClose(); x.run(); } };
+  return (
+    <div className="fixed inset-0 z-40 grid place-items-start justify-center bg-black/50 px-3 pt-[12vh]" onClick={onClose}>
+      <div role="dialog" aria-modal="true" aria-label="Palet perintah" onClick={(e) => e.stopPropagation()} className="dock-pop w-full max-w-xl overflow-hidden rounded-2xl border border-line bg-ink-800 shadow-2xl">
+        <div className="flex items-center gap-2 border-b border-line px-4">
+          <Ico d={ICON.cari} className="size-4 text-muted" />
+          <input ref={inp} value={q} onChange={(e) => { setQ(e.target.value); setSel(0); }} placeholder="Cari agent, panel, video, atau aksi…"
+            onKeyDown={(e) => { if (e.key === "ArrowDown") { e.preventDefault(); setSel((s) => Math.min(s + 1, list.length - 1)); } else if (e.key === "ArrowUp") { e.preventDefault(); setSel((s) => Math.max(s - 1, 0)); } else if (e.key === "Enter") pick(sel); }}
+            className="h-12 flex-1 bg-transparent text-[15px] outline-none placeholder:text-faint focus-visible:outline-none" />
+          <span className="kbd">Esc</span>
+        </div>
+        <ul className="max-h-[50vh] overflow-y-auto p-1.5" role="listbox">
+          {list.length === 0 && <li className="px-3 py-4 text-sm text-muted">Tidak ada yang cocok.</li>}
+          {list.map((x, i) => (
+            <li key={`${x.grup}-${x.t}-${i}`} role="option" aria-selected={i === sel}>
+              <button onMouseEnter={() => setSel(i)} onClick={() => pick(i)} className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left ${i === sel ? "bg-ink-700" : ""}`}>
+                <span className="w-12 shrink-0 text-[11px] tracking-wide text-faint uppercase">{x.grup}</span>
+                <span className="flex-1 truncate text-[14.5px]">{x.t}</span>
+                {x.d && <span className="truncate text-xs text-muted">{x.d}</span>}
+              </button>
+            </li>))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+

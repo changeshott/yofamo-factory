@@ -5,7 +5,7 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 export function Btn({ tone = "default", size = "md", className = "", ...p }: ButtonHTMLAttributes<HTMLButtonElement> & { tone?: "default" | "primary" | "ghost" | "danger"; size?: "sm" | "md" }) {
   const tones = {
     default: "border-line bg-ink-700 hover:border-circuit",
-    primary: "border-signal bg-signal text-[#24140A] font-bold hover:brightness-110",
+    primary: "border-brand bg-brand text-[#06132B] font-bold hover:brightness-110",
     ghost: "border-line bg-transparent hover:border-circuit",
     danger: "border-bad/60 bg-bad/15 text-bad hover:bg-bad/25",
   };
