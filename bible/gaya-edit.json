@@ -79,8 +79,9 @@
     "whoosh": true,
     "volume_whoosh_db": -16,
     "volume_musik_persen": 10,
-    "musik_redam_saat_bicara": false,
-    "_catatan": "Musik latar diambil dari folder musik/ (subfolder per suasana: tegang, ceria, misterius, epik, haru). volume_musik_persen 10 = 10% dari kerasnya suara narasi, stabil sepanjang video."
+    "musik_redam_saat_bicara": true,
+    "_catatan": "Musik dari musik/<suasana>/. Kerasnya tiap lagu diukur lalu disetel volume_musik_persen (10 = 10%, -20 dB) di bawah narasi; saat narasi berbicara musik diredam halus, dan frekuensi suara (1–3 kHz) di musik dikurangi supaya tidak bertabrakan.",
+    "musik_beri_ruang_suara": true
   },
   "penutup": {
     "tampil": true,

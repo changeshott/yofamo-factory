@@ -280,6 +280,27 @@ def pick_music(slug: str, mode: str, suasana: str = "") -> Path | None:
     return min(files, key=lambda f: (dipakai.get(f.name, 0), (acak + files.index(f) * 7919) % 1000))
 
 
+def ukur_lufs(f: Path | None) -> float | None:
+    """Kerasnya file audio (integrated LUFS), disimpan di cache supaya tiap lagu cukup diukur sekali."""
+    if not f or not Path(f).exists():
+        return None
+    st_ = Path(f).stat()
+    kunci_ = f"{Path(f).resolve()}|{int(st_.st_mtime)}|{st_.st_size}"
+    cf = CACHE / "lufs.json"
+    data = read_json(cf, {})
+    if kunci_ in data:
+        return data[kunci_]
+    r = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", str(f), "-af", "ebur128", "-f", "null", "-"],
+                       capture_output=True, text=True, encoding="utf-8", errors="replace")
+    m = re.findall(r"I:\s*(-?[\d.]+) LUFS", r.stderr)
+    nilai = float(m[-1]) if m else None
+    if nilai is not None:
+        CACHE.mkdir(parents=True, exist_ok=True)
+        data[kunci_] = nilai
+        cf.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
+    return nilai
+
+
 def kredit_musik(f: Path | None) -> str:
     """Kalau lagu butuh atribusi, Zona menaruh teks kreditnya di <nama-lagu>.txt di sebelah file lagu."""
     if not f:
@@ -439,12 +460,19 @@ def main() -> None:
     chains.append(f"[{idx_vo}:a]aresample=48000,apad=whole_dur={akhir:.3f},asplit=2[vo1][vo2]")
     mix = ["[vo1]"]
     if idx_bgm is not None:
-        persen = float(st["audio"].get("volume_musik_persen", 10))           # 10 = 10% dari kerasnya suara narasi
-        db = 20 * math.log10(max(1.0, min(100.0, persen)) / 100)
-        chains.append(f"[{idx_bgm}:a]aresample=48000,atrim=duration={akhir:.3f},volume={db:.2f}dB,afade=t=in:d=0.6,"
+        # Kerasnya musik diukur dulu (lagu phonk/hardtekk sering di-master sangat keras, -5 LUFS), lalu disetel
+        # 10% (= -20 dB) di bawah kerasnya narasi → tiap lagu terdengar sama pelannya, tidak ada yang "nabrak" suara.
+        persen = float(st["audio"].get("volume_musik_persen", 10))
+        selisih = -20 * math.log10(max(1.0, min(100.0, persen)) / 100)
+        l_vo = -18.0 if a.uji else (ukur_lufs(vdir / "vo.mp3") or -16.0)
+        l_mu = ukur_lufs(music) or -14.0
+        db = max(-45.0, min(6.0, (l_vo - selisih) - l_mu))
+        ruang = ",equalizer=f=2600:t=q:w=1.3:g=-6,equalizer=f=1200:t=q:w=1.0:g=-3" if st["audio"].get("musik_beri_ruang_suara", True) else ""
+        log(f"musik {music.name}: {l_mu:.1f} LUFS → {l_mu + db:.1f} LUFS ({persen:.0f}% dari narasi {l_vo:.1f} LUFS)")
+        chains.append(f"[{idx_bgm}:a]aresample=48000,atrim=duration={akhir:.3f},volume={db:.2f}dB{ruang},afade=t=in:d=0.6,"
                       f"afade=t=out:st={max(0, akhir - max(1.2, tutup + 0.6)):.2f}:d={max(1.2, tutup + 0.6):.2f}[bg]")
-        if st["audio"].get("musik_redam_saat_bicara", False):
-            chains.append("[bg][vo2]sidechaincompress=threshold=0.02:ratio=4:attack=30:release=400[bgd]")
+        if st["audio"].get("musik_redam_saat_bicara", True):
+            chains.append("[bg][vo2]sidechaincompress=threshold=0.03:ratio=3:attack=40:release=500:makeup=1[bgd]")
             mix.append("[bgd]")
         else:
             chains.append("[vo2]anullsink")
