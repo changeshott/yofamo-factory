@@ -428,7 +428,7 @@ function TimSidebar({ state, open, panel, busyKey, inbox, lipat, setLipat }: { s
           <svg viewBox="0 0 24 24" className={`size-4 transition-transform ${lipat ? "rotate-180" : ""}`} fill="currentColor" aria-hidden><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4L10.8 12z" /></svg>
         </button>
       </div>
-      <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto p-2">
+      <ul className="tanpa-scroll min-h-0 flex-1 space-y-1 overflow-y-auto p-2">
         {urut.map((id) => {
           const t = agentById(id)!;
           const on = running && !!t.busy[busyKey];
