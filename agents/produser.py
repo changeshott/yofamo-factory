@@ -45,7 +45,7 @@ TAHAP = [
 
 
 def tools(*scripts: str, web: bool = False) -> list[str]:
-    out = ["Read", "Write", "Glob", "Grep"]
+    out = ["Read", "Write", "Edit", "MultiEdit", "Glob", "Grep"]
     for sc in scripts:
         for py in ("python", "python3"):
             out += [f"Bash({py} {sc} *)", f"Bash({py} {sc})"]

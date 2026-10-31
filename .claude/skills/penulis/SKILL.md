@@ -92,7 +92,7 @@ Tulis `videos/<slug>/script.json`, lalu:
 ```bash
 python agents/penulis/cek_naskah.py <slug> --tulis
 ```
-Perbaiki semua `GAGAL` dan ulangi (maksimal 3 kali). Baca juga peringatannya; perbaiki kalau masuk akal. `--tulis` membuat `naskah.md` (tabel per kalimat untuk Zona & tim). Setelah `LOLOS`:
+Perbaiki semua `GAGAL` langsung di `script.json` (Edit, atau tulis ulang seluruh file dengan Write) dan ulangi (maksimal 3 kali). Jangan membuat script Python sendiri untuk mengedit; yang boleh dijalankan hanya `agents/pabrik.py` dan `agents/penulis/cek_naskah.py`. Hitung kata **sebelum** menulis: jumlah kata = target_durasi × 2,3 (±10%). Baca juga peringatannya; perbaiki kalau masuk akal. `--tulis` membuat `naskah.md` (tabel per kalimat untuk Zona & tim). Setelah `LOLOS`:
 ```bash
 python agents/pabrik.py set <slug> naskah
 ```

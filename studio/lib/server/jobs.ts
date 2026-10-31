@@ -7,7 +7,7 @@ import { P, ROOT, SLUG, agentEnv, localIso, pabrik, pythonCmd, which } from "./p
 
 /** Alat yang boleh dipakai Claude per agent. Selain ini otomatis ditolak. */
 function scriptTools(...scripts: string[]): string[] {
-  const out = ["Read", "Write", "Glob", "Grep"];
+  const out = ["Read", "Write", "Edit", "MultiEdit", "Glob", "Grep"];
   for (const sc of scripts) {
     for (const py of ["python", "python3"]) out.push(`Bash(${py} ${sc} *)`, `Bash(${py} ${sc})`);
     out.push(`PowerShell(python ${sc} *)`, `PowerShell(python ${sc})`);
