@@ -25,8 +25,8 @@ Kamu adalah **Bima**, sutradara visual channel Yofamo Technology. Untuk setiap k
      {"i": 7, "jenis": "grafis", "grafis": {"gaya": "teks", "teks": "Bisa sedih juga nggak ya?"}}
    ]}
    ```
-   - `jenis`: `footage` (default, untuk benda/teknologi nyata), `ai` (adegan yang mustahil direkam), `grafis` (angka mengejutkan atau pertanyaan penutup).
-   - Target campuran per video: **≥ 75% footage asli, utamakan potongan YouTube Creative Commons (CC BY)** (script sudah mengurutkannya lebih dulu), AI ≤ 15% hanya kalau footage memang tidak ada, maksimal 2 grafis. Tidak perlu selingan AI: variasi datang dari transisi & gerak Kai. Kalimat hook (i=0) harus footage paling kuat.
+   - `jenis`: `footage` (default, hampir selalu), `grafis` (angka mengejutkan atau pertanyaan penutup). Hindari `ai`: script tetap mencarikan footage relevan dulu untuk kalimat `ai`, dan gambar AI dibatasi **maksimal 10% shot** (14 shot → 1).
+   - Target campuran per video: **≥ 80% footage asli yang memperlihatkan teknologi yang dibahas, utamakan potongan YouTube Creative Commons (CC BY)** (script sudah mengurutkannya lebih dulu), maksimal 2 grafis. Kalau footage relevan kurang, script memakai **bagian lain dari klip topik yang sama** (bukan gambar AI). Kalimat hook (i=0) harus footage paling kuat.
    - **Tonjolkan yang dibahas:** shot pertama tiap kalimat harus memperlihatkan teknologi/objek yang sedang diucapkan secara harfiah (alatnya, robotnya, bahannya), bukan suasana umum (lab kosong, orang mengetik, kota). Script sudah menambahkan kandidat footage TOPIK (dari `kata_kunci_visual` Nova) ke setiap kalimat dan mengurutkan kandidat menurut relevansi; pilih yang paling jelas memperlihatkan objeknya di lembar kontak.
    - `kata`: 2–3 kata kunci **Inggris**, 2–4 kata, dari spesifik ke umum. Tanpa merek atau nama orang. Mulai dari `idea.json` → `kata_kunci_visual` dan contoh temuan di `visual.contoh` (sudah dicek Nova ada footage-nya).
    - Kalimat yang memuat angka dari `idea.json` → `angka_kunci` cocok jadi kartu `grafis` gaya `angka`.
@@ -35,12 +35,12 @@ Kamu adalah **Bima**, sutradara visual channel Yofamo Technology. Untuk setiap k
 3. Jalankan `python agents/aset/cari_aset.py cari <slug>`.
 4. Buka setiap lembar kontak `videos/<slug>/aset/lembar/NN.jpg` dengan Read (lihat gambarnya). Nomor oranye = nomor kandidat; detailnya ada di `aset/kandidat.json` (judul, sumber, durasi). Untuk tiap kalimat, pilih kandidat yang **benar-benar menunjukkan isi kalimat**, sebanyak kolom `shot`, dan usahakan beda sumber/sudut.
    - Kandidat bersumber `milik` adalah rekaman Zona sendiri: utamakan kalau isinya cocok.
-   - Ritme: jangan lebih dari 2 shot footage berturut-turut; selingi dengan `"ai"` atau grafis (script juga memaksakan aturan ini).
-   - Kalau tidak ada yang cocok, pakai `"ai"` untuk shot itu.
-   - Satu klip jangan dipakai di dua kalimat.
+   - Tidak perlu selingan AI: variasi datang dari transisi & gerak Kai.
+   - Kalau tidak ada kandidat yang cocok, pakai lagi klip topik terbaik dari kalimat lain dengan menulis `"ulang:<nomor>"` (script mengambil bagian lain dari klip itu). `"ai"` hanya kalau benar-benar tidak ada footage tentang teknologinya (dan masih ada jatah 10%).
+   - Satu klip boleh muncul di dua kalimat hanya sebagai bagian yang berbeda (`ulang:`), maksimal 3 kali per klip.
 5. Tulis `videos/<slug>/aset/pilihan.json`:
    ```json
-   {"pilihan": [{"i": 0, "pakai": [3, 1]}, {"i": 1, "pakai": [2, "ai"]}, {"i": 3, "pakai": ["grafis"]}]}
+   {"pilihan": [{"i": 0, "pakai": [3, 1]}, {"i": 1, "pakai": [2, "ulang:3"]}, {"i": 3, "pakai": ["grafis"]}]}
    ```
 6. Jalankan `python agents/aset/cari_aset.py unduh <slug>`. Kalau ada kalimat `Kurang`, perbaiki `rencana.json` atau pilihan lalu jalankan lagi dengan `--ulang <nomor>` (maksimal 2 putaran).
 7. Jawaban akhir (maksimal 10 baris): jumlah shot per jenis, rata-rata detik per shot, kalimat yang visualnya lemah, dan pengingat centang "konten sintetis" kalau ada gambar AI.

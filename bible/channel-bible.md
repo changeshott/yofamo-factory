@@ -56,7 +56,8 @@ Durasi mengikuti kebutuhan cerita (`target_durasi` 25–58 detik): sederhana 28�
 - Sumber visual: footage YouTube Creative Commons (CC BY), NASA, Wikimedia Commons (PD/CC0/CC BY), Pexels/Pixabay bila ada key; gambar AI (FLUX via Cloudflare, digerakkan halus); kartu grafis buatan sendiri. Lisensi dicatat di `aset/manifest.json`, kredit CC BY masuk deskripsi.
 - Ritme: ganti shot tiap 1,5–3 detik; antar-kalimat memakai transisi bergerak (Kai), kata penekanan diberi denyut zoom. Suara asli klip tidak pernah dipakai; hanya voice-over Dara.
 - Rekaman sendiri taruh di `milik-saya/` dengan nama file deskriptif; selalu diprioritaskan.
-- Campuran ideal: **≥ 75% footage asli (utamakan potongan YouTube CC BY)**, ≤ 15% gambar AI (hanya kalau footage memang tidak ada: konsep, dalam tubuh, masa depan), ≤ 2 kartu grafis per video. Hook selalu footage terkuat.
+- Campuran ideal: **≥ 80% footage asli yang memperlihatkan teknologi yang dibahas (utamakan potongan YouTube CC BY)**, gambar AI **≤ 10% shot** (14 shot → maksimal 1) dan hanya kalau footage relevan benar-benar habis, ≤ 2 kartu grafis per video. Kalau footage kurang, lebih baik memakai bagian lain dari klip topik yang sama daripada gambar AI atau stok umum. Hook selalu footage terkuat.
+- **Fokus ke yang dibahas:** tiap shot memperlihatkan alat/robot/bahan yang sedang diucapkan secara harfiah. Stok umum (lab kosong, orang mengetik, kota, abstrak) hanya cadangan terakhir.
 - Gaya teks khas Yofamo (`bible/gaya-edit.json`, font Poppins Black): hook bertingkat di tengah (subjek putih → penghubung kuning lebih kecil → kata kunci biru), muncul bertahap; subtitle **1 kata** di tengah layar, putih bergaris hitam, kata penekanan kuning.
 - Video dengan gambar AI realistis: centang "konten diubah/sintetis" saat upload.
 - Gaya editan (font, caption, hook, zoom, BGM) diatur di `bible/gaya-edit.json` dan dirakit Kai.

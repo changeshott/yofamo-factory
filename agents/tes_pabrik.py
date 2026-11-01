@@ -203,13 +203,28 @@ def offline() -> None:
         cek("Bima: ganti visual maks ±3,5 detik", longest <= 3.5, f"terpanjang {longest:.1f} dtk")
         dur_j = {j: sum(k["durasi"] for k in kl if k["jenis"] == j) for j in ("footage", "ai", "grafis")}
         tot_j = sum(dur_j.values()) or 1
-        cek("Bima: footage asli diutamakan (AI ≤ 30%)", dur_j["ai"] / tot_j <= 0.30 and dur_j["footage"] / tot_j >= 0.5,
-            f"footage {dur_j['footage'] / tot_j:.0%}, AI {dur_j['ai'] / tot_j:.0%}")
+        cek("Bima: footage asli diutamakan, gambar AI ≤ 10% shot", sum(1 for k in kl if k["jenis"] == "ai") <= int(len(kl) * 0.10)
+            and dur_j["footage"] / tot_j >= 0.6, f"footage {dur_j['footage'] / tot_j:.0%}, AI {dur_j['ai'] / tot_j:.0%}")
+        k_ai = [k for k in kl if k["i"] == 2]
+        cek("Bima: kalimat 'ai' dicarikan footage relevan dulu", bool(k_ai) and all(k["jenis"] == "footage" and k.get("relevansi", 0) > 0 for k in k_ai),
+            ", ".join(f"{k['potong']}:{k['jenis']}/{k.get('judul', '')[:30]}" for k in k_ai))
+        rel = [k for k in kl if k["jenis"] == "footage" and k.get("sumber") != "milik"]
+        cek("Bima: footage menonjolkan yang dibahas (relevan)", sum(1 for k in rel if k.get("relevansi", 0) > 0) >= 0.7 * max(1, len(rel)),
+            f"{sum(1 for k in rel if k.get('relevansi', 0) > 0)}/{len(rel)} relevan")
         yt_pertama = [k for k in kl if k["jenis"] == "footage" and k.get("sumber") == "youtube"]
         cek("Bima: potongan YouTube CC dipakai paling banyak", len(yt_pertama) >= max((sum(1 for k in kl if k.get("sumber") == s_) for s_ in ("nasa", "wikimedia", "pexels")), default=0),
             f"{len(yt_pertama)} potongan YouTube")
         jenis = {j: sum(1 for k in kl if k["jenis"] == j) for j in ("footage", "ai", "grafis")}
-        cek("Bima: campuran footage/AI/grafis", all(jenis.values()), json.dumps(jenis))
+        cek("Bima: campuran footage + grafis", jenis["footage"] > 0 and jenis["grafis"] > 0, json.dumps(jenis))
+        # pilihan Bima (Claude) yang terlalu banyak AI tetap dibatasi: hook tanpa AI, total AI ≤ 10% shot
+        (vdir / "aset" / "pilihan.json").write_text(json.dumps({"pilihan": [{"i": 0, "pakai": [1, "ai"]}, {"i": 1, "pakai": ["ai", "ai"]},
+                                                                            {"i": 4, "pakai": ["ai", "ai"]}]}), encoding="utf-8")
+        r = run(tmp, "agents/aset/cari_aset.py", "unduh", slug, "--uji", "--ulang", "1", "--ulang", "2", "--ulang", "5")
+        kl2 = json.loads((vdir / "aset" / "manifest.json").read_text(encoding="utf-8")).get("klip", [])
+        n_ai = sum(1 for k in kl2 if k["jenis"] == "ai")
+        cek("Bima: pilihan penuh AI dibatasi (hook tanpa AI, AI ≤ 10% shot)", r.returncode == 0 and n_ai <= int(len(kl2) * 0.10)
+            and not any(k["jenis"] == "ai" for k in kl2 if k["i"] == 0), f"{n_ai} AI dari {len(kl2)} shot; ulang pakai: {sum(1 for k in kl2 if k.get('pakai_ulang'))}")
+        (vdir / "aset" / "pilihan.json").unlink()
         cek("Bima: rekaman milik-saya dipakai", any(k.get("sumber") == "milik" for k in kl))
         cek("Bima: lembar kontak & kredit dibuat", bool(list((vdir / "aset" / "lembar").glob("*.jpg"))) and (vdir / "aset" / "KREDIT.txt").exists())
         frames = [k for k in kl if k["jenis"] == "grafis"][:1]

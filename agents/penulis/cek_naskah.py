@@ -188,6 +188,9 @@ def check(slug: str) -> tuple[list[str], list[str], dict, dict]:
             warns.append(f"kalimat {i} memuat angka panjang; tulis dengan huruf supaya TTS membacanya benar")
     if panjang and sum(panjang) / len(panjang) > 14:
         warns.append(f"rata-rata {sum(panjang) / len(panjang):.1f} kata per kalimat; Shorts enak di 8–13")
+    n_ai = sum(1 for n in narasi if n.get("jenis_visual") == "ai")
+    if n_ai > 1:
+        fails.append(f"{n_ai} kalimat jenis_visual 'ai'; maksimal 1 per video. Ganti jadi 'footage' dengan kata kunci teknologi yang dibahas")
 
     if narasi[0].get("bagian") != "hook":
         fails.append("kalimat 1 harus bagian 'hook'")

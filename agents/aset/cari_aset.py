@@ -53,6 +53,8 @@ CACHE = ROOT / "cache" / "aset"
 MILIK = ROOT / "milik-saya"      # rekaman Zona sendiri: prioritas tertinggi
 VIDEO_EXT = {".mp4", ".mov", ".mkv", ".webm", ".m4v"}
 MAX_FOOTAGE_BERUNTUN = 99        # tidak ada lagi selingan AI paksa: variasi datang dari transisi & gerak Kai; footage asli diutamakan
+BATAS_AI = 0.10                  # gambar AI maksimal 10% shot per video, dan hanya kalau footage yang relevan benar-benar habis
+KANDIDAT_TOPIK = 4               # footage topik (teknologi yang dibahas) yang ikut ditawarkan ke tiap kalimat
 URUT_SUMBER = {"milik": 0, "youtube": 1, "nasa": 2, "wikimedia": 3, "pexels": 4, "pixabay": 5}
 FIXTURE = Path(__file__).with_name("contoh_respon.json")
 SHOT_MAX = 3.0          # bible: ganti visual tiap 1,5–3 detik
@@ -263,15 +265,21 @@ def cmd_cari(slug: str) -> None:
     kv = [str(x) for x in (idea.get("kata_kunci_visual") or []) if str(x).strip()]
     kunci_topik = kata_kunci(kv)
     topik: list[dict] = []
-    if kv and any(p["jenis"] == "footage" for p in plan):
-        for c in search_all(kv[0], True):
-            topik.append({**c, "kueri": kv[0]})
-        log(f"topik '{kv[0]}': {len(topik)} kandidat footage")
+    if kv and any(p["jenis"] in ("footage", "ai") for p in plan):
+        seen_t = set()
+        for q in kv[:3]:
+            for c in search_all(q, True):
+                if (c["sumber"], c["id"]) not in seen_t:
+                    seen_t.add((c["sumber"], c["id"]))
+                    topik.append({**c, "kueri": q})
+            if len(topik) >= 30:
+                break
+        log(f"topik {', '.join(repr(q) for q in kv[:3])}: {len(topik)} kandidat footage")
     for p, span in zip(plan, spans):
         i, n_shot = p["i"], shots_for(span, p["jenis"])
         entry = {"i": i, "kalimat": narasi[i]["kalimat"], "jenis": p["jenis"], "mulai": span[0], "selesai": span[1],
                  "shot": n_shot, "kandidat": [], "lembar": None}
-        if p["jenis"] == "footage":
+        if p["jenis"] in ("footage", "ai"):     # kalimat 'ai' tetap dicarikan footage dulu; AI hanya cadangan terakhir
             seen, cands = set(), []
             for c in own_matches(p["kata"] + [narasi[i].get("visual", ""), narasi[i]["kalimat"]]):
                 seen.add((c["sumber"], c["id"]))
@@ -284,14 +292,14 @@ def cmd_cari(slug: str) -> None:
                 if len(cands) >= 8:
                     break
             kunci_kal = kata_kunci(p["kata"] + [narasi[i].get("visual", "")])
-            for c in sorted(topik, key=lambda c: -relevansi(c, kunci_kal, kunci_topik))[:3]:
+            for c in sorted(topik, key=lambda c: -relevansi(c, kunci_kal, kunci_topik))[:KANDIDAT_TOPIK]:
                 if (c["sumber"], c["id"]) not in seen:
                     seen.add((c["sumber"], c["id"]))
                     cands.append(c)
             milik = [c for c in cands if c["sumber"] == "milik"]
             lain = sorted((c for c in cands if c["sumber"] != "milik"),
                           key=lambda c: (-relevansi(c, kunci_kal, kunci_topik), URUT_SUMBER.get(c["sumber"], 9)))
-            cands = (milik + lain)[:8]
+            cands = (milik + lain)[:10]
             tmp = aset / "lembar" / f"_{i + 1:02}"
             tmp.mkdir(exist_ok=True)
             thumbs = []
@@ -491,18 +499,35 @@ def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
     klip, kurang = [], []
     taken = {(k.get("sumber"), k.get("id")) for (ii, _), k in old.items() if ii + 1 not in ulang and k.get("jenis") == "footage"} | ditolak
     streak = 0                                   # jumlah shot footage berturut-turut
+    # jatah gambar AI: maksimal BATAS_AI dari semua shot (14 shot → 1); sisanya footage relevan (boleh bagian lain dari klip topik yang sama)
+    total_shot = sum(shots_for(span, p["jenis"]) for p, span in zip(plan, spans))
+    ai_maks = int(total_shot * BATAS_AI)
+    ai_pakai = 0
+    segmen: dict[str, list] = {}                 # bagian klip yang sudah dipakai (seluruh video) → pemakaian ulang ambil bagian lain
     for p, span in zip(plan, spans):
         i = p["i"]
         e = entries.get(i, {"kandidat": [], "jenis": p["jenis"]})
         n = shots_for(span, p["jenis"])
         bounds = [span[0] + (span[1] - span[0]) * k / n for k in range(n + 1)]
         kunci_kal = kata_kunci(p["kata"] + [narasi[i].get("visual", "")] + list(narasi[i].get("kata_kunci_visual") or []))
-        choice = picks.get(i) or (["grafis"] if p["jenis"] == "grafis" else ["ai"] * n if p["jenis"] == "ai"
-                                  else auto_pick(e, n, taken, kunci_kal, kunci_topik))
         bad = {k + 1 for k, c in enumerate(e["kandidat"]) if (str(c["sumber"]), str(c["id"])) in ditolak}
-        choice = [c for c in choice if c not in bad] or (["ai"] * n if p["jenis"] != "grafis" else ["grafis"])
-        queue = [c for c in choice] + [k + 1 for k in range(len(e["kandidat"])) if k + 1 not in choice and k + 1 not in bad]
-        used_segments: dict[str, list] = {}
+        rel = {k + 1: relevansi(c, kunci_kal, kunci_topik) for k, c in enumerate(e["kandidat"])}
+        cocok = [k for k in sorted(rel, key=lambda k: (-rel[k], URUT_SUMBER.get(e["kandidat"][k - 1]["sumber"], 9), k))
+                 if rel[k] > 0 and k not in bad]
+        if p["jenis"] == "grafis":
+            choice = picks.get(i) or ["grafis"]
+        else:
+            choice = picks.get(i) or auto_pick(e, n, taken, kunci_kal, kunci_topik)
+            if p["jenis"] == "ai" and not picks.get(i):
+                choice = [k for k in choice if rel.get(k, 0) > 0]      # kalimat 'ai': hanya footage yang benar-benar relevan
+        choice = [c for c in choice if c not in bad]
+        # urutan cadangan: footage relevan baru → bagian lain footage relevan yang sudah dipakai (topik yang sama) →
+        # footage lain → AI (kalau masih ada jatah) → kartu grafis → AI (paling akhir)
+        segar = [k for k in cocok if k not in choice and (e["kandidat"][k - 1]["sumber"], e["kandidat"][k - 1]["id"]) not in taken]
+        ulang_pakai = [f"ulang:{k}" for k in cocok]
+        lain = [k + 1 for k in range(len(e["kandidat"])) if k + 1 not in choice and k + 1 not in bad and k + 1 not in cocok
+                and p["jenis"] != "ai"]
+        queue = list(choice) + segar + ulang_pakai + lain
         for s in range(n):
             letter = "abc"[s]
             name = f"{i + 1:02}-{letter}.mp4"
@@ -511,14 +536,25 @@ def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
             keep = old.get((i, s))
             if (i + 1) not in ulang and keep and keep.get("file") == name and out.exists() and abs(keep["durasi"] - dur) < 0.05 and keep.get("uji") == UJI:
                 klip.append(keep)
+                if keep.get("jenis") == "footage":
+                    m0 = float(keep.get("sumber_mulai") or 0)
+                    segmen.setdefault(f"{keep.get('sumber')}-{keep.get('id')}", []).append((m0, m0 + float(keep["durasi"])))
+                ai_pakai += keep.get("jenis") == "ai"
                 streak = streak + 1 if keep.get("jenis") == "footage" else 0
                 continue
             meta = None
-            want = choice[s] if s < len(choice) else (choice[s % len(choice)] if choice else "ai")
-            if want not in ("ai", "grafis") and streak >= MAX_FOOTAGE_BERUNTUN and i > 0:
-                want = "ai"                      # selingan supaya ritme tidak monoton
-            tries = [want] + [q for q in queue if q != want] + ["ai"]
+            want = choice[s] if s < len(choice) else (choice[s % len(choice)] if choice else None)
+            boleh_ai = ai_pakai < ai_maks and i > 0       # hook selalu footage asli
+            if want == "ai" and not boleh_ai:
+                want = None                      # jatah AI habis: cari footage dulu
+            akhir = (["ai", "grafis"] if boleh_ai else ["grafis"]) if p["jenis"] != "grafis" else []
+            tries = ([want] if want is not None else []) + [q for q in queue if q != want and q not in ("ai", "grafis")] + akhir + ["ai"]
+            tries = list(dict.fromkeys(tries))
             for t in tries:
+                if isinstance(t, str) and t.startswith("ulang:"):
+                    c0 = e["kandidat"][int(t[6:]) - 1]
+                    if not segmen.get(f"{c0['sumber']}-{c0['id']}") or len(segmen[f"{c0['sumber']}-{c0['id']}"]) >= 3:
+                        continue                 # belum pernah dipakai (sudah dicoba sebagai kandidat baru) atau sudah 3x dipakai
                 try:
                     if t == "grafis":
                         gerak.grafis(p["grafis"], out, dur)
@@ -530,8 +566,9 @@ def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
                         gerak.kenburns(img, out, dur, seed=i * 7 + s)
                         meta = {"jenis": "ai", "sumber": "cloudflare-flux", "judul": prompt, "lisensi": "gambar AI (konten sintetis)"}
                     else:
-                        c = e["kandidat"][int(t) - 1]
-                        segs = used_segments.setdefault(f"{c['sumber']}-{c['id']}", [])
+                        pakai_ulang = isinstance(t, str) and t.startswith("ulang:")
+                        c = e["kandidat"][int(str(t).split(":")[-1]) - 1]
+                        segs = segmen.setdefault(f"{c['sumber']}-{c['id']}", [])
                         raw, start = raw_footage(c, dur, len(segs) if c["sumber"] != "youtube" else 0, segs)
                         if c["sumber"] != "youtube":
                             segs.append((start, start + dur))
@@ -548,7 +585,8 @@ def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
                             taken.add((c["sumber"], c["id"]))
                             raise RuntimeError(f"klip {'gelap' if gelap > 0.35 else 'diam/beku'} ({max(gelap, beku):.0%}), cari yang lain")
                         meta = {"jenis": "footage", **{k: c[k] for k in ("sumber", "id", "judul", "url_halaman", "pembuat", "lisensi", "kueri")},
-                                "sumber_mulai": round(start, 2), "kandidat_no": int(t)}
+                                "sumber_mulai": round(start, 2), "kandidat_no": int(str(t).split(":")[-1]),
+                                "relevansi": rel.get(int(str(t).split(":")[-1]), 0), **({"pakai_ulang": True} if pakai_ulang else {})}
                         taken.add((c["sumber"], c["id"]))
                     break
                 except (RuntimeError, ValueError, OSError, IndexError, urllib.error.URLError, TimeoutError) as err:
@@ -561,6 +599,7 @@ def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
             rec = {"i": i, "potong": s, "file": name, "mulai": round(bounds[s], 3), "selesai": round(bounds[s + 1], 3),
                    "durasi": dur, "kalimat": narasi[i]["kalimat"], "uji": UJI, **meta}
             klip.append(rec)
+            ai_pakai += rec["jenis"] == "ai"
             streak = streak + 1 if rec["jenis"] == "footage" else 0
             log(f"{i + 1:02}{letter}. {rec['jenis']:<8} {rec['sumber']:<15} {dur:.1f} dtk")
 
