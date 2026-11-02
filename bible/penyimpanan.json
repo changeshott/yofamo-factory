@@ -1,0 +1,7 @@
+{
+  "hapus_setelah_upload": true,
+  "cache_maks_hari": 3,
+  "cache_maks_gb": 3,
+  "log_maks_hari": 30,
+  "_catatan": "Bersih-bersih otomatis (agents/bersih.py): setelah Uli berhasil mengunggah, file besar video itu dihapus (final.mp4, render, shot, suara); data kecil untuk Steve & kredit tetap disimpan. Cache unduhan footage lebih tua dari cache_maks_hari atau lebih dari cache_maks_gb dihapus, juga log & catatan produksi lebih tua dari log_maks_hari. Video yang belum diupload tidak pernah disentuh. Matikan dengan hapus_setelah_upload: false."
+}

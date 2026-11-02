@@ -290,6 +290,8 @@ def putaran(paksa: bool = False) -> None:
             produksi(state, c)
             wj(STATE, state)
             isi_slot(state, c)
+        if not UJI:                            # hemat ruang: cache lama & file video yang sudah diupload
+            subprocess.run([PY, str(ROOT / "agents" / "bersih.py"), "semua", "--otomatis"], cwd=ROOT, capture_output=True)
         state["putaran_terakhir"] = now().isoformat(timespec="seconds")
         state["slot"] = dict(sorted(state["slot"].items())[-60:])
         state["dibuat"] = state["dibuat"][-60:]

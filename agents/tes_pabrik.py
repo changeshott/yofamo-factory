@@ -342,6 +342,17 @@ def offline() -> None:
         cek("Produser: menolak jalan bersamaan dengan produksi lain", r.returncode == 3 and "produksi lain" in r.stdout, r.stdout.strip()[-120:])
         k_lock.unlink()
 
+        # Bersih-bersih: video belum diupload tidak disentuh; setelah diupload file besarnya dihapus, data kecil tetap ada
+        r = run(tmp, "agents/bersih.py", "video", slug)
+        utuh = (vdir / "export" / "final.mp4").exists()
+        (vdir / "export" / "upload.json").write_text(json.dumps({"videoId": "abcDEF12345", "url": "https://youtube.com/shorts/abcDEF12345"}), encoding="utf-8")
+        mb0 = sum(f.stat().st_size for f in vdir.rglob("*") if f.is_file()) / 1048576
+        r = run(tmp, "agents/bersih.py", "semua")
+        mb1 = sum(f.stat().st_size for f in vdir.rglob("*") if f.is_file()) / 1048576
+        tetap = all((vdir / x).exists() for x in ("script.json", "idea.json", "words.json", "export/info.json", "export/upload.json", "aset/manifest.json"))
+        cek("Bersih: file besar video yang sudah diupload dihapus, data kecil tetap", utuh and r.returncode == 0 and tetap
+            and not (vdir / "export" / "final.mp4").exists() and not list((vdir / "aset").glob("*.mp4")), f"{mb0:.0f} MB → {mb1:.1f} MB")
+
         # Kontrol Zona: hapus video
         r = run(tmp, "agents/pabrik.py", "hapus", slug, "--ya")
         rows = json.loads(run(tmp, "agents/pabrik.py", "list", "--json").stdout or "[]")

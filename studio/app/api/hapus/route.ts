@@ -45,6 +45,12 @@ export async function POST(req: Request) {
       fs.rmSync(path.join(P.insights, nama), { force: true });
       return json({ ok: true, message: "Laporan Steve dihapus." });
     }
+    if (jenis === "bersih") {
+      if (!py) return json({ ok: false, message: "Python tidak ditemukan." }, 500);
+      const out = execFileSync(py, [path.join(ROOT, "agents", "bersih.py"), "semua"], { cwd: ROOT, windowsHide: true, encoding: "utf-8" });
+      const total = /total (\d+) MB/.exec(out)?.[1] ?? "0";
+      return json({ ok: true, message: `Bersih: ${total} MB ruang penyimpanan kembali.` });
+    }
     if (jenis === "cache") {
       fs.rmSync(P.cache, { recursive: true, force: true });
       return json({ ok: true, message: "Cache unduhan dikosongkan." });

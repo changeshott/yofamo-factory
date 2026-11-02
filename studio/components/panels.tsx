@@ -249,6 +249,7 @@ export function VideoCard({ v, ctx, defaultOpen }: { v: Video; ctx: PanelCtx; de
             {v.media.srt && <a className="text-sm text-circuit hover:underline" href={`/api/media?slug=${v.slug}&file=captions.srt&unduh=1`}>Unduh subtitle (.srt)</a>}
           </div>
         </>)}
+        {!v.final.ada && v.upload && <Muted className="mt-3">File video sudah dihapus dari laptop setelah diupload (hemat ruang). Tonton di <a className="underline" href={v.upload.url} target="_blank" rel="noopener noreferrer">YouTube</a> atau unduh lagi dari <a className="underline" href={v.upload.studio} target="_blank" rel="noopener noreferrer">YouTube Studio</a>.</Muted>}
         {v.final.ada && (<>
           <h4 className="mt-3 mb-1 font-pixel text-sm text-muted">Video final dari Kai{v.final.durasi ? ` (${v.final.durasi.toFixed(1)} detik)` : ""}{v.final.uji ? " · uji" : ""}</h4>
           <video controls playsInline preload="metadata" className="mx-auto aspect-[9/16] max-h-[520px] rounded-lg border border-line bg-black"
@@ -689,7 +690,9 @@ export function KelolaPanel({ ctx }: { ctx: PanelCtx }) {
     <div className="flex flex-wrap gap-2">
       <Btn size="sm" disabled={!d.logs.length} onClick={() => ctx.hapus("log", "*", `Semua ${d.logs.length} log kerja.`)}>Hapus semua log</Btn>
       <Btn size="sm" disabled={!d.cache} onClick={() => ctx.hapus("cache", "", `Cache unduhan Bima (${mb(d.cache)}). Video yang sudah jadi tidak terpengaruh.`)}>Kosongkan cache</Btn>
+      <Btn size="sm" tone="primary" onClick={() => ctx.hapus("bersih", "", "File besar video yang SUDAH diupload ke YouTube (final.mp4, render, shot, suara), cache unduhan lama, dan file sementara. Video yang belum diupload tidak disentuh; data kecil untuk Steve tetap disimpan.")}>Bersihkan yang sudah tidak diperlukan</Btn>
     </div>
+    <Muted className="mt-1">Otomatis: setelah Uli mengunggah, file besar video itu langsung dihapus (videonya aman di YouTube, bisa diunduh lagi dari YouTube Studio). Atur di <code>bible/penyimpanan.json</code>.</Muted>
 
     <H3>Mulai dari nol</H3>
     <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={lapor} onChange={(e) => setLapor(e.target.checked)} /> Ikut hapus laporan Steve</label>

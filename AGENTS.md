@@ -27,7 +27,7 @@ Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetu
 
 ## Struktur folder
 
-- `bible/autopilot.json` — pengaturan autopilot (aktif, video per hari, setujui otomatis, skor QC minimal, jam tayang). `bible/gaya-upload.json` — deskripsi & hashtag Uli. `insights/jadwal.json`/`.md` — jam tayang terbaik (dibuat `jadwal.py`).
+- `bible/autopilot.json` — pengaturan autopilot (aktif, video per hari, setujui otomatis, skor QC minimal, jam tayang). `bible/gaya-upload.json` — deskripsi & hashtag Uli. `bible/penyimpanan.json` — bersih-bersih otomatis setelah upload. `insights/jadwal.json`/`.md` — jam tayang terbaik (dibuat `jadwal.py`).
 - `bible/gaya-edit.json` — gaya editan Kai (font, warna & ukuran subtitle, hook bertingkat, gerak & transisi, musik).
 - `fonts/` — font khas Yofamo (Poppins Black/ExtraBold, lisensi OFL).
 - `package.json` — mesin video Kai (hyperframes, gsap). Pasang sekali: `npm install` di folder project (butuh Node.js 22+).
@@ -54,11 +54,11 @@ Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetu
 
 - Angka selalu berasal dari file di `insights/raw/`, tidak pernah dikarang. Kalau data kurang, tulis "data belum cukup".
 - Satu video sedikit (< 5) bukan pola. Sebut sebagai "dugaan" sampai ada minimal 5 video pendukung.
-- Jangan pernah menghapus file di `insights/` atau `videos/`. Tulis file baru.
+- Jangan pernah menghapus file di `insights/` atau `videos/`. Tulis file baru. Satu-satunya pengecualian: `agents/bersih.py` (permintaan Zona, `bible/penyimpanan.json`) otomatis menghapus file besar video yang **sudah diupload** (final.mp4, render, shot, suara) plus cache unduhan lama & file sementara; data kecil (naskah, timing, manifest, info, upload, QC) tetap disimpan.
 - Klip hanya dari sumber berlisensi bebas: YouTube **Creative Commons (CC BY)** lewat script Bima, NASA, Wikimedia Commons (hanya PD/CC0/CC BY), Pexels, Pixabay, gambar AI, atau milik Zona. Jangan pernah mengambil video YouTube biasa, TikTok, film, atau berita.
 - Hanya Uli yang boleh mengupload, hanya video berstatus `export`, dan selalu **private** (boleh dengan jadwal tayang `publishAt`, sehingga YouTube menayangkannya sendiri). Status `export` berasal dari persetujuan Zona, atau dari autopilot yang dinyalakan Zona (hanya video buatan autopilot yang lolos Rara dengan skor ≥ `skor_qc_min`). Tidak ada agent yang menghapus atau mengubah video yang sudah ada di YouTube. Steve hanya **membaca** data.
 - Deskripsi YouTube tanpa link sumber. Kredit footage CC BY tetap dicantumkan singkat (judul, pembuat, lisensi) tanpa link; link lengkap tersimpan di `aset/KREDIT.txt`.
-- Menghapus hasil (video, log, laporan) hanya dilakukan Zona lewat panel Kelola di Studio (`pabrik.py hapus`). Agent tidak pernah menghapus.
+- Menghapus hasil (video, log, laporan) hanya dilakukan Zona lewat panel Kelola di Studio (`pabrik.py hapus`). Agent tidak pernah menghapus, kecuali bersih-bersih otomatis `bersih.py` di atas.
 - API key ada di `.env` (dibaca script). Jangan menampilkan isi `.env` di chat atau laporan.
 - Ringkasan akhir agent: maksimal sekitar 15 baris, poin terpenting dulu. Laporan dan log dibaca Zona lewat Studio Yofamo (`studio/`).
 - Jangan mengubah file di `studio/` kecuali diminta.
@@ -87,6 +87,7 @@ python agents/upload/unggah.py login        # Uli: hubungkan YouTube (sekali)
 python agents/upload/unggah.py pratinjau <slug>  # Uli: lihat judul, deskripsi (tanpa link) & hashtag tanpa upload
 python agents/upload/jadwal.py              # jam tayang terbaik → insights/jadwal.md
 python agents/autopilot.py status|nyala|mati|jalan  # autopilot 3 video/hari
+python agents/bersih.py semua [--coba]      # hapus file besar video yang sudah diupload + cache lama (--coba: lihat dulu)
 pasang_autopilot.bat                        # pasang penjadwal Windows tiap jam (sekali); "pasang_autopilot.bat hapus" untuk melepas
 python agents/steve/kumpul.py [--pasar]     # Steve: semua data (statistik, komentar, analitik, pasar) + analisa, tanpa kuota Claude
 python agents/steve/analisa.py              # Steve: hitung KPI, pola, retensi, peluang → insights/raw/analisa-*.json/.md
