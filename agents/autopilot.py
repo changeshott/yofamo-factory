@@ -424,9 +424,17 @@ def main() -> None:
         SEKARANG = datetime.fromisoformat(a.sekarang).replace(tzinfo=WIB)
     os.environ.setdefault("PYTHONIOENCODING", "utf-8")
     if a.perintah == "jalan" and a.mulai:
+        # dimulai Zona: lupakan jeda, dan hitung ulang kuota harian dari produksi yang benar-benar berjalan
+        # (produksi yang mati di awal, mis. jendelanya ditutup, tidak dihitung)
         st0 = rj(STATE)
-        if st0.pop("jeda_sampai", None):
-            wj(STATE, st0)
+        st0.pop("jeda_sampai", None)
+        hari = now().strftime("%Y%m%d")
+        nyata = 0
+        for f in (ROOT / "produksi").glob(f"autopilot-{hari}-*.json"):
+            tahap = {t.get("kunci"): t.get("status") for t in rj(f).get("tahap", [])}
+            nyata += any(tahap.get(k) == "ok" for k in ("dara", "bima", "kai"))
+        st0.setdefault("produksi", {})[now().date().isoformat()] = nyata
+        wj(STATE, st0)
     if a.perintah == "jalan":
         LOG_FILE = ROOT / "logs" / f"autopilot-{now().strftime('%Y-%m-%d')}.txt"
         LOG_FILE.parent.mkdir(exist_ok=True)
