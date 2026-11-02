@@ -1,8 +1,7 @@
 import "server-only";
 import fs from "node:fs";
 import path from "node:path";
-import { spawn } from "node:child_process";
-import { P, ROOT, agentEnv, pythonCmd } from "./project";
+import { P, ROOT, jalankanLatar } from "./project";
 
 const g = globalThis as unknown as { __yofamoAutopilot?: number; __yofamoPoll?: number };
 const DIBUKA = 10 * 60_000;   // tidak ada yang membuka Studio selama ≥ 10 menit → permintaan berikutnya = "Studio dibuka"
@@ -25,12 +24,10 @@ export function kunciAktif(nama: string): { pid: number; nama: string } | null {
 export const autopilotBerjalan = () => kunciAktif("autopilot.lock") !== null;
 
 export function jalankanAutopilot(manual = false): { ok: boolean; message: string } {
-  const py = pythonCmd();
-  if (!py) return { ok: false, message: "Python tidak ditemukan." };
   if (autopilotBerjalan()) return { ok: false, message: "Autopilot sedang bekerja. Tunggu putaran ini selesai." };
-  const child = spawn(py, ["agents/autopilot.py", "jalan", ...(manual ? ["--mulai"] : [])], { cwd: ROOT, env: agentEnv(), detached: true, stdio: "ignore", windowsHide: true });
-  child.on("error", () => {});
-  child.unref();
+  const tgl = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
+  const r = jalankanLatar(["agents/autopilot.py", "jalan", ...(manual ? ["--mulai"] : [])], `autopilot-latar-${tgl}.txt`);
+  if (!r.ok) return r;
   g.__yofamoAutopilot = Date.now();
   return { ok: true, message: "Autopilot mulai bekerja. Kemajuan muncul di log dan di Produksi." };
 }

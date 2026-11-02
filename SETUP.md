@@ -151,3 +151,12 @@ Catatan: Uli mengunggah **private**, dengan jadwal tayang kalau diberi jam (`--j
 Cara kerjanya tiap putaran: hitung jam tayang terbaik (`insights/jadwal.md`) → video siap diunggah private + dijadwalkan → slot hari ini + besok yang belum punya video → tim membuat video baru berurutan (hari pertama 6 video; maksimal 8 produksi per hari supaya kuota Claude aman) → setelah jam tayang lewat, video ditandai terbit. Video dengan skor Rara di bawah batas tidak diunggah; kamu tonton & setujui sendiri di Studio.
 
 Melepas penjadwal: `pasang_autopilot.bat hapus`. Mematikan sementara: tombol **Matikan** di Studio.
+
+## Ruang Animasi: video YouTube panjang full animasi
+
+Kantor kedua di Studio (sebelah kanan kantor Shorts). Tidak perlu pemasangan baru: memakai HyperFrames (`npm install` di folder project, Node 22+), edge-tts, dan kunci Cloudflare FLUX yang sama dengan Shorts (`CLOUDFLARE_ACCOUNT_ID` & `CLOUDFLARE_API_TOKEN` di `.env`) untuk ilustrasi kartun.
+
+1. Buka Studio → klik **Ruang Animasi** di sidebar (atau mesin arcade di kantor) → isi arahan tema (opsional) → **Buat**.
+2. Tim bekerja di latar (±2–4 jam per video 5–8 menit). Shorts tetap didahulukan: render video panjang menunggu kalau produksi Shorts sedang jalan.
+3. Video jadi → tonton di panel → **Setujui** → pilih jadwal (kosong = jam terbaik besok) → **Unggah**. Thumbnail khusus butuh channel yang sudah verifikasi nomor HP; kalau belum, pasang `export/thumbnail.jpg` manual di YouTube Studio.
+4. Terputus di tengah? Klik **Lanjutkan**: adegan yang sudah dirender tidak diulang.

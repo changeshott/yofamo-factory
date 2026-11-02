@@ -132,7 +132,12 @@ def pabrik(*args: str) -> None:
 
 
 API_SEMENTARA = re.compile(r"API Error: ?(5\d\d|529)|overloaded|Internal server error|api_error|ECONNRESET|ETIMEDOUT|socket hang up|fetch failed", re.I)
-API_LIMIT = re.compile(r"usage limit|limit reached|rate.?limit|credit balance", re.I)
+API_LIMIT = re.compile(r"usage limit|limit reached|rate.?limit|credit balance|hit your [\w -]*limit|\d+-hour limit|weekly limit", re.I)
+RESET = re.compile(r"resets? (?:at )?(\d{1,2})(?::(\d\d))?\s*(am|pm)?", re.I)
+
+
+class KuotaClaude(Exception):
+    """Kuota Claude (batas 5 jam / mingguan) habis: produksi dihentikan, bukan dilanjutkan dengan cadangan."""
 
 
 def jalan_tangkap(args: list[str], timeout: int) -> tuple[int, str]:
@@ -162,11 +167,13 @@ def claude(prompt: str, allowed: list[str], timeout: int, turns: int = 60) -> in
         raise RuntimeError("perintah 'claude' tidak ditemukan")
     for coba in range(3):
         kode, ekor = jalan_tangkap([exe, "-p", prompt, "--model", MODEL, "--max-turns", str(turns), "--allowedTools", *allowed], timeout)
+        if API_LIMIT.search(ekor[-1500:]):
+            m = RESET.search(ekor[-1500:])
+            jam = f"{m.group(1)}:{m.group(2) or '00'}{(m.group(3) or '').lower()}" if m else ""
+            print(f"[produser] Kuota Claude habis{' (pulih ' + jam + ')' if jam else ''}. Produksi dihentikan; lanjutkan setelah kuota pulih.", flush=True)
+            raise KuotaClaude(f"Kuota Claude habis{', pulih ' + jam if jam else ''}")
         if kode == 0:
             return 0
-        if API_LIMIT.search(ekor):
-            print("[produser] Kuota Claude sedang habis/dibatasi. Coba lagi setelah kuota pulih (lihat pesan di atas).", flush=True)
-            return kode
         if API_SEMENTARA.search(ekor) and coba < 2:
             jeda = (45, 120)[coba]
             print(f"[produser] Server Claude sedang error sementara (HTTP 5xx/overloaded). Coba lagi dalam {jeda} dtk… ({coba + 2}/3)", flush=True)
@@ -403,6 +410,13 @@ def main() -> None:
             info.append(f"{len(q['masalah'])} catatan")
         cat.tahap("rara", "ok", ", ".join(info) or "lolos pemeriksaan otomatis")
         cat.akhir("selesai", "Video jadi dan sudah diperiksa Rara. Tonton lalu setujui di Studio.")
+    except KuotaClaude as err:
+        for t in cat.d["tahap"]:
+            if t["status"] == "jalan":
+                t["status"] = "gagal"
+                t["catatan"] = str(err)
+        cat.akhir("gagal", f"{err}. Klik Lanjutkan setelah kuota pulih (tahap yang sudah beres tidak diulang).")
+        sys.exit(4)
     except Exception as err:  # jangan sampai catatan tertinggal 'berjalan'
         for t in cat.d["tahap"]:
             if t["status"] == "jalan":

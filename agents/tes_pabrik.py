@@ -231,7 +231,8 @@ def offline() -> None:
         frames = [k for k in kl if k["jenis"] == "grafis"][:1]
         if frames:
             f = vdir / "aset" / frames[0]["file"]
-            cek("Bima: kartu grafis ter-render", ffprobe_size(f)[0] == 1080)
+            cek("Bima: kartu grafis ter-render & ringan", ffprobe_size(f)[0] == 1080 and f.stat().st_size < 8 * 1024 * 1024,
+                f"{f.stat().st_size / 1048576:.1f} MB")
         # Kai (mode uji)
         run(tmp, "agents/pabrik.py", "set", slug, "aset")
         (tmp / "musik").mkdir(exist_ok=True)
@@ -354,6 +355,29 @@ def offline() -> None:
         tetap = all((vdir / x).exists() for x in ("script.json", "idea.json", "words.json", "export/info.json", "export/upload.json", "aset/manifest.json"))
         cek("Bersih: file besar video yang sudah diupload dihapus, data kecil tetap", utuh and r.returncode == 0 and tetap
             and not (vdir / "export" / "final.mp4").exists() and not list((vdir / "aset").glob("*.mp4")), f"{mb0:.0f} MB → {mb1:.1f} MB")
+
+        # Ruang Animasi (video panjang): validator, suara & ilustrasi uji, pratinjau frame tiap adegan (tanpa render penuh)
+        pslug = "uji-panjang-kulit"
+        pdir = tmp / "panjang" / pslug
+        pdir.mkdir(parents=True)
+        shutil.copy(tmp / "agents" / "panjang" / "contoh" / "ide.json", pdir / "ide.json")
+        shutil.copy(tmp / "agents" / "panjang" / "contoh" / "naskah.json", pdir / "naskah.json")
+        run(tmp, "agents/panjang/status.py", "set", pslug, "ide", "tes")
+        r = run(tmp, "agents/panjang/cek_naskah_panjang.py", pslug)
+        cek("Ruang Animasi: validator naskah menolak naskah terlalu pendek", r.returncode != 0 and "perkiraan durasi" in r.stdout, r.stdout.strip().splitlines()[-1] if r.stdout else r.stderr[-200:])
+        r1 = run(tmp, "agents/panjang/suara_panjang.py", pslug, "--uji")
+        r2 = run(tmp, "agents/panjang/ilustrasi.py", pslug, "--uji")
+        wpj = json.loads((pdir / "suara" / "waktu.json").read_text(encoding="utf-8")) if (pdir / "suara" / "waktu.json").exists() else {}
+        cek("Ruang Animasi: suara + timing kata & ilustrasi per adegan", r1.returncode == 0 and r2.returncode == 0 and len(wpj) == 10
+            and len(list((pdir / "ilustrasi").glob("*.jpg"))) >= 3, (r1.stdout + r1.stderr + r2.stderr)[-200:] if r1.returncode or r2.returncode else f"{len(wpj)} adegan")
+        try:
+            import playwright  # noqa: F401
+            r = run(tmp, "agents/panjang/animasi.py", pslug, "--pratinjau")
+            foto = list((pdir / "adegan").glob("pratinjau-*.jpg"))
+            cek("Ruang Animasi: semua adegan (host, bab, ilustrasi, diagram, penutup) terbangun tanpa error", r.returncode == 0 and len(foto) == 30,
+                f"{len(foto)} frame" if r.returncode == 0 else (r.stdout + r.stderr)[-300:])
+        except ImportError:
+            print("  (lewati pratinjau animasi: playwright tidak terpasang)")
 
         # Kontrol Zona: hapus video
         r = run(tmp, "agents/pabrik.py", "hapus", slug, "--ya")

@@ -2,6 +2,8 @@
 state.db
 videos/*/
 !videos/.gitkeep
+panjang/*/
+!panjang/.gitkeep
 musik/*
 sfx/*
 !musik/.gitkeep

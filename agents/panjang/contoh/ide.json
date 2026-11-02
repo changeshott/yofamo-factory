@@ -1,0 +1,11 @@
+{
+  "judul_kerja": "Kulit elektronik: robot yang bisa merasakan sentuhan",
+  "sudut": "Bagaimana robot 'merasakan' lewat kulit buatan, dan kenapa ini mengubah tangan palsu",
+  "target_menit": 7,
+  "fakta": [
+    {"klaim": "Kulit elektronik memuat sekitar 240 sensor tekanan per sentimeter persegi.", "sumber_url": "https://example.org/a", "sumber_nama": "Contoh Jurnal"},
+    {"klaim": "Sinyal dari sensor diubah menjadi pulsa listrik mirip sinyal saraf.", "sumber_url": "https://example.com/b", "sumber_nama": "Contoh Lab"}
+  ],
+  "angka_kunci": [{"angka": "240", "akhiran": "+", "label": "sensor per cm²"}],
+  "bab": [{"judul": "Apa itu kulit elektronik"}, {"judul": "Cara kerjanya"}, {"judul": "Dampaknya"}]
+}

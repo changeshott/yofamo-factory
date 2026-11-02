@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { Produksi, StudioState, Video, VideoStatus } from "@/lib/types";
 import { api, cleanTitle, dec, daysSince, fmt, md, short, when } from "@/lib/format";
 import { Btn, Copy, CopyBtn, H3, Muted, Pill } from "./ui";
-import { FUTURE, TEAM, type AgentDef } from "./office/world";
+import { FUTURE, TEAM, TEAM2, type AgentDef } from "./office/world";
 
 export interface PanelCtx {
   state: StudioState;
@@ -38,6 +38,11 @@ export function LogView({ name, live }: { name: string | null; live?: boolean })
 
 /* ---------------------------------------------------------------- agent */
 export function AgentPanel({ def, ctx }: { def: AgentDef; ctx: PanelCtx }) {
+  if (def.ruang === "animasi") return <RuangAnimasiPanel ctx={ctx} def={def} />;
+  return <AgentPanelShorts def={def} ctx={ctx} />;
+}
+
+function AgentPanelShorts({ def, ctx }: { def: AgentDef; ctx: PanelCtx }) {
   const { state } = ctx, j = state.job, mine = j.job && def.busy[j.job], st = mine ? j.status : "idle";
   const [theme, setTheme] = useState("");
   const [log, setLog] = useState<string | null>(mine ? j.log : null);
@@ -701,7 +706,7 @@ export function KelolaPanel({ ctx }: { ctx: PanelCtx }) {
   </>);
 }
 
-export const agentById = (id: string) => TEAM.find((t) => t.id === id);
+export const agentById = (id: string) => TEAM.find((t) => t.id === id) ?? TEAM2.find((t) => t.id === id);
 
 /* ---------------------------------------------------------------- musik latar (meja Uli) */
 interface Lagu { file: string; nama: string; suasana: string; mb: number; kredit: boolean }
@@ -817,5 +822,78 @@ export function AutopilotPanel({ ctx }: { ctx: PanelCtx }) {
     {d.log.length > 0 && <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded-lg bg-ink-950 p-2 text-[11px] leading-snug text-muted">{d.log.join("\n")}</pre>}
     {pesan && <Muted className="mt-2 text-leaf">{pesan}</Muted>}
     <Muted className="mt-2">Autopilot mengisi semua jam tayang dalam stok (hari pertama 6 video: 3 tayang hari ini + 3 besok; hari berikutnya menambah stok besok). Tiap video: Nova cari topik baru → … → Rara, lalu Uli mengunggah private dengan jadwal tayang; YouTube menayangkannya sendiri walau laptop mati. Jam tayang dihitung dari pola penonton Indonesia + data channel & pasar (<code>insights/jadwal.md</code>). Laptop cukup menyala selama produksi (±30–60 menit per video).</Muted>
+  </>);
+}
+
+/* ---------------------------------------------------------------- Ruang Animasi (video panjang) */
+interface TahapPJ { kunci: string; job: string; nama: string; status: string; catatan: string; mulai: string | null; selesai: string | null }
+interface ProdPJ { id: string; permintaan: string; dibuat: string; selesai: string | null; status: string; slug: string | null; pesan: string; tahap: TahapPJ[] }
+interface VidPJ {
+  slug: string; status: string; diubah: string | null; judul: string; judul_kerja: string; adegan: number; menit: number | null; ilustrasi: number; dirender: number;
+  final: boolean; thumbnail: boolean; lembar: boolean; info: { durasi?: number; bab?: { t: number; judul: string }[]; dibuat?: string; uji?: boolean } | null;
+  qc: { lolos?: boolean; masalah?: string[]; catatan?: string[] } | null; upload: { url?: string; studio?: string; jadwal?: string } | null;
+}
+const STATUS_PJ: Record<string, string> = { ide: "Riset", naskah: "Naskah", suara: "Suara", ilustrasi: "Ilustrasi", animasi: "Animasi", draft: "Siap ditonton", export: "Disetujui", terbit: "Terbit", ditolak: "Ditolak" };
+
+export function RuangAnimasiPanel({ ctx, def }: { ctx: PanelCtx; def?: AgentDef }) {
+  const [d, setD] = useState<{ videos: VidPJ[]; produksi: ProdPJ[]; berjalan: boolean } | null>(null);
+  const [tema, setTema] = useState("");
+  const [pesan, setPesan] = useState("");
+  const [jadwal, setJadwal] = useState<Record<string, string>>({});
+  const muat = () => fetch("/api/panjang", { cache: "no-store" }).then((r) => r.json()).then(setD).catch(() => setD({ videos: [], produksi: [], berjalan: false }));
+  useEffect(() => { void muat(); const t = setInterval(() => void muat(), 8000); return () => clearInterval(t); }, []);
+  const aksi = async (body: Record<string, string>) => {
+    try { const r = await api<{ message: string }>("/api/panjang", body); setPesan(r.message); } catch (e) { setPesan((e as Error).message); }
+    void muat();
+  };
+  if (!d) return <Muted>Memuat Ruang Animasi…</Muted>;
+  const p = d.produksi[0], jalan = p?.status === "berjalan";
+  const media = (slug: string, file: string, v?: string) => `/api/panjang?slug=${slug}&file=${encodeURIComponent(file)}&v=${encodeURIComponent(v ?? "")}`;
+  return (<>
+    {def ? <p>{def.about}</p> : <p>Ruang Animasi membuat video YouTube panjang 5–8 menit, full animasi kartun Sabtu pagi 80-an, dengan host orisinal <b>Yofa</b>. Tim: Bayu (riset) → Citra (naskah adegan) → Gilang (suara) → Laras (ilustrasi) → Tio (animasi) → Wulan (rakit & QC).</p>}
+    <H3>Buat video panjang</H3>
+    <div className="flex gap-2">
+      <input value={tema} onChange={(e) => setTema(e.target.value)} placeholder="Arahan tema (opsional), mis. baterai solid-state" className="min-w-0 flex-1 rounded-md border border-line bg-ink-950 px-2.5 py-2 text-sm" />
+      <Btn tone="primary" disabled={d.berjalan || !ctx.state.health.claude} onClick={() => void aksi({ aksi: "buat", tema })}>Buat</Btn>
+    </div>
+    <Muted className="mt-1.5">±2–4 jam per video di laptop. Berjalan di latar dengan prioritas rendah; tiap adegan menunggu kalau produksi Shorts sedang jalan, jadi Shorts tetap didahulukan. Video jadi menunggu kamu tonton & setujui.</Muted>
+    {p && (<>
+      <H3>Produksi terakhir</H3>
+      <div className="rounded-lg border border-line/70 bg-ink-950/60 p-3 text-sm">
+        <div className="flex items-center justify-between gap-2"><span className="truncate">&ldquo;{p.permintaan}&rdquo;</span>
+          <Pill tone={jalan ? "running" : p.status === "selesai" ? "ok" : p.status === "gagal" ? "error" : "stopped"}>{jalan ? "berjalan" : p.status}</Pill></div>
+        <ol className="mt-2 space-y-1">{p.tahap.map((t) => (
+          <li key={t.kunci} className="flex gap-2"><span className="w-4 shrink-0">{t.status === "ok" ? "✓" : t.status === "jalan" ? "●" : t.status === "gagal" ? "✕" : "·"}</span>
+            <span className={t.status === "jalan" ? "text-signal" : t.status === "gagal" ? "text-bad" : t.status === "ok" ? "" : "text-faint"}>{t.nama}{t.catatan ? <small className="block text-faint">{t.catatan}</small> : null}</span></li>))}</ol>
+        {p.pesan && <Muted className="mt-2">{p.pesan}</Muted>}
+      </div>
+    </>)}
+    <H3>Video panjang ({d.videos.length})</H3>
+    {d.videos.length === 0 && <Muted>Belum ada. Klik Buat, tim memilih topik sendiri kalau arahan dikosongkan.</Muted>}
+    <ul className="space-y-3">{d.videos.map((v) => (
+      <li key={v.slug} className="rounded-xl border border-line/70 bg-ink-950/50 p-3">
+        <div className="flex items-start justify-between gap-2">
+          <span className="min-w-0"><b className="block">{v.judul || v.judul_kerja}</b>
+            <small className="text-faint">{v.menit ? `${v.menit} menit · ` : ""}{v.adegan} adegan · {v.ilustrasi} ilustrasi · {v.dirender}/{v.adegan} adegan dirender{v.info?.uji ? " · uji" : ""}</small></span>
+          <Pill tone={v.status === "draft" ? "running" : v.status === "export" || v.status === "terbit" ? "ok" : v.status === "ditolak" ? "error" : "default"}>{STATUS_PJ[v.status] ?? v.status}</Pill>
+        </div>
+        {v.final && <video controls preload="none" className="mt-2 w-full rounded-lg border border-line bg-black" poster={v.thumbnail ? media(v.slug, "export/thumbnail.jpg", v.info?.dibuat) : undefined} src={media(v.slug, "export/final.mp4", v.info?.dibuat)} />}
+        {v.info?.bab && v.info.bab.length > 0 && <Muted className="mt-1">Bab: {v.info.bab.map((b) => `${Math.floor(b.t / 60)}:${String(Math.floor(b.t % 60)).padStart(2, "0")} ${b.judul}`).join(" · ")}</Muted>}
+        {v.qc && (v.qc.masalah?.length || v.qc.catatan?.length) ? <Muted className="mt-1">{[...(v.qc.masalah ?? []), ...(v.qc.catatan ?? [])].join(" · ")}</Muted> : null}
+        {v.lembar && <a href={media(v.slug, "export/lembar.jpg", v.info?.dibuat)} target="_blank" rel="noopener noreferrer"><img alt="Frame tiap adegan" loading="lazy" className="mt-2 w-full rounded-md border border-line" src={media(v.slug, "export/lembar.jpg", v.info?.dibuat)} /></a>}
+        {v.upload?.url && <Muted className="mt-1">Diunggah: <a className="underline" href={v.upload.url} target="_blank" rel="noopener noreferrer">{v.upload.url}</a>{v.upload.jadwal ? ` · tayang ${v.upload.jadwal.replace("T", " ")} WIB` : ""}</Muted>}
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {!["draft", "export", "terbit", "ditolak"].includes(v.status) && !d.berjalan && <Btn size="sm" tone="primary" onClick={() => void aksi({ aksi: "lanjut", slug: v.slug })}>Lanjutkan</Btn>}
+          {v.status === "draft" && v.final && <Btn size="sm" tone="primary" onClick={() => void aksi({ aksi: "setujui", slug: v.slug })}>Setujui</Btn>}
+          {v.status === "draft" && <Btn size="sm" tone="ghost" onClick={() => void aksi({ aksi: "tolak", slug: v.slug })}>Tolak</Btn>}
+          {v.status === "export" && !v.upload?.url && (<>
+            <input type="datetime-local" value={jadwal[v.slug] ?? ""} onChange={(e) => setJadwal({ ...jadwal, [v.slug]: e.target.value })} className="rounded-md border border-line bg-ink-950 px-2 py-1 text-sm" />
+            <Btn size="sm" tone="primary" disabled={!ctx.state.health.ytLogin} onClick={() => void aksi({ aksi: "unggah", slug: v.slug, jadwal: (jadwal[v.slug] ?? "").slice(0, 16) })}>Unggah</Btn>
+          </>)}
+          <a className="text-sm text-muted underline" href={media(v.slug, "naskah.md")} target="_blank" rel="noopener noreferrer">Naskah</a>
+        </div>
+        {v.status === "export" && !v.upload?.url && <Muted className="mt-1">Jadwal kosong = jam terbaik besok (insights/jadwal.md), menit :30 supaya tidak bertabrakan dengan Shorts.</Muted>}
+      </li>))}</ul>
+    {pesan && <Muted className="mt-2 text-leaf">{pesan}</Muted>}
   </>);
 }

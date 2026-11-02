@@ -44,7 +44,21 @@ WIB = timezone(timedelta(hours=7))
 UJI = False
 SEKARANG: datetime | None = None
 LOG_FILE: Path | None = None
-API_LIMIT = re.compile(r"Kuota Claude|usage limit|limit reached|rate.?limit|credit balance", re.I)
+API_LIMIT = re.compile(r"Kuota Claude|usage limit|limit reached|rate.?limit|credit balance|hit your [\w -]*limit|\d+-hour limit", re.I)
+RESET = re.compile(r"(?:resets?|pulih) (?:at )?(\d{1,2})(?::(\d\d))?\s*(am|pm)?", re.I)
+
+
+def jam_pulih(teks: str) -> datetime:
+    """Kapan kuota Claude pulih (dari pesan 'resets 1:10pm'); kalau tidak ada, 3 jam lagi."""
+    m = RESET.search(teks)
+    if not m:
+        return now() + timedelta(hours=3)
+    h, mnt, ap = int(m.group(1)), int(m.group(2) or 0), (m.group(3) or "").lower()
+    h = h % 12 + (12 if ap == "pm" else 0) if ap else h
+    t = now().replace(hour=h % 24, minute=mnt, second=0, microsecond=0)
+    if t <= now():
+        t += timedelta(days=1)
+    return t + timedelta(minutes=5)
 
 
 def now() -> datetime:
@@ -305,8 +319,9 @@ def produksi(state: dict, c: dict, lanjut: str = "") -> str | None:
         log(f"video jadi: {slug} (skor QC {skor if skor is not None else '-'})")
         return slug
     if API_LIMIT.search(teks):
-        state["jeda_sampai"] = (now() + timedelta(hours=3)).isoformat(timespec="minutes")
-        log("kuota Claude habis/dibatasi → autopilot berhenti produksi 3 jam")
+        pulih = jam_pulih(teks[-3000:])
+        state["jeda_sampai"] = pulih.isoformat(timespec="minutes")
+        log(f"kuota Claude habis → autopilot berhenti produksi sampai {pulih.strftime('%H:%M')} (video ini dilanjutkan setelahnya)")
     elif "Masih ada produksi lain" in teks:
         log("produksi lain sedang berjalan (tombol Studio); dicoba lagi nanti")
         return None
@@ -357,6 +372,9 @@ def putaran(paksa: bool = False) -> None:
             terhenti = macet(state)
             t0 = time.time()
             hasil = produksi(state, c, terhenti[0] if terhenti else "")
+            if hasil is None and state.get("jeda_sampai") and now() < datetime.fromisoformat(state["jeda_sampai"]).replace(tzinfo=WIB):
+                wj(STATE, state)
+                break                                  # kuota Claude habis: tunggu sampai pulih
             if hasil is None:
                 gagal_beruntun += 1
                 if time.time() - t0 < 300 and state.get("produksi", {}).get(hari, 0) > 0:

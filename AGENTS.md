@@ -17,6 +17,21 @@ Pemilik: Zona. Semua jawaban dan laporan ditulis dalam **bahasa Indonesia**.
 | Rara | QC: cek otomatis (gelap/beku/durasi/LUFS/porsi AI) + lihat frame tiap shot, tolak yang jelek → Bima ganti → Kai rakit ulang (maks 2 putaran) → `export/qc.json`, `qc_review.json` | `/qc <slug>` | aktif |
 | Uli | Upload: video `export` → YouTube **private + jadwal tayang** di jam terbaik (`agents/upload/jadwal.py` → `insights/jadwal.md`), deskripsi otomatis **tanpa link sumber** (kredit singkat + hashtag lengkap, `bible/gaya-upload.json`), label konten sintetis → `export/upload.json`. Memimpin **Autopilot** (`agents/autopilot.py`): 3 video/hari dibuat & dijadwalkan sendiri | `/upload <slug>` | aktif |
 
+### Ruang Animasi — video YouTube panjang (kantor kedua, di samping kantor Shorts)
+
+Video 5–8 menit, 16:9, **full animasi kartun Sabtu pagi 80-an** (garis tinta tebal, cel shading, warna jenuh, gerak "on twos") dengan host orisinal **Yofa** (SVG di `agents/panjang/adegan.html`, mulut ikut narasi). Aturan konten: `bible/panjang-bible.md`; gaya: `bible/gaya-animasi.json`. Terpisah total dari pabrik Shorts (folder `panjang/<slug>/`, status `panjang/<slug>/status.json` lewat `agents/panjang/status.py`, tidak memakai `state.db`).
+
+| Nama | Peran | Skill / script | Status |
+| --- | --- | --- | --- |
+| Bayu | Showrunner & riset: 1 teknologi nyata (sering dari Shorts yang menang), ≥ 5 fakta bersumber, alur 3–4 bab → `ide.json` | `/panjang-ide [tema]` | aktif |
+| Citra | Naskah per adegan (host / ilustrasi / diagram / judul_bab / penutup), pembuka "Tau nggak, …", visual persis sesuai kalimat → `naskah.json` (divalidasi `cek_naskah_panjang.py`) | `/panjang-naskah <slug>` | aktif |
+| Gilang | Suara Yofa per adegan (edge-tts) + timing kata → `suara/NN.mp3`, `suara/waktu.json` | `agents/panjang/suara_panjang.py` | aktif |
+| Laras | Ilustrasi kartun 80-an per adegan + thumbnail (FLUX gratis, tanpa tulisan/logo/orang sungguhan) → `ilustrasi/NN.jpg` | `agents/panjang/ilustrasi.py` | aktif |
+| Tio | Animasi tiap adegan (HyperFrames, 12 fps on twos): maskot bicara & berekspresi, diagram muncul per kalimat, kartu bab, transisi iris/bintang → `adegan/NN.mp4` | `agents/panjang/animasi.py` | aktif |
+| Wulan | Rakit 1080p 24 fps + suara + musik, chapter, subtitle .srt, thumbnail, QC → `export/` | `agents/panjang/rakit_panjang.py`, `periksa_panjang.py` | aktif |
+
+Alur: tombol **Buat** di Studio → Ruang Animasi (`agents/panjang/produser_panjang.py`, kemajuan `produksi/panjang/<id>.json`) → Bayu → Citra → Gilang → Laras → Tio → Wulan → status `draft` → **Zona menonton & menyetujui** (`export`) → Uli mengunggah private + jadwal tayang (`agents/panjang/unggah_panjang.py`; chapter & deskripsi tanpa link, thumbnail kartun). Video panjang **tidak pernah** disetujui otomatis. Tidak mengganggu Shorts: prioritas CPU rendah, tiap adegan menunggu kalau produksi Shorts sedang jalan, satu video panjang pada satu waktu (`produksi/panjang.lock`).
+
 Setiap agent adalah satu skill Claude Code di `.claude/skills/`. Kalau diminta "panggil Steve/Nova/Raka/Dara/Bima/Kai/Rara/Uli", jalankan skill-nya.
 
 Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetujui di Studio Yofamo** (`disetujui`) → Raka (naskah, status `naskah`) → Dara (suara + subtitle, status `suara`) → Bima (klip, status `aset`) → Kai (video final, status `draft`) → Rara (QC + perbaikan) → **Zona menonton & menyetujui** (`export`) → Uli (upload private) → Zona menayangkan di YouTube Studio → `terbit` → Steve membaca retensi → `insights/pelajaran.md` → putaran berikutnya lebih baik.
@@ -48,6 +63,7 @@ Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetu
 - `insights/pelajaran.md` — aturan hasil belajar dari retensi penonton (ditulis Steve).
 - `insights/topik_backlog.json` — topik berperingkat yang belum pernah dibahas (Steve → Nova).
 - `insights/eksperimen.md` — uji coba aktif (Steve → Raka/Bima/Kai); Raka mencatat varian di `script.json` → `eksperimen`.
+- `panjang/<slug>/` — video panjang Ruang Animasi: `ide.json`, `naskah.json`, `naskah.md`, `suara/`, `ilustrasi/`, `hf/`, `adegan/`, `export/` (final.mp4, thumbnail.jpg, bab.txt, subtitle.srt, qc.json, upload.json). Tidak di-commit.
 - `cache/` — unduhan mentah Bima (boleh dihapus Zona kalau penuh, tidak di-commit).
 
 ## Aturan kerja
@@ -91,6 +107,9 @@ python agents/bersih.py semua [--coba]      # hapus file besar video yang sudah 
 pasang_autopilot.bat                        # pasang penjadwal Windows tiap jam (sekali); "pasang_autopilot.bat hapus" untuk melepas
 python agents/steve/kumpul.py [--pasar]     # Steve: semua data (statistik, komentar, analitik, pasar) + analisa, tanpa kuota Claude
 python agents/steve/analisa.py              # Steve: hitung KPI, pola, retensi, peluang → insights/raw/analisa-*.json/.md
+python agents/panjang/produser_panjang.py ["tema"]   # Ruang Animasi: video panjang full animasi (--lanjut <slug>, --uji)
+python agents/panjang/animasi.py <slug> --pratinjau   # Tio: foto beberapa frame tiap adegan (cepat, tanpa render)
+python agents/panjang/unggah_panjang.py pratinjau|unggah <slug> [--jadwal 2026-11-03T19:30]
 python agents/tes_pabrik.py [--online]     # tes seluruh pabrik (aman, di folder sementara)
 start_studio.bat                            # buka Studio Yofamo (Windows)
 cd studio && npm run dev                    # sama, manual (http://127.0.0.1:3210)

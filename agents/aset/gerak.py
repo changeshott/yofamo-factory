@@ -102,7 +102,7 @@ def kenburns(img: Path, out: Path, dur: float, seed: int) -> None:
 # ------------------------------------------------------------------ kartu grafis
 def _bg(dur: float) -> str:
     return (f"gradients=s={W}x{H}:c0={INK}:c1={INK2}:x0=0:y0=0:x1={W}:y1={H}:speed=0.006:r={FPS}:d={dur:.3f},"
-            f"noise=alls=3:allf=t,vignette=PI/5")
+            f"noise=alls=3:allf=u,vignette=PI/5")   # pola noise tetap (bukan per frame) → file kecil
 
 
 def _text(tmp: Path, name: str, content: str) -> str:

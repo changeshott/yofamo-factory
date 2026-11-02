@@ -1,5 +1,5 @@
 import "server-only";
-import { execFile, execFileSync } from "node:child_process";
+import { execFile, execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -319,4 +319,24 @@ export const week = () => pabrik<{ since: string; published: number }>(["week", 
 export function readText(file: string, tail = 0): string {
   const text = fs.readFileSync(file, "utf8").replace(/^﻿/, "");
   return tail && text.length > tail ? text.slice(-tail) : text;
+}
+
+/** Jalankan script Python di latar, terlepas dari Studio (tetap jalan walau Studio ditutup) dan TANPA jendela.
+ *  Windows: lewat latar.vbs → console tersembunyi yang dipakai bersama semua proses anak (claude, ffmpeg, node),
+ *  keluarannya masuk ke file log. Lainnya: proses terlepas biasa. */
+export function jalankanLatar(args: string[], logName: string): { ok: boolean; message: string } {
+  const py = pythonCmd();
+  if (!py) return { ok: false, message: "Python tidak ditemukan." };
+  fs.mkdirSync(P.logs, { recursive: true });
+  const logPath = path.join(P.logs, logName);
+  let child;
+  if (process.platform === "win32") {
+    child = spawn("wscript.exe", [path.join(ROOT, "latar.vbs"), logPath, py, ...args], { cwd: ROOT, env: agentEnv(), detached: true, stdio: "ignore", windowsHide: true });
+  } else {
+    const out = fs.openSync(logPath, "w");
+    child = spawn(py, args, { cwd: ROOT, env: agentEnv(), detached: true, stdio: ["ignore", out, out], windowsHide: true });
+  }
+  child.on("error", () => {});
+  child.unref();
+  return { ok: true, message: "" };
 }

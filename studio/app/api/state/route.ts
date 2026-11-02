@@ -3,6 +3,7 @@ import path from "node:path";
 import { jobState, readQueue, startJob } from "@/lib/server/jobs";
 import { json } from "@/lib/server/guard";
 import { autopilotOtomatis } from "@/lib/server/autopilot";
+import { statusKantorPanjang } from "@/lib/server/panjang";
 import { P, activity, envHas, hasModule, latestSnapshot, listFiles, localIso, produksi, steveInsight, pythonCmd, videos, week, which } from "@/lib/server/project";
 import type { StudioState } from "@/lib/types";
 
@@ -42,6 +43,7 @@ export async function GET() {
     antrean: readQueue(),
     steve: steveInsight(),
     produksi: produksi(jobState().status === "running" && jobState().job === "produksi"),
+    panjang: statusKantorPanjang(),
     health: { env: fs.existsSync(P.env), claude: which("claude") !== null, python: py !== null, pythonCmd: py ? path.basename(py) : "", edgeTts: py ? await hasModule("edge_tts") : false,
       stockKey: envHas("PIXABAY_API_KEY", "PEXELS_API_KEY", "YOUTUBE_API_KEY"), ffmpeg: which("ffmpeg") !== null,
       ytdlp: py ? await hasModule("yt_dlp") : false, aiKey: envHas("CLOUDFLARE_API_TOKEN") && envHas("CLOUDFLARE_ACCOUNT_ID"),

@@ -115,6 +115,27 @@ def bersih_video(slug: str) -> int:
     return n
 
 
+def bersih_panjang() -> int:
+    """Video panjang yang sudah diupload: hapus final.mp4, render adegan, proyek HyperFrames, suara; simpan naskah,
+    ilustrasi (kecil, bisa dipakai ulang), timing, info, bab, subtitle, thumbnail, upload."""
+    base = ROOT / "panjang"
+    n = 0
+    for v in sorted(base.iterdir()) if base.is_dir() else []:
+        up = rj(v / "export" / "upload.json")
+        if not v.is_dir() or not up.get("videoId") or up.get("videoId") == "UJI":
+            continue
+        m = 0
+        for d in ("adegan", "hf"):
+            m += hapus(v / d)
+        m += hapus(v / "export" / "final.mp4")
+        for f in (v / "suara").glob("*.mp3") if (v / "suara").is_dir() else []:
+            m += hapus(f)
+        if m:
+            log(f"panjang/{v.name}: {m / 1048576:.0f} MB {'akan ' if COBA else ''}dibebaskan (video aman di YouTube)")
+        n += m
+    return n
+
+
 def bersih_cache(c: dict) -> int:
     if not CACHE.is_dir():
         return 0
@@ -170,6 +191,7 @@ def main() -> None:
     for d in sorted(VIDEOS.iterdir()) if VIDEOS.is_dir() else []:
         if d.is_dir() and sudah_upload(d.name):
             total += bersih_video(d.name)
+    total += bersih_panjang()
     total += bersih_cache(c)
     total += bersih_lain(c)
     log(f"total {total / 1048576:.0f} MB {'akan ' if COBA else ''}dibebaskan")

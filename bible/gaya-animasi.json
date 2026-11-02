@@ -1,0 +1,17 @@
+{
+  "resolusi": [1920, 1080],
+  "fps_render": 12,
+  "fps_keluar": 24,
+  "durasi_menit": [5, 8],
+  "suara": {"voice": "id-ID-ArdiNeural", "rate": "+6%", "jeda_antar_adegan": 0.35, "judul_bab_detik": 2.6},
+  "musik_di_bawah_narasi_db": 16,
+  "warna": {"tinta": "14101F", "kuning": "FFD23F", "oranye": "FF7A2F", "merah": "F2385A", "ungu": "6B3FD4", "biru": "2F6BFF", "toska": "19C6C6", "hijau": "39D36B", "krem": "FFF4DC"},
+  "sinar": [["FF7A2F", "FFD23F"], ["2F6BFF", "19C6C6"], ["F2385A", "FF7A2F"], ["6B3FD4", "2F6BFF"], ["39D36B", "19C6C6"]],
+  "ilustrasi": {
+    "gaya": "2D Saturday morning cartoon illustration inspired by 1980s television animation, bold thick black outlines, dramatic cel shading, vibrant saturated colors, flat painted background, highly stylized cartoon rendering, clean centered composition",
+    "larangan": "no text, no letters, no words, no numbers, no logos, no watermark, no real people, no celebrities, no brand names",
+    "objek": "single object centered, isolated on a flat pale cream background, no shadow clutter"
+  },
+  "maskot": {"nama": "Yofa", "deskripsi": "Host kartun orisinal Yofamo: pemuda Indonesia berjambul hitam, jaket bomber biru dengan lencana Y kuning, headset oranye. Digambar SVG di agents/panjang/adegan.html (bukan gambar AI) supaya selalu konsisten dan mulutnya bisa bergerak mengikuti narasi."},
+  "_catatan": "Gaya kartun Sabtu pagi 80-an: garis tinta tebal, cel shading, warna jenuh, gerak 'on twos' (12 fps ditampilkan 24 fps). Ilustrasi dibuat FLUX (Cloudflare, gratis) dengan awalan gaya ini; maskot, diagram, kartu judul, dan transisi digambar kode (HyperFrames)."
+}

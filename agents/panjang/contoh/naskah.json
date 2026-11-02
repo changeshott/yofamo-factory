@@ -1,0 +1,21 @@
+{
+  "judul": "Robot Ini Bisa Merasakan Sentuhan?! Cara Kerja Kulit Elektronik",
+  "judul_alternatif": ["Kulit Buatan yang Bikin Robot Peka", "Rahasia Tangan Robot yang Bisa Merasa"],
+  "deskripsi": "Kulit elektronik bikin robot bisa merasakan sentuhan sehalus apa pun. Di video ini kita bongkar isinya, cara kerjanya, dan dampaknya buat tangan palsu masa depan.\n#kulitelektronik #robot #sensor",
+  "tag": ["kulit elektronik", "robot", "sensor", "teknologi", "tangan palsu", "sains"],
+  "suasana": "epik",
+  "komentar_pin": "Kalau tangan palsu bisa merasakan, teknologi apa lagi yang menurutmu harus menyusul?",
+  "thumbnail": {"teks": "ROBOT BISA MERASA?!", "ekspresi": "kaget", "prompt": "a robotic hand gently touching a glowing flower"},
+  "adegan": [
+    {"jenis": "host", "narasi": "Tau nggak, sekarang ada robot yang bisa merasakan sentuhan selembut bulu. Di video ini kita bongkar rahasianya.", "ekspresi": "kaget", "kata_kunci": ["sentuhan"]},
+    {"jenis": "judul_bab", "judul": "Apa itu kulit elektronik", "narasi": ""},
+    {"jenis": "ilustrasi", "narasi": "Rahasianya ada di lapisan tipis yang dipasang di tangan robot. Namanya kulit elektronik.", "gambar": "a thin flexible electronic skin sheet wrapped around a robot hand", "teks_layar": "Kulit elektronik", "host_kecil": true},
+    {"jenis": "diagram", "narasi": "Isinya ada sensor tekanan. Ada kabel lentur. Dan ada chip kecil pengolah sinyal.", "gambar": "a thin square patch of electronic skin with tiny sensors", "diagram": {"tipe": "bagian", "judul": "Isi kulit elektronik", "bagian": [{"label": "Sensor tekanan", "ket": "ribuan titik peka"}, {"label": "Kabel lentur"}, {"label": "Chip pengolah"}]}},
+    {"jenis": "judul_bab", "judul": "Cara kerjanya", "narasi": ""},
+    {"jenis": "diagram", "narasi": "Pertama, kulit disentuh. Lalu sensornya berubah bentuk. Perubahan itu jadi sinyal listrik. Akhirnya robot bereaksi.", "diagram": {"tipe": "alur", "judul": "Dari sentuhan ke reaksi", "langkah": ["Disentuh", "Sensor berubah", "Sinyal listrik", "Robot bereaksi"]}, "host_kecil": true},
+    {"jenis": "diagram", "narasi": "Dan kepekaannya gila. Ada sekitar dua ratus empat puluh sensor di tiap sentimeter persegi.", "diagram": {"tipe": "angka", "angka": "240", "akhiran": "+", "label": "sensor per sentimeter persegi", "label_atas": "faktanya"}},
+    {"jenis": "judul_bab", "judul": "Dampaknya", "narasi": ""},
+    {"jenis": "ilustrasi", "narasi": "Bayangkan tangan palsu yang bisa merasakan genggaman orang yang kamu sayang.", "gambar": "a prosthetic robotic hand holding a human hand warmly", "teks_layar": "Tangan palsu yang bisa merasa"},
+    {"jenis": "penutup", "narasi": "Jadi, robot sekarang bukan cuma kuat, tapi juga peka. Menurutmu ini keren atau menakutkan? Tulis di komentar!", "ekspresi": "senang"}
+  ]
+}

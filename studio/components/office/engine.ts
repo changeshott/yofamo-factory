@@ -1,7 +1,7 @@
 import type { StudioState } from "@/lib/types";
 import { shade, sprite, type Look, type Pose } from "./sprites";
 import { activeStage } from "@/lib/format";
-import { BH, BLOCKED, BW, FOUNDER, FUTURE, OX, OY, RD, RW, SPOTS, T, TEAM, WALL, type AgentDef } from "./world";
+import { BH, BLOCKED, BW, FOUNDER, FUTURE, OX, OY, PINTU, R2X, RD, RW, SPOTS, T, TEAM, TEAM2, TW, WALL, type AgentDef } from "./world";
 
 type Pt = [number, number];
 type BBox = [number, number, number, number];
@@ -22,7 +22,8 @@ export function dayPhase(d = new Date()): Phase {
 }
 
 /* ------------------------------------------------------------ jalan (BFS grid 0,5 tile) */
-const G = 2, GW = RW * G, GH = RD * G;
+const G = 2, GW = TW * G, GH = RD * G;
+const SEMUA = [...TEAM, ...TEAM2];
 const blocked = new Uint8Array(GW * GH);
 for (let gx = 0; gx < GW; gx++) for (let gy = 0; gy < GH; gy++) {
   const cx = (gx + 0.5) / G, cy = (gy + 0.5) / G;
@@ -80,7 +81,7 @@ export class OfficeEngine {
     this.buf.width = BW; this.buf.height = BH;
     this.g = this.buf.getContext("2d")!;
     this.g.imageSmoothingEnabled = false;
-    this.actors = TEAM.map((def, i) => {
+    this.actors = SEMUA.map((def, i) => {
       const [x, y] = seatOf(def);
       return { def, x, y, path: [], wait: 30 + i * 25, frame: i * 7, pose: "sit", facing: "back", mode: "idle", sitIdle: true, reportedAt: undefined };
     });
@@ -88,6 +89,10 @@ export class OfficeEngine {
   get canvas() { return this.buf; }
 
   jobFor(def: AgentDef): { kind: "busy" | "ok" | "err" | "stopped"; text: string } | null {
+    if (def.ruang === "animasi") {   // tim video panjang: status dari produksi panjang yang sedang berjalan
+      const tahap = this.state?.panjang?.tahap;
+      return tahap && def.busy[tahap] ? { kind: "busy", text: def.busy[tahap]! } : null;
+    }
     const j = this.state?.job;
     const key = j?.job === "produksi" ? activeStage(this.state) : j?.job;
     if (!j?.job || !key || !def.busy[key]) return null;
@@ -111,7 +116,7 @@ export class OfficeEngine {
       const st = this.jobFor(a.def), seat = seatOf(a.def);
       if (st?.kind === "busy" && a.mode !== "work") { a.mode = "work"; a.sitIdle = true; this.go(a, seat); }
       if (st?.kind === "ok" && a.mode === "work" && a.reportedAt !== this.state?.job.finished) {
-        a.mode = "report"; a.reportedAt = this.state?.job.finished; this.go(a, SPOTS.lapor); a.wait = 50;
+        a.mode = "report"; a.reportedAt = this.state?.job.finished; this.go(a, a.def.ruang ? SPOTS.lapor_animasi : SPOTS.lapor); a.wait = 50;
       }
       if (!st || (st.kind !== "busy" && a.mode === "work")) { if (a.mode === "work") { a.mode = "idle"; a.wait = 40; } }
       if (a.path.length) {
@@ -126,7 +131,7 @@ export class OfficeEngine {
       if (!atSeat) a.facing = "front";
       if (a.mode === "work") continue;
       if (--a.wait > 0) continue;
-      const names = Object.keys(SPOTS).filter((k) => k !== "lapor");
+      const names = Object.keys(SPOTS).filter((k) => !k.startsWith("lapor") && (SPOTS[k][0] > R2X) === !!a.def.ruang);
       if (Math.random() < 0.45) { a.sitIdle = true; this.go(a, seat); }
       else { a.sitIdle = false; const s = SPOTS[names[Math.floor(Math.random() * names.length)]]; this.go(a, [s[0] + (Math.random() - 0.5) * 0.4, s[1] + (Math.random() - 0.5) * 0.3]); }
       a.wait = 80 + Math.floor(Math.random() * 140);
@@ -227,6 +232,85 @@ export class OfficeEngine {
     // karpet founder
     this.poly([P(17.0, 1.0), P(21.4, 1.0), P(21.4, 5.4), P(17.0, 5.4)], "#24375C");
     this.poly([P(17.3, 1.3), P(21.1, 1.3), P(21.1, 5.1), P(17.3, 5.1)], undefined, "#2D8CFF");
+  }
+
+  /* ---------- Ruang Animasi (kanan): nuansa kartun & arcade 80-an ---------- */
+  private room2(ph: Phase) {
+    const x0 = 22, g = this.g;
+    this.poly([P(x0, 0), P(TW, 0), P(TW, 0, WALL), P(x0, 0, WALL)], "#3B1F6E");
+    this.poly([P(x0, 0), P(TW, 0), P(TW, 0, 30), P(x0, 0, 30)], "#1B1440");
+    this.poly([P(x0, 0, 30), P(TW, 0, 30), P(TW, 0, 32), P(x0, 0, 32)], "#FF4FA3");
+    this.poly([P(x0, 0, WALL), P(TW, 0, WALL), P(TW, -0.35, WALL), P(x0, -0.35, WALL)], "#7F5BB0");
+    // garis-garis retro di dinding
+    [["#FFD23F", 74], ["#FF7A2F", 69], ["#F2385A", 64]].forEach(([c, z]) => this.poly(this.qy(0, x0 + 0.3, TW, (z as number) - 3, z as number), c as string));
+    // poster kartun
+    ([[23.0, "#19C6C6", "#FFD23F"], [33.0, "#FFD23F", "#F2385A"]] as [number, string, string][]).forEach(([x, bg, fg]) => {
+      this.poly(this.qy(0, x, x + 1.6, 40, 96), "#14101F"); this.poly(this.qy(0, x + 0.08, x + 1.52, 43, 93), bg);
+      const [cx, cy] = P(x + 0.8, 0, 72); g.fillStyle = fg; g.beginPath(); g.ellipse(cx, cy, 9, 10, 0, 0, Math.PI * 2); g.fill(); g.strokeStyle = "#14101F"; g.lineWidth = 2; g.stroke();
+      this.poly(this.qy(0, x + 0.3, x + 1.3, 50, 56), "#14101F");
+    });
+    // lantai kotak-kotak ungu-toska
+    for (let i = x0; i < TW; i++) for (let j = 0; j < RD; j++) {
+      const c = (i + j) % 2 ? "#2B2F66" : "#33407A";
+      this.poly([P(i - 0.02, j - 0.02), P(i + 1.02, j - 0.02), P(i + 1.02, j + 1.02), P(i - 0.02, j + 1.02)], c);
+    }
+    { const [cx, cy] = P(29, 7), gr = g.createRadialGradient(cx, cy, 10, cx, cy, 260);
+      gr.addColorStop(0, "rgba(255,120,200,.16)"); gr.addColorStop(1, "rgba(20,10,40,.18)");
+      this.poly([P(x0, 0), P(TW, 0), P(TW, RD), P(x0, RD)], gr); }
+    const ao = (pts: Pt[], a: Pt, b: Pt) => { const gr = g.createLinearGradient(a[0], a[1], b[0], b[1]); gr.addColorStop(0, "rgba(10,6,30,.4)"); gr.addColorStop(1, "rgba(10,6,30,0)"); this.poly(pts, gr); };
+    ao([P(x0, 0), P(TW, 0), P(TW, 0.9), P(x0, 0.9)], P(29, 0), P(29, 0.9));
+    // karpet bintang di area santai
+    this.poly([P(31.8, 10.6), P(35.8, 10.6), P(35.8, 14.8), P(31.8, 14.8)], "#F2385A");
+    this.poly([P(32.1, 10.9), P(35.5, 10.9), P(35.5, 14.5), P(32.1, 14.5)], undefined, "#FFD23F");
+    // neon ANIMASI
+    const glyph: Record<string, string[]> = {
+      A: ["010", "101", "111", "101", "101"], N: ["101", "111", "111", "111", "101"], I: ["111", "010", "010", "010", "111"],
+      M: ["101", "111", "111", "101", "101"], S: ["111", "100", "111", "001", "111"],
+    };
+    g.save(); g.shadowColor = "#FF4FA3"; g.shadowBlur = ph.night ? 12 : 6;
+    let x = 26.2;
+    for (const ch of "ANIMASI") {
+      glyph[ch].forEach((row, r) => [...row].forEach((b, c) => { if (b === "1") this.poly(this.qy(0, x + c * 0.13, x + c * 0.13 + 0.1, 92 - r * 3.4, 94.6 - r * 3.4), "#FFC2E2"); }));
+      x += 0.52;
+    }
+    g.restore();
+  }
+  private partisi() {
+    // dinding kaca pemisah kantor Shorts ↔ Ruang Animasi, dengan pintu
+    const kaca = (y0: number, y1: number) => {
+      this.poly(this.qx(22.3, y0, y1, 0, 70), "rgba(255,170,230,.18)"); this.poly(this.qx(22.3, y0, y1, 66, 72), "#8F6BB8"); this.poly(this.qx(22.3, y0, y1, 0, 4), "#8F6BB8");
+    };
+    for (let y = 0; y < PINTU[0]; y += 1.1) kaca(y, Math.min(PINTU[0], y + 1.1));
+    for (let y = PINTU[1]; y < RD; y += 1.1) kaca(y, Math.min(RD, y + 1.1));
+    this.poly(this.qx(22.3, PINTU[0], PINTU[1], 70, 80), "#14101F");
+    this.poly(this.qx(22.3, PINTU[0] + 0.2, PINTU[1] - 0.2, 72, 78), "#FFD23F");
+  }
+  private arcade(): BBox {
+    const top = this.box(34.7, 0.15, 1.1, 0.9, 72, "#6B3FD4");
+    this.poly(this.qy(1.05, 34.8, 35.7, 40, 64), "#14101F");
+    const on = (this.tick >> 3) % 2;
+    this.poly(this.qy(1.05, 34.86, 35.64, 43, 61), on ? "#19C6C6" : "#39D36B");
+    this.poly(this.qy(1.05, 35.0, 35.5, 50, 54), "#FFD23F");
+    this.box(34.75, 1.05, 1.0, 0.25, 4, "#F2385A", 30);
+    return bboxOf([...top, P(34.7, 1.05), P(35.8, 1.05)]);
+  }
+  private crt() {
+    this.box(23.1, 13.5, 2.2, 1.3, 20, "#5B3A28");
+    [[23.25, 0], [24.25, 0], [23.75, 20]].forEach(([x, z], i) => {
+      this.box(x, 13.65, 0.9, 0.9, 18, "#2A2440", 20 + z);
+      this.poly(this.qy(14.55, x + 0.1, x + 0.8, 24 + z, 35 + z), ["#19C6C6", "#F2385A", "#FFD23F"][(i + (this.tick >> 4)) % 3]);
+    });
+  }
+  private mejaCahaya() {
+    this.box(25.9, 10.9, 2.4, 1.2, 22, "#E8E1F2");
+    this.poly([P(26.1, 11.05, 22.5), P(28.1, 11.05, 22.5), P(28.1, 11.95, 22.5), P(26.1, 11.95, 22.5)], "#FFF8D8");
+    const [cx, cy] = P(27.1, 11.5, 23); this.g.strokeStyle = "#14101F"; this.g.lineWidth = 1.5; this.g.beginPath(); this.g.ellipse(cx, cy - 2, 6, 4, 0, 0, Math.PI * 2); this.g.stroke();
+    this.mug(27.9, 11.2, 25, "#FF4FA3");
+  }
+  private sofaRetro() {
+    this.box(32.6, 13.4, 3.2, 1.0, 10, "#F2385A"); this.box(32.6, 14.1, 3.2, 0.35, 26, "#C42A4A");
+    this.box(32.6, 11.6, 0.9, 2.5, 18, "#C42A4A"); this.box(32.6, 11.6, 0.4, 2.5, 26, "#C42A4A");
+    this.box(33.6, 13.5, 0.7, 0.6, 5, "#FFD23F", 10); this.box(34.5, 13.5, 0.7, 0.6, 5, "#19C6C6", 10);
   }
 
   /* ---------- objek dinding ---------- */
@@ -422,6 +506,7 @@ export class OfficeEngine {
     const ph = dayPhase(), g = this.g, st = this.state;
     g.clearRect(0, 0, BW, BH);
     this.room(ph);
+    this.room2(ph);
     const hits: Hit[] = [this.whiteboard(), this.tv()];
     this.neon(ph); this.door(); this.trophyCabinet();
 
@@ -429,7 +514,7 @@ export class OfficeEngine {
     const objs: Obj[] = [];
     const tk = this.tick;
 
-    for (const def of TEAM) {
+    for (const def of SEMUA) {
       const [x, y] = def.desk, on = this.jobFor(def)?.kind === "busy";
       objs.push({ key: x + 1 + y + 0.5, id: `agent:${def.id}`, label: `Meja ${def.name}`, draw: () => this.desk(x, y, {
         screens: 2, screen: (i) => (on ? (i ? "#1B4F78" : "#2A7DB8") : "#1C2B40"),
@@ -441,6 +526,7 @@ export class OfficeEngine {
           if (def.id === "uli") { const pct = (tk % 24) / 24; this.poly(this.qy(yy, x0 + 0.04, x1 - 0.04, 37, 40), "#2A3B5C"); this.poly(this.qy(yy, x0 + 0.04, x0 + 0.04 + (w - 0.08) * pct, 37, 40), "#FF4D4D"); this.poly(this.qy(yy, x0 + w * 0.4, x0 + w * 0.6, 42, 46), "#FFFFFF"); return; }
           if (def.id === "kai") { const cols = ["#F2C94C", "#47B5FF", "#C792EA", "#6FD29A"]; for (let r = 0; r < 3; r++) { let p = x0 + 0.02; for (let c = 0; c < 4 && p < x1 - 0.05; c++) { const len = (((c * 5 + r * 3 + tk + i) % 4) + 1) * w / 12; this.poly(this.qy(yy, p, Math.min(p + len, x1 - 0.02), 35 + r * 3, 37 + r * 3), cols[(c + r) % 4]); p += len + 0.03; } } const ph = x0 + ((tk % 20) / 20) * w; this.poly(this.qy(yy, ph, ph + 0.02, 33, 45), "#FFFFFF"); return; }
           if (def.id === "bima") { for (let c = 0; c < 3; c++) { const a = x0 + c * w / 3 + 0.02, b = x0 + (c + 1) * w / 3 - 0.02, lit = (c + tk + i) % 3 === 0; this.poly(this.qy(yy, a, b, 35, 41), lit ? "#4FD1C5" : "#BFEFEA"); this.poly(this.qy(yy, a + 0.03, a + (b - a) * 0.5, 36, 37), "#1E5E59"); } return; }
+          if (def.ruang) { const cols = ["#FFD23F", "#F2385A", "#19C6C6", "#FF7A2F"]; for (let c = 0; c < 3; c++) { const a = x0 + c * w / 3 + 0.02, b = x0 + (c + 1) * w / 3 - 0.02; this.poly(this.qy(yy, a, b, 34, 44), cols[(c + tk + i) % 4]); this.poly(this.qy(yy, a + 0.04, b - 0.04, 38, 40), "#14101F"); } return; }
           if (def.id === "steve") for (let b = 0; b < 5; b++) { const h = 3 + ((b * 5 + tk + i * 3) % 8); this.poly(this.qy(yy, x0 + b * w / 5 + 0.02, x0 + (b + 0.7) * w / 5, 34, 34 + h), b === 2 ? "#FF9A4D" : "#BFE3FF"); }
           else for (let l = 0; l < 4; l++) { const len = (((l * 3 + tk + i * 2) % 6) + 2) / 8 * w; this.poly(this.qy(yy, x0 + 0.02, x0 + Math.min(len, w), 42 - l * 3, 43 - l * 3), def.id === "nova" && l === 0 ? "#6FD29A" : "#DCEBFA"); }
         },
@@ -481,6 +567,11 @@ export class OfficeEngine {
     objs.push({ key: 5.2 + 12.0, draw: () => this.beanbag(5.2, 12.0, "#2D8CFF") }, { key: 5.6 + 13.4, draw: () => this.beanbag(5.6, 13.4, "#47B5FF") });
     objs.push({ key: 11.2 + 10.5, draw: () => this.roundTable() });
     objs.push({ key: 26.0, draw: () => this.pantry() }, { key: 28.8, draw: () => this.cooler() });
+    // Ruang Animasi
+    objs.push({ key: 22.3 + 0.01, draw: () => this.partisi() });
+    objs.push({ key: 35.8 + 1.05, id: "animasi", label: "Ruang Animasi: video panjang", draw: () => this.arcade() });
+    objs.push({ key: 24.2 + 14.2, draw: () => this.crt() }, { key: 27.1 + 11.5, draw: () => this.mejaCahaya() }, { key: 34.2 + 13.9, draw: () => this.sofaRetro() });
+    objs.push({ key: 35.4 + 9.6, draw: () => this.plant(35.4, 9.6, 1.1) }, { key: 22.9 + 0.7, draw: () => this.plant(22.9, 0.7, 1.0) });
     objs.push({ key: 1.2, draw: () => this.plant(0.6, 0.6, 1.3) }, { key: 15.4 + 6.7, draw: () => this.plant(15.4, 6.7, 1.1) }, { key: 7.4 + 10.8, draw: () => this.plant(7.4, 10.8) }, { key: 0.6 + 7.0, draw: () => this.plant(0.6, 7.0, 0.9) });
 
     for (const a of this.actors) {
@@ -498,7 +589,8 @@ export class OfficeEngine {
       const glow = (x: number, y: number, r: number, c: string) => { const [lx, ly] = P(x, y); const gr = g.createRadialGradient(lx, ly, 2, lx, ly, r); gr.addColorStop(0, c); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(lx - r, ly - r, r * 2, r * 2); };
       if (ph.tint) { g.fillStyle = ph.tint; g.fillRect(0, 0, BW, BH); }
       g.globalCompositeOperation = "lighter";
-      for (const d of TEAM) glow(d.desk[0] + 1, d.desk[1] + 0.9, 40, "rgba(255,214,150,.15)");
+      for (const d of SEMUA) glow(d.desk[0] + 1, d.desk[1] + 0.9, 40, d.ruang ? "rgba(255,120,200,.15)" : "rgba(255,214,150,.15)");
+      glow(28.5, 1.5, 70, "rgba(255,80,170,.14)");
       glow(11.5, 1.5, 70, "rgba(80,170,255,.14)");
       glow(fx + 1.3, fy + 1.0, 50, "rgba(255,190,120,.16)"); glow(4, 12.6, 60, "rgba(200,140,255,.10)"); glow(11.2, 13.6, 50, "rgba(255,220,160,.12)");
       g.globalCompositeOperation = "source-over";

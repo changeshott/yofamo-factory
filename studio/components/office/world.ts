@@ -2,13 +2,16 @@ import type { Look } from "./sprites";
 
 /** Ukuran ruangan (tile isometrik) dan buffer piksel. */
 export const RW = 22, RD = 15, WALL = 112, T = 16;
-export const BW = 624, BH = 446, OX = 256, OY = 132;
+/** Ruang Animasi (tim video panjang) di samping kanan kantor Shorts: x dari R2X sampai TW, dipisah dinding kaca + pintu. */
+export const R2X = 22.6, TW = 36, PINTU: [number, number] = [6.6, 8.8];
+export const BW = 864, BH = 560, OX = 256, OY = 132;
 
-export type AgentId = "steve" | "nova" | "raka" | "dara" | "bima" | "kai" | "rara" | "uli";
+export type AgentId = "steve" | "nova" | "raka" | "dara" | "bima" | "kai" | "rara" | "uli" | "bayu" | "citra" | "gilang" | "laras" | "tio" | "wulan";
 export interface AgentDef {
   id: AgentId;
   skill: string;
-  job: "steve" | "ide" | "penulis" | "suara" | "aset" | "editor" | "qc" | "upload";
+  job: "steve" | "ide" | "penulis" | "suara" | "aset" | "editor" | "qc" | "upload" | "panjang";
+  ruang?: "animasi";
   name: string;
   role: string;
   about: string;
@@ -69,6 +72,46 @@ export const TEAM: AgentDef[] = [
   },
 ];
 
+/** Tim Ruang Animasi: video YouTube panjang full animasi kartun 80-an (agents/panjang/). Status kerja per tahap produksi panjang. */
+export const TEAM2: AgentDef[] = [
+  {
+    id: "bayu", skill: "panjang-ide", job: "panjang", ruang: "animasi", name: "Bayu", role: "Showrunner & riset", desk: [23.8, 2.6], color: "#FF7A2F",
+    about: "Showrunner Ruang Animasi: memilih satu teknologi nyata yang layak dibahas 5–8 menit (sering dari Shorts yang menang), meriset ≥ 5 fakta bersumber, dan menyusun alur bab yang membuat penonton bertahan.",
+    look: { skin: "#C99068", hair: "#1A1430", shirt: "#FF7A2F", pants: "#2B2B33", accent: "#FFD23F", style: "short" },
+    busy: { p_ide: "Meriset topik & alur…" },
+  },
+  {
+    id: "citra", skill: "panjang-naskah", job: "panjang", ruang: "animasi", name: "Citra", role: "Penulis adegan", desk: [27.6, 2.6], color: "#F2385A",
+    about: "Menulis naskah per adegan: narasi + petunjuk visual yang persis menggambarkan kalimatnya (host, ilustrasi, diagram, kartu bab), kata kunci di layar, judul, thumbnail, dan deskripsi tanpa link.",
+    look: { skin: "#EFC6A0", hair: "#5A2E1E", shirt: "#F2385A", pants: "#2A2F3A", accent: "#FFF4DC", style: "long" },
+    busy: { p_naskah: "Menulis adegan…" },
+  },
+  {
+    id: "gilang", skill: "panjang-naskah", job: "panjang", ruang: "animasi", name: "Gilang", role: "Pengisi suara", desk: [31.4, 2.6], color: "#19C6C6",
+    about: "Mengisi suara host Yofa per adegan (edge-tts, tempo & nada mengikuti jenis adegan) dan mencatat waktu tiap kata untuk gerak mulut maskot, kata kunci, dan butir diagram.",
+    look: { skin: "#B97D57", hair: "#121212", shirt: "#19C6C6", pants: "#30323D", accent: "#F4F1E8", style: "cap" },
+    busy: { p_suara: "Merekam suara Yofa…" },
+  },
+  {
+    id: "laras", skill: "panjang-naskah", job: "panjang", ruang: "animasi", name: "Laras", role: "Ilustrator", desk: [23.8, 7.0], color: "#FFD23F",
+    about: "Menggambar ilustrasi kartun Sabtu pagi 80-an (garis tebal, cel shading, warna jenuh) untuk tiap adegan & thumbnail lewat FLUX gratis, tanpa tulisan, logo, atau orang sungguhan.",
+    look: { skin: "#F3CFB0", hair: "#2E2140", shirt: "#FFD23F", pants: "#3A3550", accent: "#F2385A", style: "bun" },
+    busy: { p_ilustrasi: "Menggambar ilustrasi…" },
+  },
+  {
+    id: "tio", skill: "panjang-naskah", job: "panjang", ruang: "animasi", name: "Tio", role: "Animator", desk: [27.6, 7.0], color: "#6B3FD4",
+    about: "Menganimasikan tiap adegan dengan HyperFrames: maskot Yofa yang mulutnya ikut narasi & berekspresi, diagram yang muncul saat dijelaskan, kartu bab, transisi iris/bintang khas kartun 80-an, gerak on twos.",
+    look: { skin: "#E0AC86", hair: "#3B2A20", shirt: "#6B3FD4", pants: "#2A2F3A", accent: "#19C6C6", style: "curly", glasses: true },
+    busy: { p_animasi: "Menganimasikan adegan…" },
+  },
+  {
+    id: "wulan", skill: "panjang-naskah", job: "panjang", ruang: "animasi", name: "Wulan", role: "Editor akhir & QC", desk: [31.4, 7.0], color: "#39D36B",
+    about: "Menyambung adegan + suara + musik jadi video 1080p, membuat thumbnail, chapter (bab) & subtitle, lalu memeriksa durasi, layar hitam, dan kerasnya suara sebelum kamu menonton.",
+    look: { skin: "#D9A47E", hair: "#1C1C1C", shirt: "#39D36B", pants: "#2D3A52", accent: "#F4F1E8", style: "long", glasses: true },
+    busy: { p_rakit: "Merakit & memeriksa…" },
+  },
+];
+
 export const FUTURE: { key: string; name: string; role: string; desk: [number, number] }[] = [];
 
 export const FOUNDER = {
@@ -89,6 +132,10 @@ export const SPOTS: Record<string, [number, number]> = {
   server: [13.8, 1.8],
   meja_bundar: [11.3, 11.5],
   lapor: [17.0, 4.5],
+  arcade: [34.6, 1.8],
+  sofa_animasi: [33.4, 12.0],
+  meja_cahaya: [27.0, 11.6],
+  lapor_animasi: [29.5, 9.8],
 };
 
 /** Area yang tidak bisa dilewati (x0, y0, x1, y1) dalam tile. */
@@ -106,4 +153,11 @@ export const BLOCKED: [number, number, number, number][] = [
   [13.9, 13.6, 15.3, 15], // dispenser & kulkas
   [10.7, 10.0, 11.7, 11.0], // meja bundar
   [15.6, 0, 16.4, 4.0], [15.6, 5.0, 16.4, 6.4], [15.6, 5.6, 22, 6.4], // kaca ruang founder
+  // Ruang Animasi
+  [22.0, 0, 22.9, PINTU[0]], [22.0, PINTU[1], 22.9, 15], // dinding kaca pemisah (pintu di tengah)
+  ...TEAM2.map((a) => a.desk).map(([x, y]) => [x - 0.05, y - 0.05, x + 2.05, y + 1.05] as [number, number, number, number]),
+  [34.6, 0, 36, 1.2], // mesin arcade
+  [32.4, 11.4, 36, 14.6], // sofa retro
+  [25.8, 10.8, 28.4, 12.2], // meja cahaya animator
+  [23.0, 13.4, 25.4, 15], // rak kaset & TV CRT
 ];
