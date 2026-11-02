@@ -120,7 +120,9 @@ export function AgentPanel({ def, ctx }: { def: AgentDef; ctx: PanelCtx }) {
           <Btn className="mt-2" size="sm" disabled={busy(state) || !h.google || !h.ytClient} onClick={() => ctx.run("login")}>{h.ytLogin ? "Hubungkan ulang YouTube" : "Hubungkan YouTube"}</Btn>
           <H3>Siap upload ({ok.length})</H3>
           {ok.length ? ok.map((v) => <VideoCard key={v.slug} v={v} ctx={ctx} />) : <Muted>Belum ada video yang kamu setujui.</Muted>}
-          <Muted className="mt-2">Upload selalu PRIVATE. Project Google Cloud yang belum diaudit YouTube memang hanya boleh private; kamu mengubahnya ke publik/terjadwal di YouTube Studio. Kuota API ±6 upload per hari.</Muted>
+          <Muted className="mt-2">Upload private. Tombol jadwal di kartu video atau Autopilot di bawah membuat video tayang sendiri di jam yang dipilih. Deskripsi disusun otomatis tanpa link sumber, dengan kredit singkat & hashtag lengkap (<code>bible/gaya-upload.json</code>).</Muted>
+          <H3>Autopilot</H3>
+          <AutopilotPanel ctx={ctx} />
           <H3>Musik latar</H3>
           <MusikPanel ctx={ctx} />
         </>);
@@ -753,3 +755,58 @@ export function MusikPanel({ ctx }: { ctx: PanelCtx }) {
   </>);
 }
 
+
+/* ---------------------------------------------------------------- autopilot (meja Uli) */
+interface SlotAP { jam: string; eksplorasi: boolean; alasan: string; isi: { slug: string; status: string; url?: string; alasan?: string } | null }
+interface DataAP {
+  config: { aktif?: boolean; video_per_hari?: number; setujui_otomatis?: boolean; skor_qc_min?: number };
+  slot: { tanggal: string; slot: SlotAP[] }[]; catatan: string[]; produksi_hari_ini: number; putaran_terakhir: string | null;
+  jeda_sampai: string | null; menunggu_zona: Record<string, string>; berjalan: boolean; tugas: boolean | null; log: string[];
+}
+export function AutopilotPanel({ ctx }: { ctx: PanelCtx }) {
+  const [d, setD] = useState<DataAP | null>(null);
+  const [pesan, setPesan] = useState("");
+  const muat = () => fetch("/api/autopilot", { cache: "no-store" }).then((r) => r.json()).then(setD).catch(() => setD(null));
+  useEffect(() => { void muat(); const t = setInterval(() => void muat(), 20_000); return () => clearInterval(t); }, []);
+  const ubah = async (body: Record<string, unknown>) => {
+    try { const r = await api<{ message: string }>("/api/autopilot", body); setPesan(r.message); } catch (e) { setPesan((e as Error).message); }
+    void muat();
+  };
+  if (!d) return <Muted>Memuat autopilot…</Muted>;
+  const c = d.config, judul = (slug: string) => ctx.state.videos.find((v) => v.slug === slug)?.judul_kerja ?? slug;
+  return (<>
+    <div className="flex flex-wrap items-center gap-2">
+      <Pill tone={c.aktif ? (d.berjalan ? "running" : "ok") : "stopped"}>{c.aktif ? (d.berjalan ? "aktif · sedang bekerja" : "aktif") : "mati"}</Pill>
+      <Btn size="sm" tone={c.aktif ? "ghost" : "primary"} onClick={() => void ubah({ aktif: !c.aktif })}>{c.aktif ? "Matikan" : "Nyalakan autopilot"}</Btn>
+      <Btn size="sm" disabled={d.berjalan || !c.aktif} onClick={() => void ubah({ jalan: true })}>Jalankan sekarang</Btn>
+    </div>
+    <div className="mt-2 grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1.5 text-sm">
+      <span className="text-muted">Video per hari</span>
+      <select value={c.video_per_hari ?? 3} onChange={(e) => void ubah({ video_per_hari: +e.target.value })} className="w-20 rounded-md border border-line bg-ink-950 px-2 py-1">
+        {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n}</option>)}</select>
+      <span className="text-muted">Setujui otomatis</span>
+      <label className="flex items-center gap-2"><input type="checkbox" checked={c.setujui_otomatis ?? true} onChange={(e) => void ubah({ setujui_otomatis: e.target.checked })} />
+        <span>kalau skor Rara ≥</span>
+        <select value={c.skor_qc_min ?? 7} onChange={(e) => void ubah({ skor_qc_min: +e.target.value })} className="rounded-md border border-line bg-ink-950 px-1.5 py-0.5">
+          {[6, 7, 8, 9].map((n) => <option key={n} value={n}>{n}</option>)}</select></label>
+      <span className="text-muted">Produksi hari ini</span><span>{d.produksi_hari_ini} video{d.jeda_sampai ? ` · jeda (kuota Claude) sampai ${d.jeda_sampai.slice(11, 16)}` : ""}</span>
+    </div>
+    {d.tugas === false && <Muted className="mt-2 text-signal">Penjadwal Windows belum dipasang: klik dua kali <code>pasang_autopilot.bat</code> di folder project (sekali saja) supaya tim bekerja tiap jam walau Studio ditutup.</Muted>}
+    {d.slot.map((h) => (
+      <div key={h.tanggal} className="mt-3">
+        <h4 className="mb-1 font-pixel text-sm text-muted">Jadwal tayang {h.tanggal}</h4>
+        {h.slot.length ? <ul className="space-y-1.5">{h.slot.map((s) => (
+          <li key={s.jam} className="rounded-lg border border-line/70 bg-ink-950/60 px-2.5 py-2 text-sm">
+            <div className="flex items-center justify-between gap-2"><b>{s.jam} WIB</b>
+              <small className="text-faint">{s.isi ? (s.isi.status === "tayang" ? "sudah tayang" : "terjadwal") : "belum ada video"}{s.eksplorasi ? " · jam baru" : ""}</small></div>
+            {s.isi ? <span className="block truncate">{judul(s.isi.slug)}</span> : null}
+            <small className="block text-faint">{s.alasan}</small>
+          </li>))}</ul> : <Muted>Jadwal dihitung saat autopilot berjalan.</Muted>}
+      </div>))}
+    {Object.keys(d.menunggu_zona).length > 0 && <Muted className="mt-2">Menunggu kamu: {Object.keys(d.menunggu_zona).map(judul).join(", ")} (skor Rara di bawah batas; tonton lalu setujui di kartu video).</Muted>}
+    {d.catatan.map((x) => <Muted key={x} className="mt-1">{x}</Muted>)}
+    {d.log.length > 0 && <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded-lg bg-ink-950 p-2 text-[11px] leading-snug text-muted">{d.log.join("\n")}</pre>}
+    {pesan && <Muted className="mt-2 text-leaf">{pesan}</Muted>}
+    <Muted className="mt-2">Autopilot: tiap jam tim mengecek jadwal. Video dibuat ±10 jam sebelum jam tayang (Nova cari topik baru → … → Rara), lalu Uli mengunggah private dengan jadwal tayang; YouTube menayangkannya sendiri. Jam tayang dihitung dari pola penonton Indonesia + data channel & pasar (<code>insights/jadwal.md</code>). Laptop harus menyala & tidak tidur.</Muted>
+  </>);
+}

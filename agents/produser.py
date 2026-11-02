@@ -190,6 +190,16 @@ def main() -> None:
     pid = a.id if re.fullmatch(r"[\w-]{3,40}", a.id or "") else datetime.now().strftime("%Y%m%d-%H%M%S")
     cat = Catatan(pid, judul_req, {"suara": a.suara, "visual": a.visual, "uji": a.uji})
     slug = ""
+    # satu produksi pada satu waktu (tombol Studio & autopilot berbagi laptop, CPU, dan render)
+    sys.path.insert(0, str(ROOT / "agents"))
+    from kunci import Kunci
+    kunci = Kunci(ROOT / "produksi" / ("produser-uji.lock" if a.uji else "produser.lock"), maks_jam=4)
+    if not kunci.ambil(pid):
+        lain = kunci.pemilik().get("nama", "")
+        cat.tahap("steve", "gagal", f"Masih ada produksi lain yang berjalan ({lain}).")
+        cat.akhir("gagal", "Masih ada produksi lain yang berjalan (autopilot atau Studio). Coba lagi setelah selesai.")
+        print(f"[produser] Masih ada produksi lain yang berjalan ({lain}). Dibatalkan.", flush=True)
+        sys.exit(3)
     try:
         if a.uji:
             sys.path.insert(0, str(ROOT / "agents"))

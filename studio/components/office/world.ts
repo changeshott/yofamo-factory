@@ -63,7 +63,7 @@ export const TEAM: AgentDef[] = [
   },
   {
     id: "uli", skill: "upload", job: "upload", name: "Uli", role: "Upload YouTube", desk: [16.8, 7.0], color: "#82AAFF",
-    about: "Mengunggah video yang sudah kamu setujui ke YouTube sebagai PRIVATE, lengkap dengan judul, deskripsi, kredit, tag, dan label konten sintetis. Juga mengurus musik latar: memilih lagu dari perpustakaanmu sesuai suasana. Tidak pernah menyentuh video lain di channel.",
+    about: "Mengunggah video ke YouTube (private + jadwal tayang di jam terbaik), dengan deskripsi tanpa link sumber, kredit singkat, dan hashtag lengkap. Memimpin Autopilot: tim membuat & menjadwalkan sampai 3 video sehari. Juga mengurus musik latar. Tidak pernah menyentuh video lain di channel.",
     look: { skin: "#C68E6A", hair: "#121212", shirt: "#4E7BD9", pants: "#30323D", accent: "#F4F1E8", style: "cap" },
     busy: { upload: "Mengunggah…", login: "Menghubungkan YouTube…" },
   },

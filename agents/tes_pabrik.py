@@ -16,6 +16,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from datetime import datetime, timedelta, timezone
 import time
 import traceback
 import urllib.parse
@@ -299,6 +300,47 @@ def offline() -> None:
         cek("Rara: shot hitam terdeteksi & diganti", r.returncode == 0 and q.get("putaran", 0) >= 1 and not q.get("ganti_otomatis"),
             f"{q.get('putaran')} putaran, {time.time() - t0:.0f} dtk" if q else (r.stdout + r.stderr)[-300:])
         cek("Rara: lembar frame dibuat", bool(q.get("lembar")) and all((vdir / x).exists() for x in q.get("lembar", [])))
+
+        # Uli: deskripsi tanpa link sumber, kredit singkat, hashtag lengkap
+        r = run(tmp, "agents/upload/unggah.py", "pratinjau", slug)
+        desk = r.stdout.split("DESKRIPSI:", 1)[-1].split("TAG:", 1)[0]
+        tagar = re.findall(r"#\w+", desk)
+        cek("Uli: deskripsi tanpa link, ada kredit & hashtag lengkap", r.returncode == 0 and not re.search(r"https?://|www\\.", desk)
+            and "Sumber:" not in desk and "Kredit" in desk and len(tagar) >= 8 and len(set(tagar)) == len(tagar),
+            f"{len(tagar)} hashtag: {' '.join(tagar[:6])}…" if r.returncode == 0 else (r.stdout + r.stderr)[-300:])
+
+        # Jadwal tayang: 3 slot/hari, jarak ≥ 3 jam, di jam wajar
+        r = run(tmp, "agents/upload/jadwal.py")
+        jd = json.loads((tmp / "insights" / "jadwal.json").read_text(encoding="utf-8")) if (tmp / "insights" / "jadwal.json").exists() else {}
+        hari0 = list((jd.get("slot") or {}).values())[:1]
+        jam0 = [int(x["jam"][:2]) for x in (hari0[0] if hari0 else [])]
+        cek("Jadwal: 3 jam tayang per hari, berjarak ≥ 3 jam", r.returncode == 0 and len(jam0) == 3 and all(7 <= h <= 22 for h in jam0)
+            and all(b_ - a_ >= 3 for a_, b_ in zip(jam0, jam0[1:])), ", ".join(f"{h:02d}:00" for h in jam0))
+
+        # Autopilot: video lolos QC → disetujui otomatis → dijadwalkan di slot terdekat → setelah jamnya lewat ditandai tayang
+        ap_cfg = json.loads((tmp / "bible" / "autopilot.json").read_text(encoding="utf-8"))
+        ap_cfg.update(aktif=True, mulai_produksi_jam_sebelum=0)
+        (tmp / "bible" / "autopilot.json").write_text(json.dumps(ap_cfg), encoding="utf-8")
+        (tmp / "produksi").mkdir(exist_ok=True)
+        (tmp / "produksi" / "autopilot.json").write_text(json.dumps({"slot": {}, "dibuat": [slug]}), encoding="utf-8")
+        run(tmp, "agents/pabrik.py", "set", slug, "draft")
+        hari_ini = datetime.now(timezone(timedelta(hours=7))).date().isoformat()
+        r = run(tmp, "agents/autopilot.py", "jalan", "--uji", "--sekarang", f"{hari_ini}T06:00")
+        stt = json.loads((tmp / "produksi" / "autopilot.json").read_text(encoding="utf-8"))
+        isi = [(k_, v_) for k_, v_ in stt.get("slot", {}).items() if v_.get("slug") == slug]
+        st_v = next((x["status"] for x in json.loads(run(tmp, "agents/pabrik.py", "list", "--json").stdout or "[]") if x["slug"] == slug), None)
+        cek("Autopilot: video lolos Rara disetujui otomatis & dijadwalkan", r.returncode == 0 and len(isi) == 1 and st_v == "export",
+            f"{isi[0][0]} WIB, status {st_v}" if isi else (r.stdout + r.stderr)[-300:])
+        if isi:
+            jam_tayang = datetime.strptime(isi[0][0], "%Y-%m-%d %H:%M") + timedelta(minutes=30)
+            r = run(tmp, "agents/autopilot.py", "jalan", "--uji", "--sekarang", jam_tayang.strftime("%Y-%m-%dT%H:%M"))
+            stt = json.loads((tmp / "produksi" / "autopilot.json").read_text(encoding="utf-8"))
+            cek("Autopilot: setelah jam tayang lewat, video ditandai tayang", stt["slot"][isi[0][0]].get("status") == "tayang")
+        k_lock = tmp / "produksi" / "produser-uji.lock"
+        k_lock.write_text(json.dumps({"pid": os.getpid(), "mulai": time.time(), "nama": "tes"}), encoding="utf-8")
+        r = run(tmp, "agents/produser.py", "tes", "--uji")
+        cek("Produser: menolak jalan bersamaan dengan produksi lain", r.returncode == 3 and "produksi lain" in r.stdout, r.stdout.strip()[-120:])
+        k_lock.unlink()
 
         # Kontrol Zona: hapus video
         r = run(tmp, "agents/pabrik.py", "hapus", slug, "--ya")

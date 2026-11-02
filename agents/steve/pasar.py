@@ -72,7 +72,7 @@ def main() -> None:
             pub = datetime.fromisoformat(sn["publishedAt"].replace("Z", "+00:00"))
             umur = max((now - pub).total_seconds() / 86400, 0.5)
             views = int(st.get("viewCount", 0))
-            vids.append({"id": v["id"], "judul": sn["title"], "channel": sn.get("channelTitle", ""), "terbit": sn["publishedAt"][:10],
+            vids.append({"id": v["id"], "judul": sn["title"], "channel": sn.get("channelTitle", ""), "terbit": sn["publishedAt"][:10], "terbit_at": sn["publishedAt"],
                          "durasi_s": d, "views": views, "likes": int(st.get("likeCount", 0)), "komentar": int(st.get("commentCount", 0)),
                          "views_per_hari": round(views / umur, 1), "kata": asal[v["id"]],
                          "url": f"https://www.youtube.com/shorts/{v['id']}"})

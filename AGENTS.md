@@ -15,16 +15,19 @@ Pemilik: Zona. Semua jawaban dan laporan ditulis dalam **bahasa Indonesia**.
 | Bima | Visual: 1–3 shot 1080x1920 per kalimat, **utamakan potongan YouTube CC BY yang memperlihatkan teknologi yang dibahas** (≥ 80% footage asli, kandidat diurutkan menurut relevansi kalimat + topik; kalau kurang, bagian lain dari klip topik yang sama), lalu NASA/Wikimedia Commons (Pexels/Pixabay opsional), kartu grafis, dan gambar AI hanya cadangan terakhir (**maks 10% shot**) → `aset/NN-a.mp4`, `aset/manifest.json` | `/aset <slug>` | aktif |
 | Kai | Editor: rakit video final (**HyperFrames** HTML+GSAP, cadangan ffmpeg; font Poppins Black di `fonts/`) — palet biru khas channel (`bible/gaya-edit.json` → `palet`), gerak halus tanpa memantul, grafis gerak sesuai kalimat (angka, langkah, perbandingan, kata, label, sumber) + kartu grafis Bima digambar ulang sebagai layar penuh, penutup ajakan Subscribe, **gaya gerak berbeda tiap video** (kombinasi varian hook/subtitle/stabilo/kartu/latar/aksen/nuansa biru + urutan transisi, dipilih yang paling jarang dipakai → dicatat di `export/info.json` → `gaya_gerak`), gaya khas Yofamo: hook bertingkat putih/kuning/biru muncul bertahap, subtitle 1 kata di tengah (penekanan kuning), gerak keyframe, transisi antar-kalimat sinkron suara, denyut zoom, whoosh, musik per suasana (±10 dB di bawah narasi), layar penutup → `export/final.mp4` | `/editor <slug>` | aktif |
 | Rara | QC: cek otomatis (gelap/beku/durasi/LUFS/porsi AI) + lihat frame tiap shot, tolak yang jelek → Bima ganti → Kai rakit ulang (maks 2 putaran) → `export/qc.json`, `qc_review.json` | `/qc <slug>` | aktif |
-| Uli | Upload: video `export` → YouTube **private** (+ jadwal, kredit, label konten sintetis) → `export/upload.json` | `/upload <slug>` | aktif |
+| Uli | Upload: video `export` → YouTube **private + jadwal tayang** di jam terbaik (`agents/upload/jadwal.py` → `insights/jadwal.md`), deskripsi otomatis **tanpa link sumber** (kredit singkat + hashtag lengkap, `bible/gaya-upload.json`), label konten sintetis → `export/upload.json`. Memimpin **Autopilot** (`agents/autopilot.py`): 3 video/hari dibuat & dijadwalkan sendiri | `/upload <slug>` | aktif |
 
 Setiap agent adalah satu skill Claude Code di `.claude/skills/`. Kalau diminta "panggil Steve/Nova/Raka/Dara/Bima/Kai/Rara/Uli", jalankan skill-nya.
 
 Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetujui di Studio Yofamo** (`disetujui`) → Raka (naskah, status `naskah`) → Dara (suara + subtitle, status `suara`) → Bima (klip, status `aset`) → Kai (video final, status `draft`) → Rara (QC + perbaikan) → **Zona menonton & menyetujui** (`export`) → Uli (upload private) → Zona menayangkan di YouTube Studio → `terbit` → Steve membaca retensi → `insights/pelajaran.md` → putaran berikutnya lebih baik.
 
-**Jalur cepat — tombol "+ Buat video" di Studio** (`agents/produser.py`): Zona cukup klik (arahan tema opsional) → Steve memperbarui daftar video channel → Nova **memilih sendiri** 1 topik yang paling berpotensi menang dan **belum pernah dibahas** di channel (cek `cek_topik.py` + penilaian Nova; kalau ternyata duplikat, ditolak dan Nova mencari lagi), tetap 2 sumber → ide otomatis disetujui karena Zona yang menekan tombol → Raka → Dara (durasi di luar target naskah diperbaiki otomatis: kecepatan suara disesuaikan atau Raka memangkas) → Bima → Kai → Rara → video `draft` yang tetap harus ditonton dan disetujui Zona. Beberapa permintaan bisa diantrekan (`produksi/antrean.json`). Kemajuan di `produksi/<id>.json`.
+**Jalur cepat — tombol "+ Buat video" di Studio** (`agents/produser.py`): Zona cukup klik (arahan tema opsional) → Steve memperbarui daftar video channel → Nova **memilih sendiri** 1 topik yang paling berpotensi menang dan **belum pernah dibahas** di channel (cek `cek_topik.py` + penilaian Nova; kalau ternyata duplikat, ditolak dan Nova mencari lagi), tetap 2 sumber → ide otomatis disetujui karena Zona yang menekan tombol → Raka → Dara (durasi di luar target naskah diperbaiki otomatis: kecepatan suara disesuaikan atau Raka memangkas) → Bima → Kai → Rara → video `draft` yang tetap harus ditonton dan disetujui Zona. Beberapa permintaan bisa diantrekan (`produksi/antrean.json`). Kemajuan di `produksi/<id>.json`. Hanya satu produksi berjalan pada satu waktu (`produksi/produser.lock`).
+
+**Autopilot** (`agents/autopilot.py`, dinyalakan Zona; Windows Task Scheduler menjalankannya tiap jam lewat `pasang_autopilot.bat` → `autopilot.vbs`): hitung jam tayang terbaik (`insights/jadwal.md`) → isi slot 36 jam ke depan dengan video siap (status `export` dulu, lalu video buatan autopilot yang lolos Rara dengan skor ≥ `skor_qc_min` → disetujui otomatis) → Uli unggah private + jadwal tayang → kalau slot ±10 jam ke depan belum punya video, produser membuat video baru (maks `maks_produksi_per_hari`) → jam tayang lewat → `terbit`. Video di bawah skor tetap `draft` menunggu Zona. Pengaturan `bible/autopilot.json`, status `produksi/autopilot.json`, log `logs/autopilot-<tanggal>.txt`.
 
 ## Struktur folder
 
+- `bible/autopilot.json` — pengaturan autopilot (aktif, video per hari, setujui otomatis, skor QC minimal, jam tayang). `bible/gaya-upload.json` — deskripsi & hashtag Uli. `insights/jadwal.json`/`.md` — jam tayang terbaik (dibuat `jadwal.py`).
 - `bible/gaya-edit.json` — gaya editan Kai (font, warna & ukuran subtitle, hook bertingkat, gerak & transisi, musik).
 - `fonts/` — font khas Yofamo (Poppins Black/ExtraBold, lisensi OFL).
 - `package.json` — mesin video Kai (hyperframes, gsap). Pasang sekali: `npm install` di folder project (butuh Node.js 22+).
@@ -53,12 +56,13 @@ Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetu
 - Satu video sedikit (< 5) bukan pola. Sebut sebagai "dugaan" sampai ada minimal 5 video pendukung.
 - Jangan pernah menghapus file di `insights/` atau `videos/`. Tulis file baru.
 - Klip hanya dari sumber berlisensi bebas: YouTube **Creative Commons (CC BY)** lewat script Bima, NASA, Wikimedia Commons (hanya PD/CC0/CC BY), Pexels, Pixabay, gambar AI, atau milik Zona. Jangan pernah mengambil video YouTube biasa, TikTok, film, atau berita.
-- Hanya Uli yang boleh mengupload, hanya video berstatus `export` (sudah disetujui Zona), dan selalu **private**. Tidak ada agent yang menghapus atau mengubah video yang sudah ada di YouTube. Steve hanya **membaca** data.
+- Hanya Uli yang boleh mengupload, hanya video berstatus `export`, dan selalu **private** (boleh dengan jadwal tayang `publishAt`, sehingga YouTube menayangkannya sendiri). Status `export` berasal dari persetujuan Zona, atau dari autopilot yang dinyalakan Zona (hanya video buatan autopilot yang lolos Rara dengan skor ≥ `skor_qc_min`). Tidak ada agent yang menghapus atau mengubah video yang sudah ada di YouTube. Steve hanya **membaca** data.
+- Deskripsi YouTube tanpa link sumber. Kredit footage CC BY tetap dicantumkan singkat (judul, pembuat, lisensi) tanpa link; link lengkap tersimpan di `aset/KREDIT.txt`.
 - Menghapus hasil (video, log, laporan) hanya dilakukan Zona lewat panel Kelola di Studio (`pabrik.py hapus`). Agent tidak pernah menghapus.
 - API key ada di `.env` (dibaca script). Jangan menampilkan isi `.env` di chat atau laporan.
 - Ringkasan akhir agent: maksimal sekitar 15 baris, poin terpenting dulu. Laporan dan log dibaca Zona lewat Studio Yofamo (`studio/`).
 - Jangan mengubah file di `studio/` kecuali diminta.
-- Status video hanya diubah lewat `agents/pabrik.py`. Agent tidak boleh menyetujui ide sendiri; persetujuan selalu dari Zona (permintaan lewat "Buat video" dihitung sebagai persetujuan Zona untuk ide itu saja). Video final selalu ditonton & disetujui Zona.
+- Status video hanya diubah lewat `agents/pabrik.py`. Agent tidak boleh menyetujui ide sendiri; persetujuan selalu dari Zona (permintaan lewat "Buat video" dihitung sebagai persetujuan Zona untuk ide itu saja). Video final ditonton & disetujui Zona, kecuali saat autopilot aktif (lihat aturan upload di atas).
 - Hanya script di `agents/` yang boleh dijalankan. Jangan meng-install paket atau menjalankan perintah lain tanpa diminta.
 
 ## Perintah penting
@@ -80,6 +84,10 @@ python agents/ide/cek_visual.py "kata"      # Nova: ada footage legal untuk topi
 python agents/ide/cek_ide.py <slug> --tulis # Nova: validasi sumber/kutipan/angka + skor ide 0–100
 python agents/qc/periksa.py otomatis <slug> # Rara cepat: cek + ganti shot gelap/beku
 python agents/upload/unggah.py login        # Uli: hubungkan YouTube (sekali)
+python agents/upload/unggah.py pratinjau <slug>  # Uli: lihat judul, deskripsi (tanpa link) & hashtag tanpa upload
+python agents/upload/jadwal.py              # jam tayang terbaik → insights/jadwal.md
+python agents/autopilot.py status|nyala|mati|jalan  # autopilot 3 video/hari
+pasang_autopilot.bat                        # pasang penjadwal Windows tiap jam (sekali); "pasang_autopilot.bat hapus" untuk melepas
 python agents/steve/kumpul.py [--pasar]     # Steve: semua data (statistik, komentar, analitik, pasar) + analisa, tanpa kuota Claude
 python agents/steve/analisa.py              # Steve: hitung KPI, pola, retensi, peluang → insights/raw/analisa-*.json/.md
 python agents/tes_pabrik.py [--online]     # tes seluruh pabrik (aman, di folder sementara)

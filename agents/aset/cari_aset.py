@@ -631,10 +631,11 @@ def write_credits(aset: Path, klip: list[dict]) -> None:
         if k["jenis"] != "footage" or key in seen:
             continue
         seen.add(key)
+        # deskripsi YouTube tanpa link (permintaan Zona); link lengkap tetap di KREDIT.txt
         if k["sumber"] == "youtube":
-            desc.append(f"🎬 \"{k['judul']}\" oleh {k['pembuat']} (CC BY) {k['url_halaman']}")
+            desc.append(f"🎬 \"{k['judul']}\" oleh {k['pembuat']} (CC BY)")
         elif k["sumber"] == "wikimedia":
-            desc.append(f"🎬 \"{k['judul']}\" oleh {k['pembuat']} ({k['lisensi']}) {k['url_halaman']}")
+            desc.append(f"🎬 \"{k['judul']}\" oleh {k['pembuat']} ({k['lisensi']})")
         elif k["sumber"] == "nasa":
             desc.append("🎬 Footage: NASA")
     if any(k.get("sumber") in ("pexels", "pixabay") for k in klip):

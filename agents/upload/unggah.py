@@ -6,10 +6,12 @@ lengkap dengan judul, deskripsi, kredit, tag, kategori, dan label konten sinteti
     python agents/upload/unggah.py cek                  # cek login & nama channel
     python agents/upload/unggah.py unggah <slug>        # upload private (status video harus 'export')
     python agents/upload/unggah.py unggah <slug> --jadwal 2026-11-01T19:00   # private + jadwal tayang (WIB)
+    python agents/upload/unggah.py pratinjau <slug>     # lihat judul, deskripsi & tag tanpa mengunggah
 
 Butuh file OAuth client (Desktop app) dari Google Cloud di rahasia/client_secret.json (lihat SETUP.md).
 Token tersimpan di rahasia/token.json. Folder rahasia/ tidak pernah di-commit.
-Catatan: project Google Cloud yang belum diaudit YouTube hanya bisa upload sebagai private.
+Deskripsi disusun otomatis (lihat susun_deskripsi): tanpa link sumber, kredit singkat tanpa link, hashtag lengkap
+(bible/gaya-upload.json). Dengan --jadwal video diunggah private lalu tayang otomatis di jam itu (dipakai autopilot).
 Uli tidak pernah menghapus atau mengubah video lain di channel.
 """
 from __future__ import annotations
@@ -98,13 +100,61 @@ def status_of(slug: str) -> str | None:
         return None
 
 
+URL = re.compile(r"(https?://|www\.)\S+", re.I)
+HASHTAG = re.compile(r"#[^\s#]+")
+
+
+def jadi_hashtag(t: str) -> str:
+    """'kulit buatan' → '#kulitbuatan' (huruf kecil, tanpa spasi/tanda baca)."""
+    inti = re.sub(r"[^0-9a-zà-ÿ]", "", str(t).lower().lstrip("#"))
+    return f"#{inti}" if 2 <= len(inti) <= 30 and not inti.isdigit() else ""
+
+
+def tanpa_link(teks: str) -> str:
+    """Buang semua link dan baris 'Sumber:' (permintaan Zona: deskripsi tanpa link sumber)."""
+    out = []
+    for baris in str(teks).splitlines():
+        if re.match(r"\s*(sumber|source|referensi|baca selengkapnya)\s*:", baris, re.I):
+            continue
+        b = URL.sub("", baris).rstrip(" ·-–—|,:") if URL.search(baris) else baris.rstrip()
+        if b.strip() or not out or out[-1].strip():
+            out.append(b)
+    return "\n".join(out).strip()
+
+
+def susun_deskripsi(sc: dict, kredit: str, musik: str, gaya: dict) -> str:
+    """Deskripsi siap upload: isi Raka → ajakan → kredit singkat (tanpa link) → hashtag lengkap di akhir."""
+    isi = tanpa_link(sc.get("deskripsi", ""))
+    tag_isi = HASHTAG.findall(isi)
+    isi = re.sub(r"[ \t]+\n", "\n", HASHTAG.sub("", isi)).strip()
+    tags = []
+    for t in tag_isi + [jadi_hashtag(x) for x in sc.get("tag", [])] + list(gaya.get("hashtag_tetap") or []):
+        h = jadi_hashtag(t)
+        if h and h not in tags:
+            tags.append(h)
+    tags = tags[: max(3, min(30, int(gaya.get("hashtag_maks", 15))))]
+    bagian = [isi]
+    pertanyaan = str(sc.get("komentar_pin") or "").strip()
+    if pertanyaan:
+        bagian.append(f"💬 {tanpa_link(pertanyaan)}")
+    if gaya.get("ajakan"):
+        bagian.append(f"🔔 {gaya['ajakan']}")
+    if kredit:
+        kredit = tanpa_link(kredit) if gaya.get("kredit_tanpa_link", True) else kredit
+        bagian.append(kredit)
+    if musik:
+        bagian.append(f"🎵 Musik: {tanpa_link(musik) if gaya.get('kredit_tanpa_link', True) else musik}")
+    bagian.append(" ".join(tags))
+    return "\n\n".join(b for b in bagian if b.strip())
+
+
 def metadata(slug: str) -> dict:
     vdir = VIDEOS / slug
     sc, man = rj(vdir / "script.json"), rj(vdir / "aset" / "manifest.json")
     kredit = (vdir / "aset" / "kredit_deskripsi.txt").read_text(encoding="utf-8").strip() if (vdir / "aset" / "kredit_deskripsi.txt").exists() else ""
     judul = re.sub(r"[<>]", "", sc.get("judul") or slug)[:100]
     musik = str(rj(vdir / "export" / "info.json").get("musik_kredit") or "").strip()
-    desk = "\n\n".join(x for x in [sc.get("deskripsi", "").strip(), kredit, f"Musik: {musik}" if musik else ""] if x)
+    desk = susun_deskripsi(sc, kredit, musik, rj(ROOT / "bible" / "gaya-upload.json"))
     desk = re.sub(r"[<>]", "", desk)[:4900]
     tags, n = [], 0
     for t in sc.get("tag", []):
@@ -157,7 +207,7 @@ def unggah(slug: str, jadwal: str | None) -> None:
     except HttpError as err:
         reason = err.reason if hasattr(err, "reason") else str(err)
         if "quotaExceeded" in str(err):
-            sys.exit("[uli] Kuota upload YouTube API hari ini habis (±6 upload/hari). Coba lagi besok.")
+            sys.exit("[uli] Kuota YouTube API hari ini habis. Coba lagi besok (autopilot otomatis mencoba lagi di jam berikutnya).")
         sys.exit(f"[uli] YouTube menolak upload: {reason}")
     vid = resp["id"]
     info = {"videoId": vid, "url": f"https://youtube.com/shorts/{vid}", "studio": f"https://studio.youtube.com/video/{vid}/edit",
@@ -175,7 +225,7 @@ def unggah(slug: str, jadwal: str | None) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Uli: upload private ke YouTube")
-    ap.add_argument("perintah", choices=["login", "cek", "unggah"])
+    ap.add_argument("perintah", choices=["login", "cek", "unggah", "pratinjau"])
     ap.add_argument("slug", nargs="?")
     ap.add_argument("--jadwal", help="waktu tayang WIB, misalnya 2026-11-01T19:00")
     a = ap.parse_args()
@@ -188,6 +238,10 @@ def main() -> None:
     else:
         if not a.slug or not re.fullmatch(r"[a-z0-9-]{3,80}", a.slug):
             sys.exit("[uli] slug tidak valid")
+        if a.perintah == "pratinjau":      # lihat judul, deskripsi & tag tanpa mengunggah
+            m = metadata(a.slug)
+            print(f"JUDUL: {m['judul']}\n\nDESKRIPSI:\n{m['deskripsi']}\n\nTAG: {', '.join(m['tag'])}")
+            return
         unggah(a.slug, a.jadwal)
 
 

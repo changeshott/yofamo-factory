@@ -1,0 +1,7 @@
+{
+  "hashtag_tetap": ["#shorts", "#teknologi", "#faktateknologi", "#inovasi", "#sains", "#faktaunik", "#teknologimasadepan", "#yofamotechnology"],
+  "hashtag_maks": 15,
+  "kredit_tanpa_link": true,
+  "ajakan": "Follow @yofamoo_technology buat teknologi gila berikutnya!",
+  "_catatan": "Uli menyusun deskripsi: deskripsi Raka (tanpa link) → pertanyaan/ajakan → kredit footage & musik singkat TANPA link (nama pembuat + lisensi, sesuai syarat CC BY) → hashtag (topik dari tag Raka + hashtag_tetap, maksimal hashtag_maks; YouTube mengabaikan semua hashtag kalau lebih dari 60). Link sumber riset tidak ditampilkan di deskripsi (tetap tersimpan di script.json → sumber dan aset/KREDIT.txt)."
+}

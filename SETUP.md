@@ -139,4 +139,15 @@ Gratis, tapi perlu satu kali menyiapkan OAuth di Google Cloud (project yang sama
 4. Simpan file itu sebagai `rahasia\client_secret.json` di folder project (buat folder `rahasia` kalau belum ada). Jangan pernah dikirim ke siapa pun.
 5. `python -m pip install -r requirements.txt`, buka Studio → meja **Uli** → **Hubungkan YouTube** → login di browser yang terbuka → izinkan.
 
-Catatan: project yang belum diaudit YouTube hanya bisa upload **private**. Uli mengunggah private (bisa dengan jadwal); kamu mengubahnya ke publik di YouTube Studio. Kuota API gratis cukup untuk ±6 upload per hari.
+Catatan: Uli mengunggah **private**, dengan jadwal tayang kalau diberi jam (`--jadwal`, atau otomatis lewat autopilot): YouTube menayangkannya sendiri tepat di jam itu. Kuota upload YouTube Data API: 100 upload per hari, jauh di atas 3 video/hari. Kalau suatu saat video terjadwal tetap terkunci private, buka video itu di YouTube Studio; YouTube akan menjelaskan alasannya (biasanya verifikasi project API).
+
+## Autopilot: 3 video per hari, jadwal tayang otomatis
+
+1. Pastikan Uli sudah terhubung ke YouTube (langkah di atas) dan ada lagu di `musik/`.
+2. Klik dua kali **`pasang_autopilot.bat`** di folder project (sekali saja). Ini memasang tugas Windows "Yofamo Autopilot" yang berjalan tiap jam tanpa jendela, lalu menyalakan autopilot.
+3. Atur di Studio → meja **Uli** → **Autopilot**: video per hari (bawaan 3), setujui otomatis kalau skor Rara ≥ 7, jadwal tayang hari ini & besok, dan log.
+4. Laptop harus menyala, login, dan tidak tidur (Settings → System → Power → Sleep: Never saat dicas). Kalau laptop mati, autopilot menyusul di jam berikutnya; slot yang sudah lewat dilewati.
+
+Cara kerjanya tiap jam: hitung jam tayang terbaik (`insights/jadwal.md`) → video siap diunggah private + dijadwalkan → slot ±10 jam ke depan yang belum punya video → tim membuat video baru (maksimal 5 produksi per hari supaya kuota Claude aman) → setelah jam tayang lewat, video ditandai terbit. Video dengan skor Rara di bawah batas tidak diunggah; kamu tonton & setujui sendiri di Studio.
+
+Melepas penjadwal: `pasang_autopilot.bat hapus`. Mematikan sementara: tombol **Matikan** di Studio.

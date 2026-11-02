@@ -256,8 +256,8 @@ def check(slug: str) -> tuple[list[str], list[str], dict, dict]:
         unknown = [u for u in sumber if u not in known]
         if unknown:
             fails.append(f"{len(unknown)} sumber tidak ada di idea.json (jangan menambah fakta baru)")
-        if not any(u in s["deskripsi"] for u in sumber):
-            warns.append("deskripsi sebaiknya mencantumkan URL sumber")
+    if re.search(r"https?://|www\.", str(s.get("deskripsi", ""))):
+        warns.append("deskripsi jangan memuat link (Zona tidak mau link sumber di deskripsi; Uli juga membuangnya otomatis). URL cukup di 'sumber'")
     return fails, warns, info, s
 
 

@@ -53,7 +53,7 @@ Durasi mengikuti kebutuhan cerita (`target_durasi` 25–58 detik): sederhana 28�
 
 - Ganti visual tiap 1,5–3 detik.
 - Tanpa watermark atau logo channel lain.
-- Sumber visual: footage YouTube Creative Commons (CC BY), NASA, Wikimedia Commons (PD/CC0/CC BY), Pexels/Pixabay bila ada key; gambar AI (FLUX via Cloudflare, digerakkan halus); kartu grafis buatan sendiri. Lisensi dicatat di `aset/manifest.json`, kredit CC BY masuk deskripsi.
+- Sumber visual: footage YouTube Creative Commons (CC BY), NASA, Wikimedia Commons (PD/CC0/CC BY), Pexels/Pixabay bila ada key; gambar AI (FLUX via Cloudflare, digerakkan halus); kartu grafis buatan sendiri. Lisensi dicatat di `aset/manifest.json`; kredit CC BY masuk deskripsi secara singkat (judul, pembuat, lisensi) tanpa link — link lengkap di `aset/KREDIT.txt`. Deskripsi tidak memuat link sumber riset.
 - Ritme: ganti shot tiap 1,5–3 detik; antar-kalimat memakai transisi bergerak (Kai), kata penekanan diberi denyut zoom. Suara asli klip tidak pernah dipakai; hanya voice-over Dara.
 - Rekaman sendiri taruh di `milik-saya/` dengan nama file deskriptif; selalu diprioritaskan.
 - Campuran ideal: **≥ 80% footage asli yang memperlihatkan teknologi yang dibahas (utamakan potongan YouTube CC BY)**, gambar AI **≤ 10% shot** (14 shot → maksimal 1) dan hanya kalau footage relevan benar-benar habis, ≤ 2 kartu grafis per video. Kalau footage kurang, lebih baik memakai bagian lain dari klip topik yang sama daripada gambar AI atau stok umum. Hook selalu footage terkuat.

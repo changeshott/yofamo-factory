@@ -1,0 +1,19 @@
+{
+  "aktif": false,
+  "video_per_hari": 3,
+  "setujui_otomatis": true,
+  "skor_qc_min": 7,
+  "maks_produksi_per_hari": 5,
+  "mulai_produksi_jam_sebelum": 10,
+  "suara": "pria",
+  "visual": "teliti",
+  "arahan_tema": "",
+  "jadwal": {
+    "jam_awal": 7,
+    "jam_akhir": 22,
+    "jarak_jam": 3,
+    "eksplorasi": true,
+    "slot_tetap": []
+  },
+  "_catatan": "Autopilot (agents/autopilot.py, dijalankan tiap jam oleh Windows Task Scheduler lewat pasang_autopilot.bat): membuat video sampai video_per_hari terisi, lalu Uli mengunggah private dengan jadwal tayang di jam terbaik (agents/upload/jadwal.py → insights/jadwal.md). setujui_otomatis: video yang lolos Rara dengan skor >= skor_qc_min langsung disetujui; yang di bawahnya menunggu Zona di Studio. slot_tetap: isi misalnya [\"11:00\", \"16:00\", \"19:00\"] kalau ingin jam tetap. maks_produksi_per_hari membatasi pemakaian kuota Claude."
+}

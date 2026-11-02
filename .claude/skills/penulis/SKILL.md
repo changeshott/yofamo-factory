@@ -81,7 +81,7 @@ Untuk setiap kalimat di `narasi`:
 ### 6. Judul, metadata, eksperimen
 - `judul`: klaim HURUF KAPITAL + kalimat kaget, benar menurut sumber, diakhiri tepat `#Shorts #Teknologi`, ≤ 100 karakter.
 - `judul_alternatif`: 2 judul lain dengan sudut berbeda (untuk uji/ganti judul nanti).
-- `deskripsi`: 2–3 kalimat ringkas + baris `Sumber:` berisi URL + 3–5 hashtag.
+- `deskripsi`: **tanpa link apa pun** (URL sumber cukup di kolom `sumber`). Baris pertama = kalimat paling bikin penasaran yang memuat kata kunci utama (nama teknologinya, ±100 karakter pertama tampil di pencarian); lalu 1–2 kalimat isi/fakta inti; lalu 3–5 hashtag topik spesifik (misalnya `#rovermars #nasa #mobilotonom`). Uli otomatis menambah pertanyaan komentar, ajakan follow, kredit singkat tanpa link, dan hashtag umum channel (`bible/gaya-upload.json`).
 - `komentar_pin`: komentar pertama untuk Zona sematkan (pertanyaan yang memancing diskusi atau fakta tambahan dari idea.json).
 - `tag`: 8–15 huruf kecil tanpa `#`. `sumber`: semua URL dari idea.json yang dipakai.
 - `suasana`: `tegang` / `ceria` / `misterius` / `epik` / `haru` (Kai memilih musik).
@@ -123,7 +123,7 @@ Dara mengukur durasi suara asli; produser memanggilmu kalau terlalu panjang. Bac
     {"kalimat": "Kalau robot bisa kesakitan, kamu masih tega memukulnya?", "bagian": "penutup",
      "visual": "robot menatap kamera", "jenis_visual": "ai", "kata_kunci_visual": ["humanoid robot face"]}
   ],
-  "deskripsi": "…\nSumber: https://…\n#teknologi #robot #shorts",
+  "deskripsi": "Robot ini bisa merasakan sakit lewat kulit buatan!\nKulit elektroniknya punya ratusan sensor per sentimeter.\n#kulitbuatan #robot #sensor",
   "komentar_pin": "Menurut kamu, robot yang bisa merasa sakit perlu punya hak? 🤖",
   "tag": ["teknologi", "kulit buatan", "robot", "…"],
   "sumber": ["https://…"],
