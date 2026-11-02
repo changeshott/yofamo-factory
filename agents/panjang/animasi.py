@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Tio — animator tim video panjang. Mengubah tiap adegan naskah menjadi animasi kartun 80-an (HyperFrames: HTML + GSAP).
+"""Tio — animator tim video panjang. Mengubah tiap adegan naskah menjadi animasi lukis-komik (HyperFrames: HTML + GSAP).
 
     python agents/panjang/animasi.py <slug>                 # render semua adegan yang belum jadi → panjang/<slug>/adegan/NN.mp4
     python agents/panjang/animasi.py <slug> --ulang 3 7     # render ulang adegan tertentu
     python agents/panjang/animasi.py <slug> --pratinjau     # hanya foto beberapa frame tiap adegan (cepat, tanpa render video)
 
 Tiap adegan = proyek HyperFrames sendiri (agents/panjang/adegan.html + data adegan) supaya bisa dilanjutkan kalau terputus.
-Gerak dikunci 12 fps ("on twos" khas kartun 80-an) lalu dijadikan 24 fps saat dirakit. Butuh Node 22+ & npm install.
+Render 24 fps: kamera, cahaya & transisi mulus; host, huruf & stiker bergerak "on twos" (12 fps) seperti film animasi
+lukis-komik. Host Yofa = gambar pose AI (bible/maskot/pose/*.png, dibuat maskot.py): mulut buka/tutup mengikuti suku kata,
+kepala mengangguk, badan bernapas. Kalau pose belum ada, dipakai host SVG cadangan. Butuh Node 22+ & npm install.
 """
 from __future__ import annotations
 
@@ -31,7 +33,8 @@ HF_BIN = ROOT / "node_modules" / "hyperframes" / "bin" / "hyperframes.mjs"
 GSAP = ROOT / "node_modules" / "gsap" / "dist" / "gsap.min.js"
 FONTS = ROOT / "fonts"
 GAYA = ROOT / "bible" / "gaya-animasi.json"
-TRANSISI = ["iris", "bintang", "diagonal", "iris", "potong"]
+POSE = Path(os.environ.get("YOFAMO_POSE_DIR") or ROOT / "bible" / "maskot" / "pose")
+TRANSISI = ["halftone", "cipratan", "sobek", "halftone", "potong", "cipratan"]
 
 
 def log(msg: str) -> None:
@@ -62,21 +65,36 @@ def data_adegan(i: int, a: dict, waktu: dict, vdir: Path, g: dict) -> dict:
         if t0 is not None:
             kk.append({"teks": str(teks).upper()[:28], "a": t0})
     il = a.get("_ilustrasi")
-    pal = g.get("sinar") or [["FF7A2F", "FFD23F"], ["2F6BFF", "19C6C6"], ["F2385A", "FF7A2F"], ["6B3FD4", "2F6BFF"], ["39D36B", "19C6C6"]]
+    pal = g.get("sinar") or [["FF2E88", "FF8FC4"], ["19D3FF", "6B3FD4"], ["FFE14D", "FF7A2F"]]
     sinar = pal[i % len(pal)]
     return {
-        "jenis": a.get("jenis", "host"), "durasi": round(durasi, 3), "fps": int(g.get("fps_render", 12)),
+        "jenis": a.get("jenis", "host"), "durasi": round(durasi, 3), "fps": int(g.get("fps_render", 24)),
+        "fps_gerak": int(g.get("fps_gerak", 12)), "seed": i * 7 + 3, "host": pose_host(),
         "kata": kata, "kalimat": kalimat, "kata_kunci": kk, "ekspresi": a.get("ekspresi", "senang"),
         "teks_layar": a.get("teks_layar", ""), "label": a.get("label", ""), "judul": a.get("judul", ""), "nomor": a.get("nomor"),
-        "ilustrasi": "assets/ilustrasi.jpg" if il else None, "gerak": a.get("gerak", ["zoom", "kiri", "kanan", "naik"][i % 4]),
+        "ilustrasi": "assets/ilustrasi.jpg" if il else None, "objek": "assets/objek.png" if a.get("_objek") else None, "gerak": a.get("gerak", ["zoom", "kiri", "kanan", "naik"][i % 4]),
         "host_kecil": bool(a.get("host_kecil")), "diagram": a.get("diagram") or {},
         "transisi": a.get("transisi") or (TRANSISI[i % len(TRANSISI)] if i else "iris"),
         "sinar": ["#" + sinar[0], "#" + sinar[1]], "warna": g.get("warna") or {},
     }
 
 
+def pose_host() -> list[str]:
+    """Pose host Yofa yang tersedia (PNG transparan). Kosong → template memakai host SVG cadangan."""
+    return sorted(f.stem for f in POSE.glob("*.png")) if POSE.is_dir() else []
+
+
 def tulis_proyek(pdir: Path, data: dict, ilustrasi: Path | None, judul: str) -> Path:
     (pdir / "assets" / "fonts").mkdir(parents=True, exist_ok=True)
+    if data.get("host"):
+        (pdir / "assets" / "maskot").mkdir(exist_ok=True)
+        for nama in data["host"]:
+            shutil.copy2(POSE / f"{nama}.png", pdir / "assets" / "maskot" / f"{nama}.png")
+    objek = ilustrasi.with_suffix(".png") if ilustrasi else None
+    if data.get("objek") and objek and objek.exists():
+        shutil.copy2(objek, pdir / "assets" / "objek.png")
+    elif data.get("objek"):
+        data["objek"] = None
     shutil.copy2(GSAP, pdir / "assets" / "gsap.min.js")
     for f in ("Poppins-Black.ttf", "Poppins-ExtraBold.ttf"):
         if (FONTS / f).exists():
@@ -97,7 +115,8 @@ def render(pdir: Path, out: Path, fps: int) -> None:
         raise RuntimeError("HyperFrames belum terpasang (Node.js 22+ lalu npm install di folder project)")
     env = {**os.environ, "HYPERFRAMES_NO_TELEMETRY": "1", "DO_NOT_TRACK": "1", "HYPERFRAMES_NO_UPDATE_CHECK": "1", "HYPERFRAMES_SKIP_SKILLS": "1"}
     tmp = out.with_suffix(".tmp.mp4")
-    r = subprocess.run([node, str(HF_BIN), "render", str(pdir), "-o", str(tmp), "--fps", str(fps), "--quality", "standard", "--quiet"],
+    kualitas = str(gaya().get("kualitas_render", "high"))
+    r = subprocess.run([node, str(HF_BIN), "render", str(pdir), "-o", str(tmp), "--fps", str(fps), "--quality", kualitas, "--quiet"],
                        cwd=ROOT, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace")
     if r.returncode != 0 or not tmp.exists():
         pesan = (r.stderr or r.stdout or "").strip().splitlines()
@@ -151,7 +170,7 @@ def main() -> None:
     if not naskah.get("adegan") or not waktu:
         sys.exit("[tio] naskah.json / suara/waktu.json belum ada")
     g = gaya()
-    fps = int(g.get("fps_render", 12))
+    fps = int(g.get("fps_render", 24))
     adir = vdir / "adegan"
     adir.mkdir(exist_ok=True)
     il_dir = vdir / "ilustrasi"
@@ -159,7 +178,7 @@ def main() -> None:
     for i, ad in enumerate(naskah["adegan"]):
         out = adir / f"{i + 1:02}.mp4"
         il = il_dir / f"{i + 1:02}.jpg"
-        ad = {**ad, "_ilustrasi": il.exists()}
+        ad = {**ad, "_ilustrasi": il.exists(), "_objek": il.with_suffix(".png").exists()}
         if ad.get("jenis") == "judul_bab":
             ad["nomor"] = sum(1 for x in naskah["adegan"][: i + 1] if x.get("jenis") == "judul_bab")
         data = data_adegan(i, ad, waktu, vdir, g)

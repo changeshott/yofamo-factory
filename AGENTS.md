@@ -19,15 +19,15 @@ Pemilik: Zona. Semua jawaban dan laporan ditulis dalam **bahasa Indonesia**.
 
 ### Ruang Animasi — video YouTube panjang (kantor kedua, di samping kantor Shorts)
 
-Video 5–8 menit, 16:9, **full animasi kartun Sabtu pagi 80-an** (garis tinta tebal, cel shading, warna jenuh, gerak "on twos") dengan host orisinal **Yofa** (SVG di `agents/panjang/adegan.html`, mulut ikut narasi). Aturan konten: `bible/panjang-bible.md`; gaya: `bible/gaya-animasi.json`. Terpisah total dari pabrik Shorts (folder `panjang/<slug>/`, status `panjang/<slug>/status.json` lewat `agents/panjang/status.py`, tidak memakai `state.db`).
+Video 5–8 menit, 16:9, **full animasi gaya lukis-komik hibrida** (3D dipahat + tekstur lukis, garis tinta tebal, halftone, cipratan pink/cyan/kuning, latar studio pink; kamera 24 fps mulus, karakter "on twos") dengan host orisinal **Yofa** (gambar AI FLUX.2 klein, 7 pose di `bible/maskot/pose/*.png` dibuat `agents/panjang/maskot.py` dari satu gambar utama; mulut buka/tutup ikut suku kata). Host & acuan gaya dipilih Zona di Studio → Ruang Animasi → **Gaya & host Yofa**. Aturan konten: `bible/panjang-bible.md`; gaya: `bible/gaya-animasi.json`. Terpisah total dari pabrik Shorts (folder `panjang/<slug>/`, status `panjang/<slug>/status.json` lewat `agents/panjang/status.py`, tidak memakai `state.db`).
 
 | Nama | Peran | Skill / script | Status |
 | --- | --- | --- | --- |
 | Bayu | Showrunner & riset: 1 teknologi nyata (sering dari Shorts yang menang), ≥ 5 fakta bersumber, alur 3–4 bab → `ide.json` | `/panjang-ide [tema]` | aktif |
 | Citra | Naskah per adegan (host / ilustrasi / diagram / judul_bab / penutup), pembuka "Tau nggak, …", visual persis sesuai kalimat → `naskah.json` (divalidasi `cek_naskah_panjang.py`) | `/panjang-naskah <slug>` | aktif |
 | Gilang | Suara Yofa per adegan (edge-tts) + timing kata → `suara/NN.mp3`, `suara/waktu.json` | `agents/panjang/suara_panjang.py` | aktif |
-| Laras | Ilustrasi kartun 80-an per adegan + thumbnail (FLUX gratis, tanpa tulisan/logo/orang sungguhan) → `ilustrasi/NN.jpg` | `agents/panjang/ilustrasi.py` | aktif |
-| Tio | Animasi tiap adegan (HyperFrames, 12 fps on twos): maskot bicara & berekspresi, diagram muncul per kalimat, kartu bab, transisi iris/bintang → `adegan/NN.mp4` | `agents/panjang/animasi.py` | aktif |
+| Laras | Host Yofa (kandidat → pose, `maskot.py`) + ilustrasi lukis-komik per adegan, objek diagram (dipotong jadi PNG transparan), thumbnail — FLUX.2 klein-4b gratis dengan gambar acuan gaya (±70 gambar/hari; kuota habis → berhenti rapi, lanjut setelah 07:00 WIB), tanpa tulisan/logo/orang sungguhan → `ilustrasi/NN.jpg` | `agents/panjang/ilustrasi.py`, `maskot.py` | aktif |
+| Tio | Animasi tiap adegan (HyperFrames 24 fps, kualitas high): host Yofa bicara & berekspresi, latar dilukis kuas, diagram muncul per kalimat, stiker kata kunci, kartu bab halftone, transisi halftone/cipratan/sobek → `adegan/NN.mp4` | `agents/panjang/animasi.py` | aktif |
 | Wulan | Rakit 1080p 24 fps + suara + musik, chapter, subtitle .srt, thumbnail, QC → `export/` | `agents/panjang/rakit_panjang.py`, `periksa_panjang.py` | aktif |
 
 Alur: tombol **Buat** di Studio → Ruang Animasi (`agents/panjang/produser_panjang.py`, kemajuan `produksi/panjang/<id>.json`) → Bayu → Citra → Gilang → Laras → Tio → Wulan → status `draft` → **Zona menonton & menyetujui** (`export`) → Uli mengunggah private + jadwal tayang (`agents/panjang/unggah_panjang.py`; chapter & deskripsi tanpa link, thumbnail kartun). Video panjang **tidak pernah** disetujui otomatis. Tidak mengganggu Shorts: prioritas CPU rendah, tiap adegan menunggu kalau produksi Shorts sedang jalan, satu video panjang pada satu waktu (`produksi/panjang.lock`).

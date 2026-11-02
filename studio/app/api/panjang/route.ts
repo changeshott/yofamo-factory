@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { guard, json } from "@/lib/server/guard";
-import { PJ, berjalanPanjang, buatPanjang, daftarPanjang, produksiPanjang, setStatus, unggahPanjang } from "@/lib/server/panjang";
+import { FILE_MASKOT, MASKOT, PJ, berjalanPanjang, buatPanjang, daftarPanjang, jalankanMaskot, produksiPanjang, setStatus, statusMaskot, unggahPanjang } from "@/lib/server/panjang";
 
 const SLUG = /^[a-z0-9-]{3,80}$/;
 const FILE: Record<string, string> = { "export/final.mp4": "video/mp4", "export/thumbnail.jpg": "image/jpeg", "export/lembar.jpg": "image/jpeg", "naskah.md": "text/markdown; charset=utf-8" };
@@ -9,8 +9,13 @@ const FILE: Record<string, string> = { "export/final.mp4": "video/mp4", "export/
 /** Ruang Animasi: daftar video panjang + produksi, atau satu file (video/thumbnail/lembar/naskah). */
 export async function GET(req: Request) {
   if (!["127.0.0.1:3210", "localhost:3210"].includes(req.headers.get("host") ?? "")) return new Response("ditolak", { status: 403 });
-  const q = new URL(req.url).searchParams, slug = q.get("slug") ?? "", file = q.get("file") ?? "";
-  if (!file) return json({ videos: daftarPanjang(), produksi: produksiPanjang(), berjalan: !!berjalanPanjang() });
+  const q = new URL(req.url).searchParams, slug = q.get("slug") ?? "", file = q.get("file") ?? "", mk = q.get("maskot") ?? "";
+  if (mk) {
+    const f = path.join(MASKOT, mk);
+    if (!FILE_MASKOT.test(mk) || !fs.existsSync(f)) return new Response("tidak ditemukan", { status: 404 });
+    return new Response(new Uint8Array(await fs.promises.readFile(f)), { headers: { "Content-Type": mk.endsWith(".png") ? "image/png" : "image/jpeg", "Cache-Control": "no-store" } });
+  }
+  if (!file) return json({ videos: daftarPanjang(), produksi: produksiPanjang(), berjalan: !!berjalanPanjang(), maskot: statusMaskot() });
   if (!SLUG.test(slug) || !FILE[file]) return new Response("tidak ditemukan", { status: 404 });
   const full = path.join(PJ, slug, file);
   if (!fs.existsSync(full)) return new Response("tidak ditemukan", { status: 404 });
@@ -27,13 +32,15 @@ export async function GET(req: Request) {
   return new Response(new Uint8Array(await fs.promises.readFile(full)), { headers: { "Content-Type": type, "Content-Length": String(size), "Cache-Control": "no-store" } });
 }
 
-/** aksi: buat {tema} · lanjut {slug} · setujui {slug} · tolak {slug} · unggah {slug, jadwal?} */
+/** aksi: buat {tema} · lanjut {slug} · setujui {slug} · tolak {slug} · unggah {slug, jadwal?} · host-kandidat · host-pakai {nomor} */
 export async function POST(req: Request) {
   const denied = guard(req); if (denied) return denied;
-  const b = (await req.json().catch(() => ({}))) as { aksi?: string; tema?: string; slug?: string; jadwal?: string };
+  const b = (await req.json().catch(() => ({}))) as { aksi?: string; tema?: string; slug?: string; jadwal?: string; nomor?: string | number };
   const slug = b.slug ?? "";
   try {
     if (b.aksi === "buat") return json(buatPanjang(String(b.tema ?? "")));
+    if (b.aksi === "host-kandidat") return json(jalankanMaskot("kandidat"));
+    if (b.aksi === "host-pakai") return json(jalankanMaskot("pakai", Number(b.nomor) || 1));
     if (!SLUG.test(slug) || !fs.existsSync(path.join(PJ, slug))) return json({ ok: false, message: "Video tidak ditemukan." }, 404);
     const v = daftarPanjang().find((x) => x.slug === slug);
     if (b.aksi === "lanjut") return json(buatPanjang("", slug));

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Produser Ruang Animasi: satu klik → video YouTube panjang (5–8 menit) full animasi kartun 80-an.
+"""Produser Ruang Animasi: satu klik → video YouTube panjang (5–8 menit) full animasi lukis-komik.
 
     python agents/panjang/produser_panjang.py ["arahan tema"]          # Bayu pilih topik → … → video draft
     python agents/panjang/produser_panjang.py --lanjut <slug>          # lanjutkan yang terhenti (tahap yang beres dilewati)
     python agents/panjang/produser_panjang.py --uji                    # tanpa Claude & internet (naskah contoh), untuk tes
 
-Tahap: Bayu (riset & alur, Claude) → Citra (naskah adegan, Claude) → Gilang (suara) → Laras (ilustrasi FLUX)
+Tahap: Bayu (riset & alur, Claude) → Citra (naskah adegan, Claude) → Gilang (suara) → Laras (host & ilustrasi FLUX.2 klein)
 → Tio (animasi HyperFrames) → Wulan (rakit + QC) → status draft: Zona menonton & menyetujui di Studio (Ruang Animasi).
 Tidak mengganggu Shorts: seluruh proses berjalan dengan prioritas CPU rendah, dan render tiap adegan menunggu dulu
 kalau produksi Shorts sedang berjalan (produksi/produser.lock). Satu video panjang pada satu waktu (produksi/panjang.lock).
@@ -159,8 +159,14 @@ def main() -> None:
 
         # 4. Laras: ilustrasi
         cat.tahap("laras", "jalan")
+        if not a.uji and not (ROOT / "bible" / "maskot" / "pose" / "bicara.png").exists():
+            # host Yofa belum pernah digambar: buat otomatis (kandidat 1). Zona bisa ganti kapan saja di Studio → Gaya & host.
+            cat.tahap("laras", "jalan", "menggambar host Yofa pertama kali…")
+            jalan([PY, "agents/panjang/maskot.py", "otomatis"], 30 * 60)
         if not st_panjang.sudah(slug, "ilustrasi"):
-            jalan([PY, "agents/panjang/ilustrasi.py", slug, *(["--uji"] if a.uji else [])], 60 * 60)
+            if jalan([PY, "agents/panjang/ilustrasi.py", slug, *(["--uji"] if a.uji else [])], 60 * 60) == 5:
+                cat.tahap("laras", "gagal", "Kuota gambar gratis Cloudflare hari ini habis. Lanjutkan setelah 07:00 WIB.")
+                return cat.akhir("gagal", "Berhenti di tahap ilustrasi (kuota gambar habis). Tekan Lanjutkan setelah 07:00 WIB.")
         n_il = len(list((vdir / "ilustrasi").glob("*.jpg"))) if (vdir / "ilustrasi").is_dir() else 0
         cat.tahap("laras", "ok", f"{n_il} gambar")
 

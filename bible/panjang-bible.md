@@ -1,7 +1,8 @@
 # Bible video panjang Yofamo (Ruang Animasi)
 
-Video YouTube 5–8 menit, 16:9, **full animasi kartun Sabtu pagi 80-an**: garis tinta tebal, cel shading, warna jenuh,
-gerak "on twos". Membahas satu teknologi nyata sampai tuntas: apa itu, kenapa penting, cara kerjanya, bukti/angka, dampak, masa depan.
+Video YouTube 5–8 menit, 16:9, **full animasi gaya lukis-komik hibrida** (dari prompt gaya Zona): bentuk 3D dipahat +
+tekstur lukis tangan, garis tinta tebal, bayangan dilukis, halftone & cipratan cat pink/cyan/kuning, highlight sapuan kuas,
+latar studio pink. Kamera mulus 24 fps, karakter & huruf "on twos". Membahas satu teknologi nyata sampai tuntas: apa itu, kenapa penting, cara kerjanya, bukti/angka, dampak, masa depan.
 
 ## Struktur (bab = chapter YouTube)
 1. **Pembuka (0:00–0:30)** — dibuka host dengan ciri khas "Tau nggak, …" + janji isi video (apa yang akan penonton pahami di akhir). Tanpa basa-basi, tanpa "halo guys".
@@ -20,4 +21,10 @@ gerak "on twos". Membahas satu teknologi nyata sampai tuntas: apa itu, kenapa pe
 ## Retensi
 - Tiap 45–60 detik ada "kait" baru: pertanyaan, angka mengejutkan, atau janji ("tapi bagian paling gila ada di bab 3").
 - Kata kunci penting diberi `kata_kunci` supaya muncul di layar tepat saat diucapkan.
-- Judul jujur & bikin penasaran (≤ 70 karakter), thumbnail: maskot berekspresi + 2–4 kata besar.
+- Judul jujur & bikin penasaran (≤ 70 karakter), thumbnail: host Yofa berekspresi + objek dramatis + 2–4 kata besar.
+
+## Gaya gambar (prompt ilustrasi)
+- `gambar` cukup menyebut ISI (objek, aksi, sudut/suasana) dalam bahasa Inggris; gaya lukis-komik ditambahkan otomatis oleh Laras
+  dari `bible/gaya-animasi.json` + gambar acuan gaya. Jangan menulis nama gaya, nama film, studio, atau karakter terkenal.
+- Ilustrasi = satu adegan jelas dengan objek utama besar & dramatis (bukan kolase). Objek diagram `bagian` = satu benda utuh.
+- Host Yofa tidak digambar di ilustrasi (dia ditempel sebagai karakter animasi); jangan minta orang di prompt kecuali tangan/siluet anonim.

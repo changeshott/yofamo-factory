@@ -72,7 +72,7 @@ export const TEAM: AgentDef[] = [
   },
 ];
 
-/** Tim Ruang Animasi: video YouTube panjang full animasi kartun 80-an (agents/panjang/). Status kerja per tahap produksi panjang. */
+/** Tim Ruang Animasi: video YouTube panjang full animasi lukis-komik (agents/panjang/). Status kerja per tahap produksi panjang. */
 export const TEAM2: AgentDef[] = [
   {
     id: "bayu", skill: "panjang-ide", job: "panjang", ruang: "animasi", name: "Bayu", role: "Showrunner & riset", desk: [23.8, 2.6], color: "#FF7A2F",
@@ -94,13 +94,13 @@ export const TEAM2: AgentDef[] = [
   },
   {
     id: "laras", skill: "panjang-naskah", job: "panjang", ruang: "animasi", name: "Laras", role: "Ilustrator", desk: [23.8, 7.0], color: "#FFD23F",
-    about: "Menggambar ilustrasi kartun Sabtu pagi 80-an (garis tebal, cel shading, warna jenuh) untuk tiap adegan & thumbnail lewat FLUX gratis, tanpa tulisan, logo, atau orang sungguhan.",
+    about: "Menggambar host Yofa & ilustrasi gaya lukis-komik (3D dipahat + tekstur lukis, halftone, cipratan pink/cyan) untuk tiap adegan, objek diagram & thumbnail lewat FLUX.2 klein gratis dengan gambar acuan gaya, tanpa tulisan, logo, atau orang sungguhan.",
     look: { skin: "#F3CFB0", hair: "#2E2140", shirt: "#FFD23F", pants: "#3A3550", accent: "#F2385A", style: "bun" },
     busy: { p_ilustrasi: "Menggambar ilustrasi…" },
   },
   {
     id: "tio", skill: "panjang-naskah", job: "panjang", ruang: "animasi", name: "Tio", role: "Animator", desk: [27.6, 7.0], color: "#6B3FD4",
-    about: "Menganimasikan tiap adegan dengan HyperFrames: maskot Yofa yang mulutnya ikut narasi & berekspresi, diagram yang muncul saat dijelaskan, kartu bab, transisi iris/bintang khas kartun 80-an, gerak on twos.",
+    about: "Menganimasikan tiap adegan dengan HyperFrames: maskot Yofa yang mulutnya ikut narasi & berekspresi, diagram yang muncul saat dijelaskan, kartu bab, latar studio pink yang dilukis kuas, stiker kata kunci, transisi halftone/cipratan/sobek; kamera mulus, karakter on twos.",
     look: { skin: "#E0AC86", hair: "#3B2A20", shirt: "#6B3FD4", pants: "#2A2F3A", accent: "#19C6C6", style: "curly", glasses: true },
     busy: { p_animasi: "Menganimasikan adegan…" },
   },

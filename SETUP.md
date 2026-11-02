@@ -154,9 +154,10 @@ Melepas penjadwal: `pasang_autopilot.bat hapus`. Mematikan sementara: tombol **M
 
 ## Ruang Animasi: video YouTube panjang full animasi
 
-Kantor kedua di Studio (sebelah kanan kantor Shorts). Tidak perlu pemasangan baru: memakai HyperFrames (`npm install` di folder project, Node 22+), edge-tts, dan kunci Cloudflare FLUX yang sama dengan Shorts (`CLOUDFLARE_ACCOUNT_ID` & `CLOUDFLARE_API_TOKEN` di `.env`) untuk ilustrasi kartun.
+Kantor kedua di Studio (sebelah kanan kantor Shorts). Tidak perlu pemasangan baru: memakai HyperFrames (`npm install` di folder project, Node 22+), edge-tts, dan kunci Cloudflare yang sama dengan Shorts (`CLOUDFLARE_ACCOUNT_ID` & `CLOUDFLARE_API_TOKEN` di `.env`). Gambar gaya lukis-komik dibuat model **FLUX.2 klein-4b** (gratis, bisa memakai gambar acuan supaya host & gaya konsisten): ±70 gambar/hari dari kuota gratis 10.000 neuron, reset 07:00 WIB. Satu video ±10–20 gambar; host pertama kali ±12 gambar.
 
+0. Pertama kali: Studio → **Ruang Animasi** → **Gaya & host Yofa** → **Gambar 4 kandidat host** → klik **Pakai** pada yang paling kamu suka (Laras lalu menggambar 7 pose + acuan gaya). Kalau dilewati, Laras memakai kandidat pertama otomatis saat video pertama dibuat. Ganti host kapan saja dengan cara yang sama (`python agents/panjang/maskot.py kandidat` / `pakai <n>`).
 1. Buka Studio → klik **Ruang Animasi** di sidebar (atau mesin arcade di kantor) → isi arahan tema (opsional) → **Buat**.
-2. Tim bekerja di latar (±2–4 jam per video 5–8 menit). Shorts tetap didahulukan: render video panjang menunggu kalau produksi Shorts sedang jalan.
+2. Tim bekerja di latar (±3–6 jam per video 5–8 menit: render 24 fps kualitas tinggi memang lama, demi hasil bagus). Shorts tetap didahulukan: render video panjang menunggu kalau produksi Shorts sedang jalan.
 3. Video jadi → tonton di panel → **Setujui** → pilih jadwal (kosong = jam terbaik besok) → **Unggah**. Thumbnail khusus butuh channel yang sudah verifikasi nomor HP; kalau belum, pasang `export/thumbnail.jpg` manual di YouTube Studio.
-4. Terputus di tengah? Klik **Lanjutkan**: adegan yang sudah dirender tidak diulang.
+4. Terputus di tengah (atau kuota gambar habis)? Klik **Lanjutkan**: gambar & adegan yang sudah jadi tidak diulang.

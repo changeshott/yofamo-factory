@@ -833,10 +833,35 @@ interface VidPJ {
   final: boolean; thumbnail: boolean; lembar: boolean; info: { durasi?: number; bab?: { t: number; judul: string }[]; dibuat?: string; uji?: boolean } | null;
   qc: { lolos?: boolean; masalah?: string[]; catatan?: string[] } | null; upload: { url?: string; studio?: string; jadwal?: string } | null;
 }
+interface MaskotPJ { kandidat: number[]; pose: string[]; utama: boolean; acuan: boolean; versi: number; berjalan: boolean; status: string; pesan: string }
 const STATUS_PJ: Record<string, string> = { ide: "Riset", naskah: "Naskah", suara: "Suara", ilustrasi: "Ilustrasi", animasi: "Animasi", draft: "Siap ditonton", export: "Disetujui", terbit: "Terbit", ditolak: "Ditolak" };
 
+function HostYofa({ m, aksi }: { m: MaskotPJ; aksi: (b: Record<string, string>) => Promise<void> }) {
+  const src = (f: string) => `/api/panjang?maskot=${encodeURIComponent(f)}&v=${m.versi}`;
+  const siap = m.pose.includes("diam") && m.pose.includes("bicara");
+  return (<>
+    <H3>Gaya &amp; host Yofa</H3>
+    <Muted>Host & semua gambar dibuat FLUX.2 klein (gratis, ±70 gambar/hari) dengan gaya lukis-komik dari prompt kamu. Pose host dibuat dari satu gambar utama supaya wajahnya selalu sama.{siap ? "" : " Belum ada host: buat kandidat dulu, atau biarkan Laras memilih otomatis saat video pertama dibuat."}</Muted>
+    {siap && <div className="mt-2 grid grid-cols-4 gap-1.5 rounded-lg bg-[#FF2E88]/25 p-1.5">{m.pose.map((p) => (
+      <figure key={p} className="text-center"><img alt={p} loading="lazy" className="aspect-square w-full object-contain" src={src(`pose/${p}.png`)} /><figcaption className="text-xs text-faint">{p}</figcaption></figure>))}
+      {m.acuan && <figure className="col-span-4 mt-1"><img alt="acuan gaya" loading="lazy" className="w-full rounded-md border border-line" src={src("acuan-gaya.jpg")} /><figcaption className="text-xs text-faint">acuan gaya untuk semua ilustrasi</figcaption></figure>}
+    </div>}
+    {m.kandidat.length > 0 && (<>
+      <Muted className="mt-2">Kandidat host — klik <b>Pakai</b> pada yang paling kamu suka:</Muted>
+      <div className="mt-1 grid grid-cols-2 gap-2">{m.kandidat.map((k) => (
+        <div key={k} className="rounded-lg border border-line/70 bg-ink-950/50 p-1.5"><img alt={`kandidat ${k}`} loading="lazy" className="w-full rounded-md" src={src(`kandidat/k${k}.jpg`)} />
+          <Btn size="sm" tone="primary" disabled={m.berjalan} className="mt-1.5 w-full" onClick={() => void aksi({ aksi: "host-pakai", nomor: String(k) })}>Pakai k{k}</Btn></div>))}</div>
+    </>)}
+    <div className="mt-2 flex items-center gap-2">
+      <Btn size="sm" tone={siap ? "ghost" : "primary"} disabled={m.berjalan} onClick={() => void aksi({ aksi: "host-kandidat" })}>{m.kandidat.length ? "Gambar 4 kandidat baru" : "Gambar 4 kandidat host"}</Btn>
+      {m.status && <Pill tone={m.berjalan ? "running" : m.status === "gagal" ? "error" : m.status === "selesai" ? "ok" : "stopped"}>{m.berjalan ? "menggambar…" : m.status}</Pill>}
+    </div>
+    {m.pesan && <Muted className="mt-1">{m.pesan}</Muted>}
+  </>);
+}
+
 export function RuangAnimasiPanel({ ctx, def }: { ctx: PanelCtx; def?: AgentDef }) {
-  const [d, setD] = useState<{ videos: VidPJ[]; produksi: ProdPJ[]; berjalan: boolean } | null>(null);
+  const [d, setD] = useState<{ videos: VidPJ[]; produksi: ProdPJ[]; berjalan: boolean; maskot?: MaskotPJ } | null>(null);
   const [tema, setTema] = useState("");
   const [pesan, setPesan] = useState("");
   const [jadwal, setJadwal] = useState<Record<string, string>>({});
@@ -850,13 +875,14 @@ export function RuangAnimasiPanel({ ctx, def }: { ctx: PanelCtx; def?: AgentDef 
   const p = d.produksi[0], jalan = p?.status === "berjalan";
   const media = (slug: string, file: string, v?: string) => `/api/panjang?slug=${slug}&file=${encodeURIComponent(file)}&v=${encodeURIComponent(v ?? "")}`;
   return (<>
-    {def ? <p>{def.about}</p> : <p>Ruang Animasi membuat video YouTube panjang 5–8 menit, full animasi kartun Sabtu pagi 80-an, dengan host orisinal <b>Yofa</b>. Tim: Bayu (riset) → Citra (naskah adegan) → Gilang (suara) → Laras (ilustrasi) → Tio (animasi) → Wulan (rakit & QC).</p>}
+    {def ? <p>{def.about}</p> : <p>Ruang Animasi membuat video YouTube panjang 5–8 menit, full animasi gaya lukis-komik (3D dipahat + tekstur lukis, halftone, cipratan pink/cyan), dengan host orisinal <b>Yofa</b>. Tim: Bayu (riset) → Citra (naskah adegan) → Gilang (suara) → Laras (host & ilustrasi) → Tio (animasi) → Wulan (rakit & QC).</p>}
+    {d.maskot && <HostYofa m={d.maskot} aksi={aksi} />}
     <H3>Buat video panjang</H3>
     <div className="flex gap-2">
       <input value={tema} onChange={(e) => setTema(e.target.value)} placeholder="Arahan tema (opsional), mis. baterai solid-state" className="min-w-0 flex-1 rounded-md border border-line bg-ink-950 px-2.5 py-2 text-sm" />
       <Btn tone="primary" disabled={d.berjalan || !ctx.state.health.claude} onClick={() => void aksi({ aksi: "buat", tema })}>Buat</Btn>
     </div>
-    <Muted className="mt-1.5">±2–4 jam per video di laptop. Berjalan di latar dengan prioritas rendah; tiap adegan menunggu kalau produksi Shorts sedang jalan, jadi Shorts tetap didahulukan. Video jadi menunggu kamu tonton & setujui.</Muted>
+    <Muted className="mt-1.5">±3–6 jam per video di laptop (render 24 fps kualitas tinggi). Berjalan di latar dengan prioritas rendah; tiap adegan menunggu kalau produksi Shorts sedang jalan, jadi Shorts tetap didahulukan. Video jadi menunggu kamu tonton & setujui.</Muted>
     {p && (<>
       <H3>Produksi terakhir</H3>
       <div className="rounded-lg border border-line/70 bg-ink-950/60 p-3 text-sm">

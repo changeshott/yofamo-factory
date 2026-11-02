@@ -79,7 +79,7 @@ def srt_waktu(t: float) -> str:
 
 
 def thumbnail(vdir: Path, naskah: dict, out: Path) -> None:
-    """Thumbnail 80-an: maskot berekspresi + ilustrasi + 2–4 kata besar (dirender HyperFrames, diambil 1 frame)."""
+    """Thumbnail lukis-komik: host Yofa berekspresi + ilustrasi + 2–4 kata besar (dirender HyperFrames, diambil 1 frame)."""
     th = naskah.get("thumbnail") or {}
     g = animasi.gaya()
     il = vdir / "ilustrasi" / "thumbnail.jpg"

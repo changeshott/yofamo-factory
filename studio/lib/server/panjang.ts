@@ -81,3 +81,29 @@ export function unggahPanjang(slug: string, jadwal: string): { ok: boolean; mess
   const r = jalankan(args, `upload-panjang-${stamp()}.txt`);
   return r.ok ? { ok: true, message: "Uli mulai mengunggah video panjang (private + jadwal tayang). Lihat log di Kelola." } : r;
 }
+
+/* ---------------- host Yofa & gaya (agents/panjang/maskot.py) ---------------- */
+export const MASKOT = path.join(ROOT, "bible", "maskot");
+export const FILE_MASKOT = /^(kandidat\/k[1-4]\.(jpg|png)|pose\/[a-z]{3,12}\.png|utama\.(jpg|png)|acuan-gaya\.jpg)$/;
+
+export interface StatusMaskot { kandidat: number[]; pose: string[]; utama: boolean; acuan: boolean; versi: number; berjalan: boolean; status: string; pesan: string }
+
+export function statusMaskot(): StatusMaskot {
+  const ada = (f: string) => fs.existsSync(path.join(MASKOT, f));
+  let pose: string[] = [];
+  try { pose = fs.readdirSync(path.join(MASKOT, "pose")).filter((f) => /^[a-z]{3,12}\.png$/.test(f)).map((f) => f.slice(0, -4)).sort(); } catch { /* belum ada */ }
+  let versi = 0;
+  try { versi = Math.round(fs.statSync(path.join(MASKOT, "pose")).mtimeMs); } catch { /* belum ada */ }
+  try { versi = Math.max(versi, Math.round(fs.statSync(path.join(MASKOT, "kandidat")).mtimeMs)); } catch { /* belum ada */ }
+  const st = baca<{ status?: string; pesan?: string }>(path.join(P.produksi, "maskot.json")) ?? {};
+  const berjalan = !!kunciAktif("maskot.lock");
+  return { kandidat: [1, 2, 3, 4].filter((i) => ada(`kandidat/k${i}.jpg`)), pose, utama: ada("utama.png"), acuan: ada("acuan-gaya.jpg"), versi,
+    berjalan, status: berjalan ? "berjalan" : st.status === "berjalan" ? "terhenti" : st.status ?? "", pesan: st.pesan ?? "" };
+}
+
+export function jalankanMaskot(perintah: "kandidat" | "pakai", nomor = 1): { ok: boolean; message: string } {
+  if (kunciAktif("maskot.lock")) return { ok: false, message: "Host sedang digambar. Tunggu selesai." };
+  const args = ["agents/panjang/maskot.py", perintah, ...(perintah === "pakai" ? [String(Math.max(1, Math.min(4, nomor)))] : [])];
+  const r = jalankan(args, `maskot-${stamp()}.txt`);
+  return r.ok ? { ok: true, message: perintah === "kandidat" ? "Laras menggambar 4 kandidat host (±1–2 menit)." : "Laras menggambar 7 pose host + acuan gaya (±3 menit)." } : r;
+}

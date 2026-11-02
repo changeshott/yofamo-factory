@@ -21,3 +21,6 @@ rahasia/
 .venv-suara/
 suara-khas/
 /node_modules/
+
+# host Yofa & acuan gaya: digambar di laptop (agents/panjang/maskot.py), bukan bagian kode
+bible/maskot/

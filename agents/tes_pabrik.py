@@ -80,8 +80,8 @@ def cek(nama: str, ok: bool, info: str = "") -> bool:
     return ok
 
 
-def run(root: Path, *args: str, timeout: int = 900) -> subprocess.CompletedProcess:
-    env = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+def run(root: Path, *args: str, timeout: int = 900, env_extra: dict | None = None) -> subprocess.CompletedProcess:
+    env = {**os.environ, "PYTHONIOENCODING": "utf-8", **(env_extra or {})}
     return subprocess.run([PY, *args], cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout, env=env)
 
 
@@ -370,12 +370,29 @@ def offline() -> None:
         wpj = json.loads((pdir / "suara" / "waktu.json").read_text(encoding="utf-8")) if (pdir / "suara" / "waktu.json").exists() else {}
         cek("Ruang Animasi: suara + timing kata & ilustrasi per adegan", r1.returncode == 0 and r2.returncode == 0 and len(wpj) == 10
             and len(list((pdir / "ilustrasi").glob("*.jpg"))) >= 3, (r1.stdout + r1.stderr + r2.stderr)[-200:] if r1.returncode or r2.returncode else f"{len(wpj)} adegan")
+        from PIL import Image
+        objek = pdir / "ilustrasi" / "04.png"
+        cek("Ruang Animasi: objek diagram dipotong dari latar pink → PNG transparan", objek.exists() and Image.open(objek).getchannel("A").getextrema()[0] == 0)
+        # host Yofa (mode uji: gambar pengganti di produksi/uji-maskot, bible/maskot tidak tersentuh)
+        sebelum = sorted(p.name for p in (tmp / "bible" / "maskot").rglob("*")) if (tmp / "bible" / "maskot").is_dir() else []
+        r = run(tmp, "agents/panjang/maskot.py", "otomatis", "--uji")
+        pose_dir = tmp / "produksi" / "uji-maskot" / "pose"
+        pose = sorted(p.stem for p in pose_dir.glob("*.png"))
+        sesudah = sorted(p.name for p in (tmp / "bible" / "maskot").rglob("*")) if (tmp / "bible" / "maskot").is_dir() else []
+        ukuran = {Image.open(p).size for p in pose_dir.glob("*.png")}
+        cek("Host Yofa: 4 kandidat → 7 pose transparan berkanvas sama (sejajar), bible tidak tersentuh saat uji",
+            r.returncode == 0 and len(pose) == 7 and {"diam", "bicara"} <= set(pose) and len(ukuran) == 1 and sebelum == sesudah
+            and len(list((tmp / "produksi" / "uji-maskot" / "kandidat").glob("k*.jpg"))) == 4, (r.stdout + r.stderr)[-200:] if r.returncode else f"{pose}")
         try:
             import playwright  # noqa: F401
             r = run(tmp, "agents/panjang/animasi.py", pslug, "--pratinjau")
             foto = list((pdir / "adegan").glob("pratinjau-*.jpg"))
             cek("Ruang Animasi: semua adegan (host, bab, ilustrasi, diagram, penutup) terbangun tanpa error", r.returncode == 0 and len(foto) == 30,
                 f"{len(foto)} frame" if r.returncode == 0 else (r.stdout + r.stderr)[-300:])
+            r = run(tmp, "agents/panjang/animasi.py", pslug, "--pratinjau", env_extra={"YOFAMO_POSE_DIR": str(pose_dir)})
+            cek("Ruang Animasi: host gambar AI (pose PNG + mulut ikut suku kata) terbangun tanpa error",
+                r.returncode == 0 and (pdir / "hf" / "01" / "assets" / "maskot" / "bicara.png").exists() and '"bicara"' in (pdir / "hf" / "01" / "index.html").read_text(encoding="utf-8"),
+                (r.stdout + r.stderr)[-300:] if r.returncode else "")
         except ImportError:
             print("  (lewati pratinjau animasi: playwright tidak terpasang)")
 

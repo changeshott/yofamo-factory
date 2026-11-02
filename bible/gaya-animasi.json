@@ -1,17 +1,89 @@
 {
-  "resolusi": [1920, 1080],
-  "fps_render": 12,
+  "resolusi": [
+    1920,
+    1080
+  ],
+  "fps_render": 24,
   "fps_keluar": 24,
-  "durasi_menit": [5, 8],
-  "suara": {"voice": "id-ID-ArdiNeural", "rate": "+6%", "jeda_antar_adegan": 0.35, "judul_bab_detik": 2.6},
-  "musik_di_bawah_narasi_db": 16,
-  "warna": {"tinta": "14101F", "kuning": "FFD23F", "oranye": "FF7A2F", "merah": "F2385A", "ungu": "6B3FD4", "biru": "2F6BFF", "toska": "19C6C6", "hijau": "39D36B", "krem": "FFF4DC"},
-  "sinar": [["FF7A2F", "FFD23F"], ["2F6BFF", "19C6C6"], ["F2385A", "FF7A2F"], ["6B3FD4", "2F6BFF"], ["39D36B", "19C6C6"]],
-  "ilustrasi": {
-    "gaya": "2D Saturday morning cartoon illustration inspired by 1980s television animation, bold thick black outlines, dramatic cel shading, vibrant saturated colors, flat painted background, highly stylized cartoon rendering, clean centered composition",
-    "larangan": "no text, no letters, no words, no numbers, no logos, no watermark, no real people, no celebrities, no brand names",
-    "objek": "single object centered, isolated on a flat pale cream background, no shadow clutter"
+  "durasi_menit": [
+    5,
+    8
+  ],
+  "suara": {
+    "voice": "id-ID-ArdiNeural",
+    "rate": "+6%",
+    "jeda_antar_adegan": 0.35,
+    "judul_bab_detik": 2.6
   },
-  "maskot": {"nama": "Yofa", "deskripsi": "Host kartun orisinal Yofamo: pemuda Indonesia berjambul hitam, jaket bomber biru dengan lencana Y kuning, headset oranye. Digambar SVG di agents/panjang/adegan.html (bukan gambar AI) supaya selalu konsisten dan mulutnya bisa bergerak mengikuti narasi."},
-  "_catatan": "Gaya kartun Sabtu pagi 80-an: garis tinta tebal, cel shading, warna jenuh, gerak 'on twos' (12 fps ditampilkan 24 fps). Ilustrasi dibuat FLUX (Cloudflare, gratis) dengan awalan gaya ini; maskot, diagram, kartu judul, dan transisi digambar kode (HyperFrames)."
+  "musik_di_bawah_narasi_db": 16,
+  "warna": {
+    "tinta": "120A1F",
+    "pink": "FF2E88",
+    "pink_muda": "FF8FC4",
+    "cyan": "19D3FF",
+    "kuning": "FFE14D",
+    "ungu": "6B3FD4",
+    "oranye": "FF7A2F",
+    "hijau": "39D36B",
+    "krem": "FFF4E6",
+    "biru": "2F6BFF"
+  },
+  "sinar": [
+    [
+      "FF2E88",
+      "FF8FC4"
+    ],
+    [
+      "19D3FF",
+      "6B3FD4"
+    ],
+    [
+      "FFE14D",
+      "FF7A2F"
+    ],
+    [
+      "6B3FD4",
+      "FF2E88"
+    ],
+    [
+      "39D36B",
+      "19D3FF"
+    ]
+  ],
+  "ilustrasi": {
+    "model": "flux-2-klein-4b",
+    "ukuran": [
+      1536,
+      864
+    ],
+    "gaya": "A painterly exaggerated cartoon illustration combining sculpted 3D forms with hand-painted illustration textures, comic-book inspired visual language with offset-print halftone dots, distorted geometry and expressive asymmetry, bold ink line work mixed with painted shadows, halftone textures and vivid color splashes of hot pink, cyan and yellow, graphic animated-illustration aesthetic, stylized lighting translated into brush-painted highlights, dynamic cinematic composition, rich paint texture, high-end hybrid cartoon render",
+    "larangan": "no text, no letters, no words, no numbers, no logos, no watermark, no signature, no real people, no celebrities, no brand names, no frames or borders",
+    "objek": "single object centered and fully visible, isolated on a solid flat pink studio background, no floor, no props",
+    "acuan_gaya": "Use the painting style, line work, halftone texture and color palette of the reference image."
+  },
+  "maskot": {
+    "nama": "Yofa",
+    "deskripsi": "Host orisinal Yofamo: pemuda Indonesia ramah & cerdas, rambut hitam bergelombang disisir ke atas, alis tebal, jaket bomber biru elektrik dengan lencana bulat kuning berhuruf Y, kaos putih, headset oranye dengan mikrofon kecil. Digambar AI dengan gaya lukis-komik yang sama (agents/panjang/maskot.py), dikunci dari satu gambar utama supaya wajahnya konsisten.",
+    "prompt": "original cartoon host character, a friendly smart young Indonesian man in his twenties, wavy black hair swept upward, thick expressive eyebrows, warm brown skin, electric blue bomber jacket with a round yellow badge, white t-shirt, orange over-ear headset with a small microphone, shoulders-up portrait, centered, facing the viewer",
+    "latar": "solid flat pink studio background, nothing else in the background",
+    "pose": {
+      "diam": "calm confident expression, mouth closed with a slight smile",
+      "bicara": "talking to the viewer, mouth open mid-sentence, lively eyes",
+      "senang": "big happy grin showing teeth, eyes bright",
+      "kaget": "shocked surprised expression, eyebrows raised high, mouth wide open in an O shape",
+      "mikir": "thinking expression, one eyebrow raised, looking up to the side, hand on chin",
+      "serius": "serious focused expression, slight frown, eyes narrowed with determination",
+      "menunjuk": "pointing to the side with one finger, excited expression, mouth open"
+    }
+  },
+  "_catatan": "Gaya video panjang (dari prompt Zona): lukis-komik hibrida — bentuk 3D dipahat + tekstur lukis tangan, garis tinta tebal, bayangan dilukis, halftone & cipratan warna pink/cyan/kuning, highlight sapuan kuas. Semua gambar (host Yofa, adegan, objek, thumbnail) dibuat FLUX.2 klein dengan GAMBAR ACUAN (bible/maskot/utama.png untuk host, bible/maskot/acuan-gaya.jpg untuk gaya) supaya konsisten. Render 24 fps: kamera & efek mulus (on ones), karakter & huruf bergerak 'on twos' 12 fps seperti film animasi lukis-komik. Motion graphic (judul, diagram, kartu bab, transisi) digambar kode dengan bahasa visual yang sama: halftone, cipratan cat, huruf dengan bayangan cetak meleset pink/cyan.",
+  "nama_gaya": "Lukis-komik hibrida (painterly 3D + ilustrasi tangan, halftone, cipratan warna)",
+  "kualitas_render": "high",
+  "fps_gerak": 12,
+  "latar_studio": [
+    "FF2E88",
+    "FF5CA8",
+    "19D3FF",
+    "FFE14D"
+  ]
 }
