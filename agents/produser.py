@@ -375,7 +375,21 @@ def main() -> None:
         elif a.uji or a.visual == "cepat":
             jalan([PY, "agents/qc/periksa.py", "otomatis", slug, *(["--uji"] if a.uji else [])], 75 * 60)
         else:
-            claude(f"/qc {slug}", tools("agents/pabrik.py", "agents/qc/periksa.py"), 90 * 60)
+            alat_qc = tools("agents/pabrik.py", "agents/qc/periksa.py", "agents/editor/rakit.py", "agents/aset/cari_aset.py")
+            claude(f"/qc {slug}", alat_qc, 90 * 60)
+            # jaring pengaman: kalau Rara sudah mengganti shot tapi rakit ulangnya terputus (mis. batas waktu perintah),
+            # produser menyelesaikan rakit ulang, lalu Rara menilai sekali lagi
+            mf = ROOT / "videos" / slug / "aset" / "manifest.json"
+            fin = exp / "final.mp4"
+            if videos().get(slug) != "draft" or not fin.exists() or (mf.exists() and fin.stat().st_mtime < mf.stat().st_mtime):
+                cat.tahap("rara", "jalan", "shot sudah diganti Rara, Kai merakit ulang")
+                if videos().get(slug) == "aset" and jalan([PY, "agents/editor/rakit.py", slug], 45 * 60) == 0:
+                    jalan([PY, "agents/qc/periksa.py", "cek", slug], 20 * 60)
+                    cat.tahap("rara", "jalan", "Rara menilai hasil rakit ulang")
+                    claude(f"/qc {slug} (putaran sesudah rakit ulang: nilai hasil akhir, tulis qc_review.json)", alat_qc, 60 * 60)
+            if videos().get(slug) != "draft" or not fin.exists():
+                cat.tahap("rara", "gagal", f"Video belum selesai dirakit ulang (status {videos().get(slug)}). Lanjutkan dari kartu video.")
+                return cat.akhir("gagal", "Berhenti di tahap QC: rakit ulang belum selesai.")
         q = rj(ROOT / "videos" / slug / "export" / "qc.json")
         rv = rj(ROOT / "videos" / slug / "export" / "qc_review.json")
         info = []
@@ -397,6 +411,9 @@ def main() -> None:
 
 
 os.environ.setdefault("PYTHONIOENCODING", "utf-8")   # semua script anak mencetak UTF-8 (Windows: pipa cp1252)
+# Claude Code memotong perintah Bash setelah 2–10 menit; rakit ulang Kai di laptop bisa ±20 menit → izinkan sampai 1 jam
+os.environ.setdefault("BASH_DEFAULT_TIMEOUT_MS", "3600000")
+os.environ.setdefault("BASH_MAX_TIMEOUT_MS", "3600000")
 os.environ.setdefault("PYTHONUTF8", "1")
 
 if __name__ == "__main__":

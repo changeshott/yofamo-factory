@@ -762,9 +762,9 @@ export function MusikPanel({ ctx }: { ctx: PanelCtx }) {
 /* ---------------------------------------------------------------- autopilot (meja Uli) */
 interface SlotAP { jam: string; eksplorasi: boolean; alasan: string; isi: { slug: string; status: string; url?: string; alasan?: string } | null }
 interface DataAP {
-  config: { aktif?: boolean; video_per_hari?: number; isi_hari?: number; setujui_otomatis?: boolean; skor_qc_min?: number };
+  config: { aktif?: boolean; video_per_hari?: number; isi_hari?: number; setujui_otomatis?: boolean; skor_qc_min?: number; jalan_saat_studio_dibuka?: boolean };
   slot: { tanggal: string; slot: SlotAP[] }[]; catatan: string[]; produksi_hari_ini: number; putaran_terakhir: string | null;
-  jeda_sampai: string | null; menunggu_zona: Record<string, string>; berjalan: boolean; tugas: boolean | null; log: string[];
+  jeda_sampai: string | null; menunggu_zona: Record<string, string>; berjalan: boolean; tugas: boolean | null; log: string[]; selesai: string | null;
 }
 export function AutopilotPanel({ ctx }: { ctx: PanelCtx }) {
   const [d, setD] = useState<DataAP | null>(null);
@@ -779,10 +779,13 @@ export function AutopilotPanel({ ctx }: { ctx: PanelCtx }) {
   const c = d.config, judul = (slug: string) => ctx.state.videos.find((v) => v.slug === slug)?.judul_kerja ?? slug;
   return (<>
     <div className="flex flex-wrap items-center gap-2">
-      <Pill tone={c.aktif ? (d.berjalan ? "running" : "ok") : "stopped"}>{c.aktif ? (d.berjalan ? "aktif · sedang bekerja" : "aktif") : "mati"}</Pill>
-      <Btn size="sm" tone={c.aktif ? "ghost" : "primary"} onClick={() => void ubah({ aktif: !c.aktif })}>{c.aktif ? "Matikan" : "Nyalakan autopilot"}</Btn>
-      <Btn size="sm" disabled={d.berjalan || !c.aktif} onClick={() => void ubah({ jalan: true })}>Jalankan sekarang</Btn>
+      <Pill tone={d.berjalan ? "running" : c.aktif ? "ok" : "stopped"}>{d.berjalan ? "sedang membuat video" : c.aktif ? "aktif" : d.selesai ? "selesai · stok lengkap" : "mati"}</Pill>
+      {c.aktif || d.berjalan
+        ? <Btn size="sm" tone="ghost" onClick={() => void ubah({ aktif: false })}>Matikan</Btn>
+        : <Btn size="sm" tone="primary" onClick={() => void ubah({ aktif: true })}>Jalankan sekarang</Btn>}
     </div>
+    <label className="mt-2 flex items-center gap-2 text-sm"><input type="checkbox" checked={c.jalan_saat_studio_dibuka ?? true} onChange={(e) => void ubah({ jalan_saat_studio_dibuka: e.target.checked })} />
+      Jalan otomatis saat Studio dibuka, lalu mati sendiri setelah stok lengkap</label>
     <div className="mt-2 grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1.5 text-sm">
       <span className="text-muted">Video per hari</span>
       <select value={c.video_per_hari ?? 3} onChange={(e) => void ubah({ video_per_hari: +e.target.value })} className="w-20 rounded-md border border-line bg-ink-950 px-2 py-1">
@@ -797,7 +800,7 @@ export function AutopilotPanel({ ctx }: { ctx: PanelCtx }) {
           {[6, 7, 8, 9].map((n) => <option key={n} value={n}>{n}</option>)}</select></label>
       <span className="text-muted">Produksi hari ini</span><span>{d.produksi_hari_ini} video{d.jeda_sampai ? ` · jeda (kuota Claude) sampai ${d.jeda_sampai.slice(11, 16)}` : ""}</span>
     </div>
-    {c.aktif && <Muted className="mt-2">Berjalan otomatis setiap Studio dibuka, lalu tiap jam selama Studio terbuka.{d.tugas === false ? <> Supaya tetap bekerja walau Studio ditutup, klik dua kali <code>pasang_autopilot.bat</code> (opsional).</> : ""}</Muted>}
+    {d.selesai && !c.aktif && !d.berjalan && <Muted className="mt-2 text-leaf">Selesai {d.selesai.slice(0, 16).replace("T", " ")}: semua jam tayang dalam stok sudah punya video. Autopilot jalan lagi saat Studio dibuka berikutnya.</Muted>}
     {d.slot.map((h) => (
       <div key={h.tanggal} className="mt-3">
         <h4 className="mb-1 font-pixel text-sm text-muted">Jadwal tayang {h.tanggal}</h4>

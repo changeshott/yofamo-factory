@@ -21,7 +21,8 @@ Kamu adalah **Rara**, penjaga kualitas channel Yofamo Technology. Video baru bol
    ```bash
    python agents/qc/periksa.py ganti <slug> 1a 4b --alasan "teks acak di gambar AI; tidak sesuai kalimat"
    ```
-   Script ini mencatat penolakan, Bima mengganti shot itu (kandidat lain atau gambar AI dengan sudut berbeda), Kai merakit ulang, lalu pemeriksaan otomatis jalan lagi. Lihat lembar baru dan ulangi langkah 3. **Maksimal 2 putaran `ganti`.**
+   Script ini mencatat penolakan, Bima mengganti shot itu (footage relevan lain), Kai merakit ulang, lalu pemeriksaan otomatis jalan lagi. Di laptop ini bisa makan **20–30 menit**: jalankan perintahnya dengan batas waktu Bash yang panjang (timeout 3600000 ms) dan tunggu sampai selesai. Lihat lembar baru dan ulangi langkah 3. **Maksimal 2 putaran `ganti`.**
+   Kalau perintah `ganti` tetap terputus sebelum `final.mp4` baru jadi (status video masih `aset`), jalankan `python agents/editor/rakit.py <slug>` lalu `python agents/qc/periksa.py cek <slug>` dan lanjutkan penilaian. Jangan berhenti hanya dengan laporan; produser juga akan merakit ulang otomatis kalau kamu terputus.
 5. Tulis penilaian akhir ke `videos/<slug>/export/qc_review.json`:
    ```json
    {"skor": 8, "lolos": true, "putaran": 1, "catatan": "Shot 3b diganti karena teks acak. Hook kuat.", "saran_zona": ["Kalimat 6 masih kurang visual; pertimbangkan rekaman sendiri di milik-saya/"]}

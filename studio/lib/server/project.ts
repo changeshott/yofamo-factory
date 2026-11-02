@@ -111,7 +111,8 @@ export function pythonCmd(): string | null {
 /** Lingkungan untuk proses agent: folder Python terpilih di depan PATH, supaya `python` yang
  *  dipanggil Claude (skill) dan script lain sama dengan Python yang paketnya lengkap. */
 export function agentEnv(): NodeJS.ProcessEnv {
-  const env: NodeJS.ProcessEnv = { ...process.env, PYTHONIOENCODING: "utf-8" };
+  // Claude Code memotong perintah Bash setelah 2–10 menit; rakit ulang Kai di laptop bisa ±20 menit → izinkan sampai 1 jam
+  const env: NodeJS.ProcessEnv = { BASH_DEFAULT_TIMEOUT_MS: "3600000", BASH_MAX_TIMEOUT_MS: "3600000", ...process.env, PYTHONIOENCODING: "utf-8" };
   const py = pythonCmd();
   if (py && path.isAbsolute(py)) {
     const key = Object.keys(env).find((k) => k.toUpperCase() === "PATH") ?? "PATH";

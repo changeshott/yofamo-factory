@@ -1,5 +1,6 @@
 {
   "aktif": true,
+  "jalan_saat_studio_dibuka": true,
   "video_per_hari": 3,
   "isi_hari": 2,
   "setujui_otomatis": true,
@@ -16,5 +17,5 @@
     "eksplorasi": true,
     "slot_tetap": []
   },
-  "_catatan": "Autopilot (agents/autopilot.py) berjalan otomatis tiap kali Studio Yofamo dibuka lalu tiap jam selama Studio terbuka (opsional juga lewat Windows Task Scheduler: pasang_autopilot.bat). Tim mengisi slot tayang hari ini + besok (isi_hari: 2): hari pertama 6 video (3 tayang hari ini, 3 besok), hari berikutnya menambah stok besok. Uli mengunggah private + jadwal tayang di jam terbaik (agents/upload/jadwal.py → insights/jadwal.md). setujui_otomatis: video yang lolos Rara dengan skor >= skor_qc_min langsung disetujui; yang di bawahnya menunggu Zona. slot_tetap: isi misalnya [\"11:00\", \"16:00\", \"19:00\"] kalau ingin jam tetap. maks_produksi_per_hari membatasi pemakaian kuota Claude."
+  "_catatan": "Autopilot (agents/autopilot.py) jalan otomatis saat Studio Yofamo dibuka (jalan_saat_studio_dibuka): tim mengisi semua jam tayang hari ini + besok (isi_hari: 2) — hari pertama 6 video (3 tayang hari ini, 3 besok), hari berikutnya menambah stok besok — lalu MATI SENDIRI setelah stok lengkap (aktif: false) sampai Studio dibuka lagi. Slot hari ini yang terlewat karena video belum siap dipindah ke jam lain hari ini yang masih sempat. Uli mengunggah private + jadwal tayang di jam terbaik (agents/upload/jadwal.py → insights/jadwal.md); YouTube menayangkannya sendiri walau laptop mati. setujui_otomatis: video yang lolos Rara dengan skor >= skor_qc_min langsung disetujui; yang di bawahnya menunggu Zona. slot_tetap: isi misalnya [\"11:00\", \"16:00\", \"19:00\"] kalau ingin jam tetap. maks_produksi_per_hari membatasi pemakaian kuota Claude."
 }

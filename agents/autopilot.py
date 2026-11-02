@@ -100,19 +100,49 @@ def akhir_stok(c: dict) -> datetime:
     return datetime.combine(now().date() + timedelta(days=c["isi_hari"]), datetime.min.time()).replace(tzinfo=WIB)
 
 
+def pengganti(state: dict, data: dict, tgl: str, asli: datetime, jam_hari: list[datetime]) -> datetime | None:
+    """Slot hari ini yang terlewat (video belum siap) dipindah ke jam lain hari ini yang masih sempat:
+    skor jadwal tertinggi, ≥ 1 jam dari sekarang, ≤ jam_akhir, berjarak ≥ 2 jam dari slot lain. Hasilnya dicatat supaya tetap."""
+    peta = state.setdefault("pengganti", {})
+    k = kunci_slot(asli)
+    if k in peta:
+        try:
+            return datetime.strptime(peta[k], "%Y-%m-%d %H:%M").replace(tzinfo=WIB)
+        except ValueError:
+            return None
+    akhir = int((data.get("pengaturan") or {}).get("jam_akhir", 22))
+    lain = [t for t in jam_hari if t != asli] + [datetime.strptime(v, "%Y-%m-%d %H:%M").replace(tzinfo=WIB) for v in peta.values() if v.startswith(tgl)]
+    calon = []
+    for j in data.get("jam") or []:
+        t = datetime.fromisoformat(f"{tgl}T{int(j['jam']):02d}:00").replace(tzinfo=WIB)
+        if t >= now() + timedelta(minutes=60) and t.hour <= akhir and all(abs((t - x).total_seconds()) >= 2 * 3600 for x in lain):
+            calon.append((j["skor"], t))
+    if not calon:
+        return None
+    t = max(calon)[1]
+    peta[k] = kunci_slot(t)
+    log(f"slot {asli.strftime('%H:%M')} terlewat (video belum siap) → diganti {t.strftime('%H:%M')} hari ini")
+    return t
+
+
 def slot_ke_depan(state: dict, n: int, jam_ke_depan: float = 48, batas: datetime | None = None) -> list[datetime]:
     data = rj(jadwal.OUT_JSON)
     out: list[datetime] = []
     ujung = min(now() + timedelta(hours=jam_ke_depan), batas) if batas else now() + timedelta(hours=jam_ke_depan)
+    hari_ini = now().date().isoformat()
     for tgl, slots in (data.get("slot") or {}).items():
+        jam_hari = []
         for s in slots[:n]:
             try:
-                t = datetime.fromisoformat(f"{tgl}T{s['jam']}").replace(tzinfo=WIB)
+                jam_hari.append(datetime.fromisoformat(f"{tgl}T{s['jam']}").replace(tzinfo=WIB))
             except (ValueError, KeyError):
                 continue
+        for t in jam_hari:
+            if tgl == hari_ini and t < now() + timedelta(minutes=20) and kunci_slot(t) not in state["slot"]:
+                t = pengganti(state, data, tgl, t, jam_hari) or t      # 3 video tetap tayang hari ini kalau masih sempat
             if now() + timedelta(minutes=20) <= t < ujung and kunci_slot(t) not in state["slot"]:
                 out.append(t)
-    return sorted(out)
+    return sorted(set(out))
 
 
 def kunci_slot(t: datetime) -> str:
@@ -222,12 +252,37 @@ def tandai_tayang(state: dict) -> None:
 
 
 # ------------------------------------------------------------------ produksi
-def produksi(state: dict, c: dict) -> str | None:
+def macet(state: dict) -> list[str]:
+    """Video dari 'Buat video'/autopilot (3 hari terakhir) yang berhenti di tengah jalan (mis. rakit ulang terputus):
+    dilanjutkan dulu sebelum membuat video baru — lebih hemat daripada mulai dari nol."""
+    vids = daftar_video()
+    out = []
+    batas = time.time() - 3 * 86400
+    for f in sorted((ROOT / "produksi").glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+        if f.name in ("autopilot.json", "antrean.json") or f.stat().st_mtime < batas:
+            continue
+        rec = rj(f)
+        slug = rec.get("slug")
+        if not slug or slug in out or rec.get("status") == "berjalan" or (rec.get("opsi") or {}).get("uji") and not UJI:
+            continue
+        st = vids.get(slug)
+        exp, mf = VIDEOS / slug / "export", VIDEOS / slug / "aset" / "manifest.json"
+        fin = exp / "final.mp4"
+        selesai = st == "draft" and fin.exists() and not (mf.exists() and fin.stat().st_mtime < mf.stat().st_mtime)
+        if st in ("disetujui", "naskah", "suara", "aset", "draft") and not selesai and state.setdefault("dilanjutkan", {}).get(slug, 0) < 2:
+            out.append(slug)
+    return out
+
+
+def produksi(state: dict, c: dict, lanjut: str = "") -> str | None:
     pid = f"autopilot-{datetime.now(WIB).strftime('%Y%m%d-%H%M%S')}"
     args = [PY, str(ROOT / "agents" / "produser.py"), c["arahan"], "--suara", c["suara"], "--visual", c["visual"], "--id", pid]
+    if lanjut:
+        args += ["--lanjut", lanjut]
+        state.setdefault("dilanjutkan", {})[lanjut] = state["dilanjutkan"].get(lanjut, 0) + 1
     if UJI:
         args.append("--uji")
-    log(f"memproduksi video baru ({pid})…")
+    log(f"melanjutkan video yang terhenti: {lanjut} ({pid})…" if lanjut else f"memproduksi video baru ({pid})…")
     lf = ROOT / "logs" / f"produksi-{pid}.txt"
     lf.parent.mkdir(exist_ok=True)
     with lf.open("w", encoding="utf-8") as f:
@@ -287,6 +342,9 @@ def putaran(paksa: bool = False) -> None:
             hari = now().date().isoformat()
             if perlu <= 0:
                 break
+            if not cfg()["aktif"] and not paksa:
+                log("autopilot dimatikan Zona → berhenti setelah video terakhir")
+                break
             if state.get("jeda_sampai") and now() < datetime.fromisoformat(state["jeda_sampai"]).replace(tzinfo=WIB):
                 log(f"jeda produksi sampai {state['jeda_sampai']} (kuota Claude)")
                 break
@@ -295,12 +353,18 @@ def putaran(paksa: bool = False) -> None:
                 break
             log(f"{perlu} slot tayang belum punya video → produksi")
             wj(STATE, state)
-            produksi(state, c)
+            terhenti = macet(state)
+            produksi(state, c, terhenti[0] if terhenti else "")
             wj(STATE, state)
             isi_slot(state, c)
         if not UJI:                            # hemat ruang: cache lama & file video yang sudah diupload
             subprocess.run([PY, str(ROOT / "agents" / "bersih.py"), "semua", "--otomatis"], cwd=ROOT, capture_output=True)
         state["putaran_terakhir"] = now().isoformat(timespec="seconds")
+        # stok lengkap (semua jam tayang hari ini + besok sudah punya video) → autopilot mati sendiri sampai Studio dibuka lagi
+        if not slot_ke_depan(state, c["n"], 24 * c["isi_hari"], akhir_stok(c)):
+            state["selesai"] = now().isoformat(timespec="minutes")
+            if cfg()["aktif"]:
+                setel_aktif(False, "stok selesai")
         state["slot"] = dict(sorted(state["slot"].items())[-60:])
         state["dibuat"] = state["dibuat"][-60:]
     finally:
@@ -315,17 +379,22 @@ def ringkas(state: dict, c: dict) -> None:
         slots = (rj(jadwal.OUT_JSON).get("slot") or {}).get(d.isoformat(), [])[:c["n"]]
         isi = []
         for s in slots:
-            v = state["slot"].get(f"{d.isoformat()} {s['jam']}")
-            isi.append(f"{s['jam']} {('→ ' + v['slug'][:40] + ' (' + v['status'] + ')') if v else '(kosong)'}")
+            k = f"{d.isoformat()} {s['jam']}"
+            k = (state.get("pengganti") or {}).get(k, k)
+            v = state["slot"].get(k)
+            isi.append(f"{k[11:]} {('→ ' + v['slug'][:40] + ' (' + v['status'] + ')') if v else '(kosong)'}")
         log(f"{d.isoformat()}: " + " · ".join(isi))
     log(f"produksi hari ini: {state.get('produksi', {}).get(hari_ini.isoformat(), 0)}/{c['maks_produksi']}")
 
 
-def setel_aktif(aktif: bool) -> None:
+def setel_aktif(aktif: bool, alasan: str = "") -> None:
     c = rj(CONFIG)
     c["aktif"] = aktif
     wj(CONFIG, c)
-    log("autopilot " + ("AKTIF — Task Scheduler menjalankannya tiap jam (pasang sekali: pasang_autopilot.bat)" if aktif else "dimatikan"))
+    if alasan == "stok selesai":
+        log("SELESAI: semua jam tayang hari ini & besok sudah terisi → autopilot dimatikan. Buka Studio lagi untuk putaran berikutnya.")
+    else:
+        log("autopilot " + ("AKTIF" if aktif else "dimatikan"))
 
 
 def main() -> None:

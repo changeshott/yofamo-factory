@@ -20,7 +20,7 @@ const TOOLS = {
   ide: [...scriptTools("agents/pabrik.py", "agents/ide/radar.py", "agents/ide/cek_topik.py", "agents/ide/cek_visual.py", "agents/ide/cek_ide.py"), "WebSearch", "WebFetch"],
   penulis: scriptTools("agents/pabrik.py", "agents/penulis/cek_naskah.py"),
   aset: scriptTools("agents/pabrik.py", "agents/aset/cari_aset.py"),
-  qc: scriptTools("agents/pabrik.py", "agents/qc/periksa.py"),
+  qc: scriptTools("agents/pabrik.py", "agents/qc/periksa.py", "agents/editor/rakit.py", "agents/aset/cari_aset.py"),
 };
 
 type Store = { state: JobState; child: ChildProcess | null };

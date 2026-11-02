@@ -319,7 +319,7 @@ def offline() -> None:
 
         # Autopilot: video lolos QC → disetujui otomatis → dijadwalkan di slot terdekat → setelah jamnya lewat ditandai tayang
         ap_cfg = json.loads((tmp / "bible" / "autopilot.json").read_text(encoding="utf-8"))
-        ap_cfg.update(aktif=True, mulai_produksi_jam_sebelum=0)
+        ap_cfg.update(aktif=True, mulai_produksi_jam_sebelum=0, video_per_hari=1, isi_hari=1)
         (tmp / "bible" / "autopilot.json").write_text(json.dumps(ap_cfg), encoding="utf-8")
         (tmp / "produksi").mkdir(exist_ok=True)
         (tmp / "produksi" / "autopilot.json").write_text(json.dumps({"slot": {}, "dibuat": [slug]}), encoding="utf-8")
@@ -331,9 +331,11 @@ def offline() -> None:
         st_v = next((x["status"] for x in json.loads(run(tmp, "agents/pabrik.py", "list", "--json").stdout or "[]") if x["slug"] == slug), None)
         cek("Autopilot: video lolos Rara disetujui otomatis & dijadwalkan", r.returncode == 0 and len(isi) == 1 and st_v == "export",
             f"{isi[0][0]} WIB, status {st_v}" if isi else (r.stdout + r.stderr)[-300:])
+        aktif_lagi = json.loads((tmp / "bible" / "autopilot.json").read_text(encoding="utf-8")).get("aktif")
+        cek("Autopilot: stok lengkap → mati sendiri", aktif_lagi is False and bool(stt.get("selesai")), f"aktif={aktif_lagi}")
         if isi:
             jam_tayang = datetime.strptime(isi[0][0], "%Y-%m-%d %H:%M") + timedelta(minutes=30)
-            r = run(tmp, "agents/autopilot.py", "jalan", "--uji", "--sekarang", jam_tayang.strftime("%Y-%m-%dT%H:%M"))
+            r = run(tmp, "agents/autopilot.py", "jalan", "--uji", "--paksa", "--sekarang", jam_tayang.strftime("%Y-%m-%dT%H:%M"))
             stt = json.loads((tmp / "produksi" / "autopilot.json").read_text(encoding="utf-8"))
             cek("Autopilot: setelah jam tayang lewat, video ditandai tayang", stt["slot"][isi[0][0]].get("status") == "tayang")
         k_lock = tmp / "produksi" / "produser-uji.lock"
