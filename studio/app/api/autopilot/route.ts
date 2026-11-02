@@ -48,7 +48,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const denied = guard(req); if (denied) return denied;
   const b = (await req.json().catch(() => ({}))) as { aktif?: boolean; video_per_hari?: number; isi_hari?: number; setujui_otomatis?: boolean; skor_qc_min?: number; jalan?: boolean; jalan_saat_studio_dibuka?: boolean };
-  if (b.jalan) return json(jalankanAutopilot());
+  if (b.jalan) return json(jalankanAutopilot(true));
   const cfg = baca(CONFIG) ?? {};
   if (typeof b.aktif === "boolean") cfg.aktif = b.aktif;
   if (typeof b.video_per_hari === "number") cfg.video_per_hari = Math.max(1, Math.min(6, Math.round(b.video_per_hari)));
@@ -57,6 +57,6 @@ export async function POST(req: Request) {
   if (typeof b.jalan_saat_studio_dibuka === "boolean") cfg.jalan_saat_studio_dibuka = b.jalan_saat_studio_dibuka;
   if (typeof b.skor_qc_min === "number") cfg.skor_qc_min = Math.max(5, Math.min(10, Math.round(b.skor_qc_min)));
   fs.writeFileSync(CONFIG, JSON.stringify(cfg, null, 2) + "\n", "utf-8");
-  if (b.aktif === true) jalankanAutopilot();
+  if (b.aktif === true) jalankanAutopilot(true);
   return json({ ok: true, message: typeof b.aktif === "boolean" ? (b.aktif ? "Autopilot aktif dan mulai bekerja." : "Autopilot dimatikan: video yang sedang dibuat diselesaikan dulu, lalu berhenti.") : "Pengaturan autopilot disimpan." });
 }

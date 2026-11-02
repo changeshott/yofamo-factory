@@ -32,6 +32,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "agents"))
 sys.path.insert(0, str(ROOT / "agents" / "upload"))
+import tanpa_jendela  # noqa: E402,F401  (Windows: claude/ffmpeg/node tanpa jendela console)
 from kunci import Kunci  # noqa: E402
 import jadwal  # noqa: E402
 
@@ -307,7 +308,6 @@ def produksi(state: dict, c: dict, lanjut: str = "") -> str | None:
         state["jeda_sampai"] = (now() + timedelta(hours=3)).isoformat(timespec="minutes")
         log("kuota Claude habis/dibatasi → autopilot berhenti produksi 3 jam")
     elif "Masih ada produksi lain" in teks:
-        state["produksi"][hari] -= 1
         log("produksi lain sedang berjalan (tombol Studio); dicoba lagi nanti")
         return None
     log(f"produksi gagal: {cat.get('pesan') or 'cek ' + lf.name}")
@@ -337,6 +337,7 @@ def putaran(paksa: bool = False) -> None:
         perbarui_jadwal(c["n"])
         tandai_tayang(state)
         isi_slot(state, c)
+        gagal_beruntun = 0
         for _ in range(8):                     # satu putaran boleh membuat beberapa video berturut-turut (hari ini + besok)
             perlu = butuh_produksi(state, c)
             hari = now().date().isoformat()
@@ -354,7 +355,19 @@ def putaran(paksa: bool = False) -> None:
             log(f"{perlu} slot tayang belum punya video → produksi")
             wj(STATE, state)
             terhenti = macet(state)
-            produksi(state, c, terhenti[0] if terhenti else "")
+            t0 = time.time()
+            hasil = produksi(state, c, terhenti[0] if terhenti else "")
+            if hasil is None:
+                gagal_beruntun += 1
+                if time.time() - t0 < 300 and state.get("produksi", {}).get(hari, 0) > 0:
+                    state["produksi"][hari] -= 1          # mati dalam < 5 menit (dihentikan/ditutup): tidak dihitung kuota harian
+                if time.time() - t0 < 600 or gagal_beruntun >= 2:
+                    state["jeda_sampai"] = (now() + timedelta(hours=1)).isoformat(timespec="minutes")
+                    log("produksi gagal (terlalu cepat atau 2x berturut-turut) → autopilot berhenti dulu 1 jam supaya tidak mengulang terus")
+                    wj(STATE, state)
+                    break
+            else:
+                gagal_beruntun = 0
             wj(STATE, state)
             isi_slot(state, c)
         if not UJI:                            # hemat ruang: cache lama & file video yang sudah diupload
@@ -403,12 +416,17 @@ def main() -> None:
     ap.add_argument("perintah", choices=["jalan", "status", "nyala", "mati"])
     ap.add_argument("--uji", action="store_true", help="tanpa Claude/internet/upload sungguhan (untuk tes)")
     ap.add_argument("--paksa", action="store_true", help="jalan walau autopilot nonaktif")
+    ap.add_argument("--mulai", action="store_true", help="dimulai Zona (tombol Studio): abaikan jeda sebelumnya")
     ap.add_argument("--sekarang", help="(tes) anggap sekarang jam ini, mis. 2026-11-02T08:00")
     a = ap.parse_args()
     UJI = a.uji
     if a.sekarang:
         SEKARANG = datetime.fromisoformat(a.sekarang).replace(tzinfo=WIB)
     os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+    if a.perintah == "jalan" and a.mulai:
+        st0 = rj(STATE)
+        if st0.pop("jeda_sampai", None):
+            wj(STATE, st0)
     if a.perintah == "jalan":
         LOG_FILE = ROOT / "logs" / f"autopilot-{now().strftime('%Y-%m-%d')}.txt"
         LOG_FILE.parent.mkdir(exist_ok=True)

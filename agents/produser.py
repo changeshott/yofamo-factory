@@ -25,6 +25,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PROD = ROOT / "produksi"
+sys.path.insert(0, str(ROOT / "agents"))
+import tanpa_jendela  # noqa: E402,F401  (Windows: claude/ffmpeg/node tanpa jendela console)
 PY = sys.executable
 MODEL = "sonnet"
 # `python` yang dipanggil Claude (skill) harus Python yang sama dengan produser ini,

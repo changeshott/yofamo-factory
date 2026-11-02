@@ -24,11 +24,11 @@ export function kunciAktif(nama: string): { pid: number; nama: string } | null {
 
 export const autopilotBerjalan = () => kunciAktif("autopilot.lock") !== null;
 
-export function jalankanAutopilot(): { ok: boolean; message: string } {
+export function jalankanAutopilot(manual = false): { ok: boolean; message: string } {
   const py = pythonCmd();
   if (!py) return { ok: false, message: "Python tidak ditemukan." };
   if (autopilotBerjalan()) return { ok: false, message: "Autopilot sedang bekerja. Tunggu putaran ini selesai." };
-  const child = spawn(py, ["agents/autopilot.py", "jalan"], { cwd: ROOT, env: agentEnv(), detached: true, stdio: "ignore", windowsHide: true });
+  const child = spawn(py, ["agents/autopilot.py", "jalan", ...(manual ? ["--mulai"] : [])], { cwd: ROOT, env: agentEnv(), detached: true, stdio: "ignore", windowsHide: true });
   child.on("error", () => {});
   child.unref();
   g.__yofamoAutopilot = Date.now();
