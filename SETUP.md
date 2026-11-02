@@ -144,10 +144,10 @@ Catatan: Uli mengunggah **private**, dengan jadwal tayang kalau diberi jam (`--j
 ## Autopilot: 3 video per hari, jadwal tayang otomatis
 
 1. Pastikan Uli sudah terhubung ke YouTube (langkah di atas) dan ada lagu di `musik/`.
-2. Klik dua kali **`pasang_autopilot.bat`** di folder project (sekali saja). Ini memasang tugas Windows "Yofamo Autopilot" yang berjalan tiap jam tanpa jendela, lalu menyalakan autopilot.
+2. Buka Studio (`start_studio.bat`). Autopilot langsung bekerja saat Studio dibuka, lalu tiap jam selama Studio terbuka. Opsional: klik dua kali **`pasang_autopilot.bat`** supaya tetap bekerja tiap jam walau Studio ditutup.
 3. Atur di Studio → meja **Uli** → **Autopilot**: video per hari (bawaan 3), setujui otomatis kalau skor Rara ≥ 7, jadwal tayang hari ini & besok, dan log.
 4. Laptop harus menyala, login, dan tidak tidur (Settings → System → Power → Sleep: Never saat dicas). Kalau laptop mati, autopilot menyusul di jam berikutnya; slot yang sudah lewat dilewati.
 
-Cara kerjanya tiap jam: hitung jam tayang terbaik (`insights/jadwal.md`) → video siap diunggah private + dijadwalkan → slot ±10 jam ke depan yang belum punya video → tim membuat video baru (maksimal 5 produksi per hari supaya kuota Claude aman) → setelah jam tayang lewat, video ditandai terbit. Video dengan skor Rara di bawah batas tidak diunggah; kamu tonton & setujui sendiri di Studio.
+Cara kerjanya tiap putaran: hitung jam tayang terbaik (`insights/jadwal.md`) → video siap diunggah private + dijadwalkan → slot hari ini + besok yang belum punya video → tim membuat video baru berurutan (hari pertama 6 video; maksimal 8 produksi per hari supaya kuota Claude aman) → setelah jam tayang lewat, video ditandai terbit. Video dengan skor Rara di bawah batas tidak diunggah; kamu tonton & setujui sendiri di Studio.
 
 Melepas penjadwal: `pasang_autopilot.bat hapus`. Mematikan sementara: tombol **Matikan** di Studio.

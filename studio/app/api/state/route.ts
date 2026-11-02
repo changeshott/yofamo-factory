@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { jobState, readQueue, startJob } from "@/lib/server/jobs";
 import { json } from "@/lib/server/guard";
+import { autopilotOtomatis } from "@/lib/server/autopilot";
 import { P, activity, envHas, hasModule, latestSnapshot, listFiles, localIso, produksi, steveInsight, pythonCmd, videos, week, which } from "@/lib/server/project";
 import type { StudioState } from "@/lib/types";
 
@@ -24,6 +25,7 @@ async function dataHarian(py: string | null) {
 export async function GET() {
   const py = pythonCmd();
   await dataHarian(py);
+  autopilotOtomatis();
   let vids: StudioState["videos"] = [], act: StudioState["activity"] = [], wk = { since: "", published: 0 };
   if (py) {
     try { [vids, act, wk] = await Promise.all([videos(), activity(), week()]); } catch { /* state.db belum ada / python error */ }

@@ -762,7 +762,7 @@ export function MusikPanel({ ctx }: { ctx: PanelCtx }) {
 /* ---------------------------------------------------------------- autopilot (meja Uli) */
 interface SlotAP { jam: string; eksplorasi: boolean; alasan: string; isi: { slug: string; status: string; url?: string; alasan?: string } | null }
 interface DataAP {
-  config: { aktif?: boolean; video_per_hari?: number; setujui_otomatis?: boolean; skor_qc_min?: number };
+  config: { aktif?: boolean; video_per_hari?: number; isi_hari?: number; setujui_otomatis?: boolean; skor_qc_min?: number };
   slot: { tanggal: string; slot: SlotAP[] }[]; catatan: string[]; produksi_hari_ini: number; putaran_terakhir: string | null;
   jeda_sampai: string | null; menunggu_zona: Record<string, string>; berjalan: boolean; tugas: boolean | null; log: string[];
 }
@@ -787,6 +787,9 @@ export function AutopilotPanel({ ctx }: { ctx: PanelCtx }) {
       <span className="text-muted">Video per hari</span>
       <select value={c.video_per_hari ?? 3} onChange={(e) => void ubah({ video_per_hari: +e.target.value })} className="w-20 rounded-md border border-line bg-ink-950 px-2 py-1">
         {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n}</option>)}</select>
+      <span className="text-muted">Stok video</span>
+      <select value={c.isi_hari ?? 2} onChange={(e) => void ubah({ isi_hari: +e.target.value })} className="w-fit rounded-md border border-line bg-ink-950 px-2 py-1">
+        <option value={1}>hari ini saja</option><option value={2}>hari ini + besok</option><option value={3}>sampai lusa</option></select>
       <span className="text-muted">Setujui otomatis</span>
       <label className="flex items-center gap-2"><input type="checkbox" checked={c.setujui_otomatis ?? true} onChange={(e) => void ubah({ setujui_otomatis: e.target.checked })} />
         <span>kalau skor Rara ≥</span>
@@ -794,7 +797,7 @@ export function AutopilotPanel({ ctx }: { ctx: PanelCtx }) {
           {[6, 7, 8, 9].map((n) => <option key={n} value={n}>{n}</option>)}</select></label>
       <span className="text-muted">Produksi hari ini</span><span>{d.produksi_hari_ini} video{d.jeda_sampai ? ` · jeda (kuota Claude) sampai ${d.jeda_sampai.slice(11, 16)}` : ""}</span>
     </div>
-    {d.tugas === false && <Muted className="mt-2 text-signal">Penjadwal Windows belum dipasang: klik dua kali <code>pasang_autopilot.bat</code> di folder project (sekali saja) supaya tim bekerja tiap jam walau Studio ditutup.</Muted>}
+    {c.aktif && <Muted className="mt-2">Berjalan otomatis setiap Studio dibuka, lalu tiap jam selama Studio terbuka.{d.tugas === false ? <> Supaya tetap bekerja walau Studio ditutup, klik dua kali <code>pasang_autopilot.bat</code> (opsional).</> : ""}</Muted>}
     {d.slot.map((h) => (
       <div key={h.tanggal} className="mt-3">
         <h4 className="mb-1 font-pixel text-sm text-muted">Jadwal tayang {h.tanggal}</h4>
@@ -810,6 +813,6 @@ export function AutopilotPanel({ ctx }: { ctx: PanelCtx }) {
     {d.catatan.map((x) => <Muted key={x} className="mt-1">{x}</Muted>)}
     {d.log.length > 0 && <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded-lg bg-ink-950 p-2 text-[11px] leading-snug text-muted">{d.log.join("\n")}</pre>}
     {pesan && <Muted className="mt-2 text-leaf">{pesan}</Muted>}
-    <Muted className="mt-2">Autopilot: tiap jam tim mengecek jadwal. Video dibuat ±10 jam sebelum jam tayang (Nova cari topik baru → … → Rara), lalu Uli mengunggah private dengan jadwal tayang; YouTube menayangkannya sendiri. Jam tayang dihitung dari pola penonton Indonesia + data channel & pasar (<code>insights/jadwal.md</code>). Laptop harus menyala & tidak tidur.</Muted>
+    <Muted className="mt-2">Autopilot mengisi semua jam tayang dalam stok (hari pertama 6 video: 3 tayang hari ini + 3 besok; hari berikutnya menambah stok besok). Tiap video: Nova cari topik baru → … → Rara, lalu Uli mengunggah private dengan jadwal tayang; YouTube menayangkannya sendiri walau laptop mati. Jam tayang dihitung dari pola penonton Indonesia + data channel & pasar (<code>insights/jadwal.md</code>). Laptop cukup menyala selama produksi (±30–60 menit per video).</Muted>
   </>);
 }

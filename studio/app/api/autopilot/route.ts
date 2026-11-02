@@ -1,8 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
-import { spawn, spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import { guard, json } from "@/lib/server/guard";
-import { P, ROOT, agentEnv, pythonCmd } from "@/lib/server/project";
+import { P, ROOT } from "@/lib/server/project";
+import { autopilotBerjalan, jalankanAutopilot } from "@/lib/server/autopilot";
 
 const CONFIG = path.join(ROOT, "bible", "autopilot.json");
 const STATE = path.join(P.produksi, "autopilot.json");
@@ -20,10 +21,7 @@ function tugasTerpasang(): boolean | null {
   return tugasCache.ada;
 }
 
-function berjalan(): boolean {
-  const k = baca(path.join(ROOT, "produksi", "autopilot.lock"));
-  return !!k && Date.now() / 1000 - Number(k.mulai ?? 0) < 6 * 3600;
-}
+const berjalan = autopilotBerjalan;
 
 /** Status autopilot: pengaturan, jadwal tayang (hari ini & besok), slot yang sudah terisi, log terakhir. */
 export async function GET(req: Request) {
@@ -46,20 +44,15 @@ export async function GET(req: Request) {
 /** Ubah pengaturan autopilot (aktif, video per hari, setujui otomatis, skor minimal) atau jalankan satu putaran sekarang. */
 export async function POST(req: Request) {
   const denied = guard(req); if (denied) return denied;
-  const b = (await req.json().catch(() => ({}))) as { aktif?: boolean; video_per_hari?: number; setujui_otomatis?: boolean; skor_qc_min?: number; jalan?: boolean };
-  if (b.jalan) {
-    const py = pythonCmd();
-    if (!py) return json({ ok: false, message: "Python tidak ditemukan." }, 500);
-    if (berjalan()) return json({ ok: false, message: "Autopilot sedang bekerja. Tunggu putaran ini selesai." });
-    const child = spawn(py, ["agents/autopilot.py", "jalan"], { cwd: ROOT, env: agentEnv(), detached: true, stdio: "ignore", windowsHide: true });
-    child.unref();
-    return json({ ok: true, message: "Autopilot mulai bekerja. Kemajuan muncul di log di bawah dan di Produksi." });
-  }
+  const b = (await req.json().catch(() => ({}))) as { aktif?: boolean; video_per_hari?: number; isi_hari?: number; setujui_otomatis?: boolean; skor_qc_min?: number; jalan?: boolean };
+  if (b.jalan) return json(jalankanAutopilot());
   const cfg = baca(CONFIG) ?? {};
   if (typeof b.aktif === "boolean") cfg.aktif = b.aktif;
   if (typeof b.video_per_hari === "number") cfg.video_per_hari = Math.max(1, Math.min(6, Math.round(b.video_per_hari)));
+  if (typeof b.isi_hari === "number") cfg.isi_hari = Math.max(1, Math.min(3, Math.round(b.isi_hari)));
   if (typeof b.setujui_otomatis === "boolean") cfg.setujui_otomatis = b.setujui_otomatis;
   if (typeof b.skor_qc_min === "number") cfg.skor_qc_min = Math.max(5, Math.min(10, Math.round(b.skor_qc_min)));
   fs.writeFileSync(CONFIG, JSON.stringify(cfg, null, 2) + "\n", "utf-8");
-  return json({ ok: true, message: typeof b.aktif === "boolean" ? (b.aktif ? "Autopilot aktif." : "Autopilot dimatikan.") : "Pengaturan autopilot disimpan." });
+  if (b.aktif === true) jalankanAutopilot();
+  return json({ ok: true, message: typeof b.aktif === "boolean" ? (b.aktif ? "Autopilot aktif dan mulai bekerja." : "Autopilot dimatikan (putaran yang sedang jalan diselesaikan dulu).") : "Pengaturan autopilot disimpan." });
 }

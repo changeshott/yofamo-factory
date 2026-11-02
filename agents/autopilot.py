@@ -8,10 +8,11 @@
 Satu putaran:
   1. Hitung ulang jam tayang terbaik (agents/upload/jadwal.py → insights/jadwal.md) kalau sudah > 6 jam.
   2. Video yang jam tayangnya sudah lewat → status 'terbit'.
-  3. Isi slot tayang 36 jam ke depan dengan video siap: status 'export' yang belum diupload (sudah disetujui Zona),
+  3. Isi slot tayang sampai akhir hari "isi_hari" (bawaan 2 = hari ini + besok) dengan video siap: status 'export' yang belum diupload (sudah disetujui Zona),
      lalu video buatan autopilot yang lolos Rara dengan skor >= skor_qc_min (disetujui otomatis kalau setujui_otomatis).
      Uli mengunggahnya PRIVATE + jadwal tayang → YouTube menayangkan sendiri tepat di jam itu.
-  4. Kalau ada slot dalam mulai_produksi_jam_sebelum jam yang belum punya video → produser membuat video baru
+  4. Slot hari ini & besok yang belum punya video → produser membuat video baru, berurutan dari slot terdekat
+     (hari pertama 6 video: 3 tayang hari ini + 3 besok; hari berikutnya cukup menambah stok besok)
      (Nova pilih topik baru → Raka → Dara → Bima → Kai → Rara), maksimal maks_produksi_per_hari.
 Video buatan autopilot yang skornya di bawah batas tetap 'draft' dan menunggu Zona di Studio.
 Hanya satu putaran yang berjalan pada satu waktu (produksi/autopilot.lock); produksi tidak bentrok dengan tombol Studio.
@@ -75,7 +76,8 @@ def cfg() -> dict:
     c = rj(CONFIG)
     return {"aktif": bool(c.get("aktif", False)), "n": max(1, min(6, int(c.get("video_per_hari", 3)))),
             "setujui": bool(c.get("setujui_otomatis", True)), "skor_min": float(c.get("skor_qc_min", 7)),
-            "maks_produksi": max(1, int(c.get("maks_produksi_per_hari", 5))), "jam_sebelum": float(c.get("mulai_produksi_jam_sebelum", 10)),
+            "maks_produksi": max(1, int(c.get("maks_produksi_per_hari", 8))), "jam_sebelum": float(c.get("mulai_produksi_jam_sebelum", 48)),
+            "isi_hari": max(1, min(3, int(c.get("isi_hari", 2)))),
             "suara": c.get("suara", "pria") if c.get("suara") in ("pria", "wanita") else "pria",
             "visual": c.get("visual", "teliti") if c.get("visual") in ("teliti", "cepat") else "teliti",
             "arahan": re.sub(r"[^\w\s,.\-?!]", "", str(c.get("arahan_tema", "")), flags=re.UNICODE)[:200]}
@@ -93,16 +95,22 @@ def daftar_video() -> dict[str, str]:
 
 
 # ------------------------------------------------------------------ slot
-def slot_ke_depan(state: dict, n: int, jam_ke_depan: float = 36) -> list[datetime]:
+def akhir_stok(c: dict) -> datetime:
+    """Batas stok: akhir hari ke-isi_hari (2 = sampai tengah malam besok)."""
+    return datetime.combine(now().date() + timedelta(days=c["isi_hari"]), datetime.min.time()).replace(tzinfo=WIB)
+
+
+def slot_ke_depan(state: dict, n: int, jam_ke_depan: float = 48, batas: datetime | None = None) -> list[datetime]:
     data = rj(jadwal.OUT_JSON)
-    out = []
+    out: list[datetime] = []
+    ujung = min(now() + timedelta(hours=jam_ke_depan), batas) if batas else now() + timedelta(hours=jam_ke_depan)
     for tgl, slots in (data.get("slot") or {}).items():
         for s in slots[:n]:
             try:
                 t = datetime.fromisoformat(f"{tgl}T{s['jam']}").replace(tzinfo=WIB)
             except (ValueError, KeyError):
                 continue
-            if now() + timedelta(minutes=20) <= t <= now() + timedelta(hours=jam_ke_depan) and kunci_slot(t) not in state["slot"]:
+            if now() + timedelta(minutes=20) <= t < ujung and kunci_slot(t) not in state["slot"]:
                 out.append(t)
     return sorted(out)
 
@@ -179,7 +187,7 @@ def unggah(slug: str, t: datetime) -> dict | None:
 
 
 def isi_slot(state: dict, c: dict) -> int:
-    slots = slot_ke_depan(state, c["n"])
+    slots = slot_ke_depan(state, c["n"], 72, akhir_stok(c))
     siap = siap_tayang(state, c)
     terisi = 0
     for t in slots:
@@ -254,7 +262,7 @@ def produksi(state: dict, c: dict) -> str | None:
 
 
 def butuh_produksi(state: dict, c: dict) -> int:
-    slots = slot_ke_depan(state, c["n"], c["jam_sebelum"])
+    slots = slot_ke_depan(state, c["n"], c["jam_sebelum"], akhir_stok(c))
     return max(0, len(slots) - len(siap_tayang(state, c)))
 
 
@@ -263,7 +271,7 @@ def putaran(paksa: bool = False) -> None:
     if not c["aktif"] and not paksa:
         log("autopilot nonaktif (bible/autopilot.json → aktif). Nyalakan di Studio atau: python agents/autopilot.py nyala")
         return
-    k = Kunci(ROOT / "produksi" / ("autopilot-uji.lock" if UJI else "autopilot.lock"), maks_jam=6)
+    k = Kunci(ROOT / "produksi" / ("autopilot-uji.lock" if UJI else "autopilot.lock"), maks_jam=14)
     if not k.ambil("autopilot"):
         log("putaran sebelumnya masih berjalan, dilewati")
         return
@@ -274,7 +282,7 @@ def putaran(paksa: bool = False) -> None:
         perbarui_jadwal(c["n"])
         tandai_tayang(state)
         isi_slot(state, c)
-        for _ in range(3):                     # maksimal 3 video per putaran (putaran berikutnya melanjutkan)
+        for _ in range(8):                     # satu putaran boleh membuat beberapa video berturut-turut (hari ini + besok)
             perlu = butuh_produksi(state, c)
             hari = now().date().isoformat()
             if perlu <= 0:

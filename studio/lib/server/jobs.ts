@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { JobName, JobState } from "@/lib/types";
 import { P, ROOT, SLUG, agentEnv, localIso, pabrik, pythonCmd, which } from "./project";
+import { kunciAktif } from "./autopilot";
 
 /** Alat yang boleh dipakai Claude per agent. Selain ini otomatis ditolak. */
 function scriptTools(...scripts: string[]): string[] {
@@ -144,6 +145,7 @@ const LABEL: Record<JobName, string> = {
 
 export async function startJob(job: JobName, arg = ""): Promise<{ ok: boolean; message: string }> {
   if (store.state.status === "running") return { ok: false, message: `Masih ada tugas berjalan: ${LABEL[store.state.job!]}.` };
+  if (job === "produksi" && kunciAktif("produser.lock")) return { ok: false, message: "Autopilot sedang membuat video. Tunggu selesai (lihat Produksi), lalu coba lagi." };
   const c = await command(job, arg);
   if (typeof c === "string") return { ok: false, message: c };
 

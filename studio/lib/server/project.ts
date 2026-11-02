@@ -296,10 +296,17 @@ export async function hasModule(mod: string): Promise<boolean> {
 /** Permintaan "Buat video" terbaru (dari produksi/<id>.json). */
 export function produksi(running: boolean): Produksi[] {
   try {
-    return fs.readdirSync(P.produksi).filter((f) => /^[\w-]+\.json$/.test(f)).sort().reverse().slice(0, 12)
-      .map((f) => readJson<Produksi>(path.join(P.produksi, f)))
+    // produksi yang sedang berjalan: dari tombol Studio (running) atau autopilot (produksi/produser.lock dipegang proses hidup)
+    let kunci: { pid?: number; nama?: string } | null = null;
+    try { kunci = JSON.parse(fs.readFileSync(path.join(P.produksi, "produser.lock"), "utf-8")); } catch { /* tidak ada produksi */ }
+    let hidup = false;
+    try { if (kunci?.pid) { process.kill(kunci.pid, 0); hidup = true; } } catch (e) { hidup = (e as NodeJS.ErrnoException).code === "EPERM"; }
+    const jalanId = hidup ? kunci?.nama : undefined;
+    return fs.readdirSync(P.produksi).filter((f) => /^[\w-]+\.json$/.test(f) && f !== "autopilot.json" && f !== "antrean.json")
+      .map((f) => ({ f, t: fs.statSync(path.join(P.produksi, f)).mtimeMs })).sort((a, b) => b.t - a.t).slice(0, 12)
+      .map(({ f }) => readJson<Produksi>(path.join(P.produksi, f)))
       .filter((x): x is Produksi => !!x && Array.isArray(x.tahap))
-      .map((x, i) => (x.status === "berjalan" && !(running && i === 0) ? { ...x, status: "terhenti" as const } : x));
+      .map((x, i) => (x.status === "berjalan" && !(running && i === 0) && x.id !== jalanId ? { ...x, status: "terhenti" as const } : x));
   } catch {
     return [];
   }
