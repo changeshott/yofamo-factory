@@ -152,6 +152,9 @@ def metadata(slug: str) -> dict:
     vdir = VIDEOS / slug
     sc, man = rj(vdir / "script.json"), rj(vdir / "aset" / "manifest.json")
     kredit = (vdir / "aset" / "kredit_deskripsi.txt").read_text(encoding="utf-8").strip() if (vdir / "aset" / "kredit_deskripsi.txt").exists() else ""
+    dari = rj(vdir / "thumbnail" / "info.json").get("dari") or {}
+    if "CC BY" in str(dari.get("lisensi", "")):       # foto objek Mila dari Wikimedia CC BY → wajib dikredit
+        kredit = (kredit + "\n" if kredit else "") + f"Foto objek: \"{dari.get('judul', '')}\" oleh {dari.get('pembuat', '-')} ({dari['lisensi']})"
     judul = re.sub(r"[<>]", "", sc.get("judul") or slug)[:100]
     musik = str(rj(vdir / "export" / "info.json").get("musik_kredit") or "").strip()
     desk = susun_deskripsi(sc, kredit, musik, rj(ROOT / "bible" / "gaya-upload.json"))

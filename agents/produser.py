@@ -401,7 +401,11 @@ def main() -> None:
         # 5a. Mila: objek transparan + thumbnail (objek yang sama muncul di hook video → Kai)
         if not sudah_jadi or not (exp / "thumbnail.jpg").exists():
             cat.tahap("mila", "jalan")
-            code = jalan([PY, "agents/thumbnail/thumbnail.py", slug, *(["--uji"] if a.uji else [])], 10 * 60)
+            code = jalan([PY, "agents/thumbnail/thumbnail.py", slug, *(["--uji"] if a.uji else [])], 15 * 60)
+            if code == 0 and not a.uji and a.visual != "cepat":
+                # Mila melihat kandidat objek asli & frame footage, memilih yang benar-benar memperlihatkan benda yang dibahas
+                cat.tahap("mila", "jalan", "memilih objek asli terbaik")
+                claude(f"/thumbnail {slug}", tools("agents/thumbnail/thumbnail.py"), 15 * 60, turns=20)
             ti = rj(ROOT / "videos" / slug / "thumbnail" / "info.json")
             if code == 0 and (exp / "thumbnail.jpg").exists():
                 ket = (f"objek asli dari shot {(ti.get('dari') or {}).get('shot', '?')}" if ti.get("sumber") == "footage"

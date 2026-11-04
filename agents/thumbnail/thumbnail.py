@@ -25,6 +25,7 @@ import argparse
 import hashlib
 import io
 import json
+import re
 import subprocess
 import sys
 from datetime import datetime
@@ -36,6 +37,7 @@ sys.path.insert(0, str(ROOT / "agents" / "editor"))
 sys.path.insert(0, str(ROOT / "agents" / "aset"))
 import gambar_ai  # noqa: E402
 import gerak  # noqa: E402
+import sumber  # noqa: E402  (aman_url, UA, filter lisensi Wikimedia)
 import rakit  # noqa: E402  (hook_baris & gaya: sama persis dengan video)
 
 VIDEOS = ROOT / "videos"
@@ -130,6 +132,114 @@ def kandidat_frame(vdir: Path, maks_shot: int = 8) -> list[tuple[str, Path, dict
     return out
 
 
+def _json(url: str, headers: dict | None = None) -> dict:
+    import urllib.request
+    req = urllib.request.Request(sumber.aman_url(url), headers={"User-Agent": sumber.UA, **(headers or {})})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return json.load(r)
+
+
+def kueri_foto(objek: str, vdir: Path) -> list[str]:
+    """Kata pencarian foto: thumbnail_objek (dipendekkan) lalu kata kunci visual kalimat pembuka."""
+    sc, idea = rj(vdir / "script.json"), rj(vdir / "idea.json")
+    q = [objek, " ".join(objek.split()[:3])]
+    for n in (sc.get("narasi") or [])[:2]:
+        q += list(n.get("kata_kunci_visual") or [])[:2]
+    q += list(idea.get("kata_kunci_visual") or [])[:2]
+    out = []
+    for x in q:
+        x = str(x).strip()
+        if x and x.lower() not in {o.lower() for o in out}:
+            out.append(x)
+    return out[:4]
+
+
+def cari_foto(kueri: str, tdir: Path, maks: int = 8) -> list[tuple[str, Path, dict]]:
+    """FOTO ASLI benda yang dibahas (berlisensi bebas): Pexels & Pixabay (foto), Wikimedia Commons (PD/CC0/CC BY saja).
+    Foto produk/benda biasanya berfokus pada objeknya → hasil potong jauh lebih rapi daripada frame video."""
+    import os
+    import urllib.parse
+    import urllib.request
+    gambar_ai.load_env()
+    fdir = tdir / "foto"
+    fdir.mkdir(parents=True, exist_ok=True)
+    hasil: list[dict] = []
+    pex, pix = os.environ.get("PEXELS_API_KEY", ""), os.environ.get("PIXABAY_API_KEY", "")
+    try:
+        if pex:
+            d = _json("https://api.pexels.com/v1/search?" + urllib.parse.urlencode({"query": kueri, "per_page": 4}), {"Authorization": pex})
+            for f in d.get("photos", [])[:3]:
+                hasil.append({"sumber": "pexels", "id": f["id"], "url": (f.get("src") or {}).get("large2x") or (f.get("src") or {}).get("large"),
+                              "judul": f.get("alt") or kueri, "pembuat": f.get("photographer", ""), "halaman": f.get("url", ""), "lisensi": "Pexels License"})
+    except Exception as err:  # noqa: BLE001
+        log(f"Pexels foto gagal: {str(err)[:80]}")
+    try:
+        if pix:
+            d = _json("https://pixabay.com/api/?" + urllib.parse.urlencode({"key": pix, "q": kueri[:100], "image_type": "photo", "per_page": 5, "safesearch": "true"}))
+            for h in d.get("hits", [])[:3]:
+                hasil.append({"sumber": "pixabay", "id": h["id"], "url": h.get("largeImageURL") or h.get("webformatURL"), "judul": h.get("tags", kueri),
+                              "pembuat": h.get("user", ""), "halaman": h.get("pageURL", ""), "lisensi": "Pixabay Content License"})
+    except Exception as err:  # noqa: BLE001
+        log(f"Pixabay foto gagal: {str(err)[:80]}")
+    try:
+        prm = {"action": "query", "format": "json", "generator": "search", "gsrsearch": f"{kueri} filetype:bitmap", "gsrnamespace": 6,
+               "gsrlimit": 10, "prop": "imageinfo", "iiprop": "url|size|extmetadata", "iiurlwidth": 1280}
+        d = _json("https://commons.wikimedia.org/w/api.php?" + urllib.parse.urlencode(prm))
+        n = 0
+        for pg in sorted((d.get("query") or {}).get("pages", {}).values(), key=lambda x: x.get("index", 0)):
+            info = (pg.get("imageinfo") or [{}])[0]
+            meta = info.get("extmetadata") or {}
+            lic = re.sub(r"<[^>]+>", "", (meta.get("LicenseShortName") or {}).get("value", "")).strip()
+            if not lic or not sumber.WIKI_OK.match(lic) or "sa" in re.split(r"[ -]", lic.lower()):
+                continue
+            hasil.append({"sumber": "wikimedia", "id": pg.get("pageid"), "url": info.get("thumburl") or info.get("url"),
+                          "judul": re.sub(r"^File:|\.\w+$", "", pg.get("title", "")),
+                          "pembuat": re.sub(r"<[^>]+>", "", (meta.get("Artist") or {}).get("value", "")).strip()[:80] or "Wikimedia Commons",
+                          "halaman": info.get("descriptionurl", ""), "lisensi": f"{lic} (Wikimedia Commons)"})
+            n += 1
+            if n >= 2:
+                break
+    except Exception as err:  # noqa: BLE001
+        log(f"Wikimedia foto gagal: {str(err)[:80]}")
+    out = []
+    for h in hasil[:maks]:
+        if not h.get("url"):
+            continue
+        jpg = fdir / f"{h['sumber']}-{h['id']}.jpg"
+        try:
+            if not jpg.exists():
+                req = urllib.request.Request(sumber.aman_url(h["url"]), headers={"User-Agent": sumber.UA})
+                with urllib.request.urlopen(req, timeout=40) as r:
+                    jpg.write_bytes(r.read())
+            out.append((f"foto-{h['sumber']}-{h['id']}", jpg, {**h, "jenis": "foto"}))
+        except Exception as err:  # noqa: BLE001
+            log(f"unduh foto {h['sumber']} gagal: {str(err)[:60]}")
+    log(f"foto asli '{kueri}': {len(out)} foto")
+    return out
+
+
+def lembar_frame(tdir: Path, frames: list[tuple[str, Path, dict]]) -> None:
+    """Lembar frame footage berlabel + garis bantu 10% (Mila memakai ini untuk --potong FRAME --kotak)."""
+    from PIL import Image, ImageDraw, ImageFont
+    fr = [f for f in frames if not f[0].startswith("foto-")]
+    if not fr:
+        return
+    kol, lw, lh = 6, 216, 384
+    lembar = Image.new("RGB", (kol * lw, ((len(fr) + kol - 1) // kol) * (lh + 34)), (11, 18, 32))
+    font = ImageFont.truetype(str(FONT), 20)
+    for n, (lab, jpg, _) in enumerate(fr):
+        im = Image.open(jpg).convert("RGB").resize((lw, lh))
+        d = ImageDraw.Draw(im)
+        for g in range(1, 10):
+            c = (255, 255, 255) if g % 5 == 0 else (150, 150, 150)
+            d.line((g * lw / 10, 0, g * lw / 10, lh), fill=c, width=1)
+            d.line((0, g * lh / 10, lw, g * lh / 10), fill=c, width=1)
+        x, y = (n % kol) * lw, (n // kol) * (lh + 34)
+        lembar.paste(im, (x, y))
+        ImageDraw.Draw(lembar).text((x + 8, y + lh + 4), lab, fill=(255, 107, 203), font=font)
+    lembar.save(tdir / "frame-lembar.jpg", quality=85)
+
+
 def potong_asli(jpg: Path, cutter):
     from PIL import Image
     im = Image.open(jpg).convert("RGB")
@@ -138,8 +248,28 @@ def potong_asli(jpg: Path, cutter):
     else:                                   # tanpa rembg: hanya berhasil untuk foto berlatar polos (studio/produk)
         mask = gambar_ai.potong_latar(jpg.read_bytes(), toleransi=38, pangkas=False, garis=0).getchannel("A")
     rgba = im.convert("RGBA")
-    rgba.putalpha(mask)
+    rgba.putalpha(objek_utama(mask))
     return rgba
+
+
+def objek_utama(mask):
+    """Hanya objek terbesar (dan bagian yang cukup besar di dekatnya) — orang/benda kecil lain di foto dibuang."""
+    try:
+        import cv2  # ikut terpasang bersama rembg
+        import numpy as np
+    except ImportError:
+        return mask
+    from PIL import Image
+    m = np.array(mask)
+    n, lab, stats, _ = cv2.connectedComponentsWithStats((m > 100).astype("uint8"), connectivity=8)
+    if n <= 2:
+        return mask
+    luas = stats[1:, cv2.CC_STAT_AREA]
+    besar = int(luas.max())
+    simpan = [i + 1 for i, a in enumerate(luas) if a >= besar * 0.3]
+    jaga = np.isin(lab, simpan)
+    jaga = cv2.dilate(jaga.astype("uint8"), np.ones((9, 9), "uint8")) > 0     # tepi halus objek tetap ikut
+    return Image.fromarray(np.where(jaga, m, 0).astype("uint8"))
 
 
 def skor_objek(rgba) -> tuple[float, str]:
@@ -192,22 +322,57 @@ def lembar_kandidat(tdir: Path, daftar: list[dict]) -> None:
     lembar.save(tdir / "kandidat.jpg", quality=88)
 
 
-def buat_objek(vdir: Path, objek: str, uji: bool, ulang: bool, pilih: int, st: dict) -> tuple[Path | None, dict]:
+def potong_manual(vdir: Path, nama: str, kotak: str, st: dict) -> dict:
+    """Mila (Claude) menunjuk objek di frame: --potong 1b-1 --kotak 0.1,0.3,0.9,0.6 (pecahan lebar/tinggi frame)."""
+    from PIL import Image
+    tdir = vdir / "thumbnail"
+    src = next((p for p in (tdir / "frame" / f"{nama}.jpg", tdir / "foto" / f"{nama.removeprefix('foto-')}.jpg") if p.exists()), None)
+    if not src:
+        sys.exit(f"[mila] frame/foto '{nama}' tidak ada (lihat thumbnail/frame-lembar.jpg)")
+    x0, y0, x1, y1 = [max(0.0, min(1.0, float(v))) for v in kotak.split(",")]
+    im = Image.open(src).convert("RGB")
+    W0, H0 = im.size
+    pot = im.crop((int(x0 * W0), int(y0 * H0), int(x1 * W0), int(y1 * H0)))
+    cutter = pemotong(str((st.get("thumbnail") or {}).get("model_potong", "isnet-general-use")))
+    if not cutter:
+        sys.exit("[mila] rembg belum terpasang")
+    rgba = pot.convert("RGBA")
+    rgba.putalpha(objek_utama(cutter(pot)))
+    sk, ket = skor_objek(rgba)
+    kb = rgba.getchannel("A").point(lambda v: 255 if v > 20 else 0).getbbox()
+    if not kb:
+        sys.exit("[mila] tidak ada objek di kotak itu")
+    nama_png = f"kandidat/{nama}-potong.png"
+    rgba.crop((max(0, kb[0] - 8), max(0, kb[1] - 8), min(rgba.width, kb[2] + 8), min(rgba.height, kb[3] + 8))).save(tdir / nama_png)
+    log(f"potong manual {nama} [{kotak}]: skor {sk:.2f} ({ket})")
+    return {"file": nama_png, "shot": nama, "skor": sk, "cek": ket, "sumber": "potong", "kotak": kotak}
+
+
+def buat_objek(vdir: Path, objek: str, uji: bool, ulang: bool, pilih: int, st: dict,
+               potong: str = "", kotak: str = "") -> tuple[Path | None, dict]:
     tdir = vdir / "thumbnail"
     tdir.mkdir(exist_ok=True)
     png = tdir / "objek.png"
     lama = rj(tdir / "info.json")
     info = {"objek": objek, "riwayat": lama.get("riwayat", [])}
-    if png.exists() and not ulang and not pilih and lama.get("objek") == objek and lama.get("ada_objek"):
+    if png.exists() and not ulang and not pilih and not potong and lama.get("objek") == objek and lama.get("ada_objek"):
         return png, {**lama, "riwayat": info["riwayat"]}
     from PIL import Image, ImageFilter
-    daftar = lama.get("kandidat") if lama.get("objek") == objek and (ulang or pilih) else None
+    daftar = lama.get("kandidat") if lama.get("objek") == objek and (ulang or pilih or potong) else None
     if not daftar:
         cutter = None if uji else pemotong(str((st.get("thumbnail") or {}).get("model_potong", "isnet-general-use")))
         cdir = tdir / "kandidat"
         cdir.mkdir(exist_ok=True)
         hasil = []
         frames = kandidat_frame(vdir)
+        if not uji:
+            foto: list = []
+            for q in kueri_foto(objek, vdir):                         # foto asli benda dulu, lalu frame footage
+                foto += [f for f in cari_foto(q, tdir) if f[0] not in {x[0] for x in foto}]
+                if len(foto) >= 5:
+                    break
+            frames = foto[:8] + frames
+        lembar_frame(tdir, frames)
         if uji:                                 # mode uji: satu "foto produk" berlatar polos (tanpa model)
             contoh = tdir / "frame" / "uji-0.jpg"
             gambar_ai.contoh_uji(contoh, objek, 0, 1080, 1920, pink=True)
@@ -224,8 +389,9 @@ def buat_objek(vdir: Path, objek: str, uji: bool, ulang: bool, pilih: int, st: d
             kotak = rgba.getchannel("A").point(lambda v: 255 if v > 20 else 0).getbbox()
             nama = f"kandidat/{lab}.png"
             rgba.crop((max(0, kotak[0] - 8), max(0, kotak[1] - 8), min(rgba.width, kotak[2] + 8), min(rgba.height, kotak[3] + 8))).save(tdir / nama)
-            hasil.append({"file": nama, "shot": lab.split("-")[0], "skor": sk, "cek": ket, "sumber": k.get("sumber"),
-                          "judul": k.get("judul"), "pembuat": k.get("pembuat"), "lisensi": k.get("lisensi")})
+            hasil.append({"file": nama, "shot": lab if lab.startswith("foto-") else lab.split("-")[0], "skor": sk, "cek": ket,
+                          "sumber": k.get("sumber"), "judul": k.get("judul"), "pembuat": k.get("pembuat"), "lisensi": k.get("lisensi"),
+                          "halaman": k.get("halaman") or k.get("url_halaman")})
         # satu kandidat terbaik per shot dulu (variasi), lalu sisanya
         hasil.sort(key=lambda d: -d["skor"])
         per_shot, sisa = [], []
@@ -233,7 +399,11 @@ def buat_objek(vdir: Path, objek: str, uji: bool, ulang: bool, pilih: int, st: d
             (sisa if any(x["shot"] == d["shot"] for x in per_shot) else per_shot).append(d)
         daftar = (per_shot + sisa)[:6]
         lembar_kandidat(tdir, daftar)
-        log(f"{len(frames)} frame footage asli → {len(daftar)} kandidat objek" + ("" if cutter or uji else " (tanpa rembg: hanya foto berlatar polos)"))
+        log(f"{len(frames)} foto/frame asli → {len(daftar)} kandidat objek" + ("" if cutter or uji else " (tanpa rembg: hanya foto berlatar polos)"))
+    if potong:
+        daftar = [potong_manual(vdir, potong, kotak, st)] + [d for d in daftar if d.get("shot") != potong][:5]
+        lembar_kandidat(tdir, daftar)
+        pilih = 1
     info["kandidat"] = daftar
     if not daftar:
         if (st.get("thumbnail") or {}).get("objek_ai_cadangan"):
@@ -246,7 +416,7 @@ def buat_objek(vdir: Path, objek: str, uji: bool, ulang: bool, pilih: int, st: d
     ob = ob.filter(ImageFilter.UnsharpMask(radius=2, percent=60, threshold=2))
     ob.save(png)
     log(f"objek asli dipilih: kandidat {n} (shot {d['shot']}, skor {d['skor']:.2f}, {d.get('sumber') or '-'})")
-    return png, {**info, "sumber": "uji" if uji else "footage", "dipilih": n, "dari": d}
+    return png, {**info, "sumber": "uji" if uji else ("foto" if str(d.get("shot", "")).startswith("foto-") else "footage"), "dipilih": n, "dari": d}
 
 
 def buat_objek_ai(vdir: Path, objek: str, uji: bool, info: dict) -> tuple[Path | None, dict]:
@@ -399,6 +569,8 @@ def main() -> None:
     ap.add_argument("slug")
     ap.add_argument("--ulang", action="store_true", help="pakai kandidat objek berikutnya")
     ap.add_argument("--pilih", type=int, default=0, help="pakai kandidat objek nomor N (lihat thumbnail/kandidat.jpg)")
+    ap.add_argument("--potong", default="", help="nama frame/foto (lihat thumbnail/frame-lembar.jpg), dipakai dengan --kotak")
+    ap.add_argument("--kotak", default="0,0,1,1", help="x0,y0,x1,y1 pecahan 0–1 di frame itu, mengelilingi objeknya")
     ap.add_argument("--uji", action="store_true")
     ap.add_argument("--catatan", default="", help="alasan --ulang (dicatat)")
     a = ap.parse_args()
@@ -409,7 +581,7 @@ def main() -> None:
     st = rakit.style()
     objek = objek_teks(script, rj(vdir / "idea.json"))
     log(f"objek: {objek}")
-    png, info = buat_objek(vdir, objek, a.uji, a.ulang, a.pilih, st)
+    png, info = buat_objek(vdir, objek, a.uji, a.ulang, a.pilih, st, a.potong, a.kotak)
     out = susun(vdir, script, st, png)
     info.update({"dibuat": datetime.now().isoformat(timespec="seconds"), "thumbnail": "export/thumbnail.jpg",
                  "ukuran_kb": round(out.stat().st_size / 1024), "ada_objek": bool(png)})
