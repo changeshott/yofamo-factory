@@ -41,6 +41,7 @@ TAHAP = [
     ("raka", "penulis", "Raka menulis naskah"),
     ("dara", "suara", "Dara membuat suara"),
     ("bima", "aset", "Bima menyiapkan visual"),
+    ("mila", "thumbnail", "Mila mendesain thumbnail"),
     ("kai", "editor", "Kai merakit video"),
     ("rara", "qc", "Rara memeriksa kualitas"),
 ]
@@ -397,6 +398,18 @@ def main() -> None:
         exp = ROOT / "videos" / slug / "export"
         sudah_jadi = bool(lanjut) and sudah(slug, "draft") and (exp / "final.mp4").exists()
 
+        # 5a. Mila: objek transparan + thumbnail (objek yang sama muncul di hook video → Kai)
+        if not sudah_jadi or not (exp / "thumbnail.jpg").exists():
+            cat.tahap("mila", "jalan")
+            code = jalan([PY, "agents/thumbnail/thumbnail.py", slug, *(["--uji"] if a.uji else [])], 10 * 60)
+            ti = rj(ROOT / "videos" / slug / "thumbnail" / "info.json")
+            if code == 0 and (exp / "thumbnail.jpg").exists():
+                cat.tahap("mila", "ok", f"objek: {ti.get('objek', '-')}" if ti.get("ada_objek") else "tanpa objek (gambar AI tidak tersedia)")
+            else:
+                cat.tahap("mila", "gagal", "Thumbnail gagal dibuat; video tetap lanjut (thumbnail otomatis YouTube).")
+        else:
+            cat.tahap("mila", "ok", "sudah ada")
+
         # 5b. Rara pra-periksa: shot Bima dicek SEBELUM dirakit (paralel, tanpa render). Shot jelek langsung diganti Bima,
         #     jadi Kai cukup merakit sekali; pemeriksaan sesudah rakit tinggal menilai hasil akhir.
         if not sudah_jadi and not sudah(slug, "draft"):
@@ -404,13 +417,17 @@ def main() -> None:
             cat.tahap("rara", "jalan", "memeriksa shot Bima sebelum dirakit")
             jalan([PY, "agents/qc/periksa.py", "pra", slug, *(["--uji"] if a.uji else [])], 20 * 60)
             if not a.uji and a.visual != "cepat":
-                claude(f"/qc {slug} --pra", tools("agents/pabrik.py", "agents/qc/periksa.py", "agents/aset/cari_aset.py"), 30 * 60, turns=30)
+                claude(f"/qc {slug} --pra", tools("agents/pabrik.py", "agents/qc/periksa.py", "agents/aset/cari_aset.py",
+                                                  "agents/thumbnail/thumbnail.py"), 30 * 60, turns=30)
             if not sudah(slug, "aset"):    # penggantian terputus: Bima melengkapi otomatis
                 jalan([PY, "agents/aset/cari_aset.py", "semua", slug, *(["--uji"] if a.uji else [])], 30 * 60)
             if not sudah(slug, "aset"):
                 cat.tahap("rara", "gagal", "Shot yang ditolak belum berhasil diganti. Lanjutkan dari kartu video.")
                 return cat.akhir("gagal", "Berhenti di pra-periksa Rara.")
             pq = rj(exp / "qc_pra.json")
+            if (exp / "thumbnail.jpg").exists():
+                # shot pembuka bisa diganti saat pra-periksa → latar thumbnail disusun ulang (cepat; objek tidak digambar ulang)
+                jalan([PY, "agents/thumbnail/thumbnail.py", slug, *(["--uji"] if a.uji else [])], 5 * 60)
             r = next(x for x in cat.d["tahap"] if x["kunci"] == "rara")
             r["mulai"] = None                       # durasi Rara dihitung lagi saat penilaian akhir
             cat.tahap("rara", "menunggu", f"pra-periksa {round((time.time() - t0) / 60)} mnt: {pq.get('shot', '?')} shot dicek, "

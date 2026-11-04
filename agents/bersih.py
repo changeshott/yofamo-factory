@@ -9,7 +9,7 @@ Yang dihapus dari video yang sudah diupload (videonya aman di YouTube, bisa diun
   export/final.mp4, base.mp4, folder hf/ (salinan render), lembar frame QC, shot aset/NN-x.mp4, lembar kontak, vo.mp3.
 Yang DISIMPAN (kecil, dipakai Steve untuk belajar & post-mortem, dan untuk kredit):
   idea.json, script.json, naskah.md, words.json, transkrip.txt, captions.srt, aset/manifest.json, KREDIT.txt,
-  export/info.json, upload.json, qc.json, qc_review.json, sampul.jpg.
+  export/info.json, upload.json, qc.json, qc_review.json, sampul.jpg, thumbnail.jpg.
 Lainnya: cache unduhan footage lebih tua dari cache_maks_hari (atau melebihi cache_maks_gb), file sementara *_tmp.py
 di logs/, log & catatan produksi lebih tua dari log_maks_hari. Video yang belum diupload TIDAK pernah disentuh.
 Pengaturan: bible/penyimpanan.json.
@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parents[1]
 VIDEOS = ROOT / "videos"
 CACHE = ROOT / "cache" / "aset"
 CONFIG = ROOT / "bible" / "penyimpanan.json"
-SIMPAN_EXPORT = {"info.json", "upload.json", "qc.json", "qc_review.json", "sampul.jpg"}
+SIMPAN_EXPORT = {"info.json", "upload.json", "qc.json", "qc_review.json", "sampul.jpg", "thumbnail.jpg"}
 SIMPAN_ASET = {"manifest.json", "KREDIT.txt", "kredit_deskripsi.txt", "rencana.json", "pilihan.json", "kandidat.json", "tolak.json"}
 HAPUS_VIDEO_ROOT = {"vo.mp3", "vo_mentah.mp3"}
 COBA = False

@@ -4,13 +4,13 @@ import { P, SLUG } from "@/lib/server/project";
 
 const TYPES: Record<string, string> = { "vo.mp3": "audio/mpeg", "captions.srt": "application/x-subrip; charset=utf-8", "words.json": "application/json; charset=utf-8",
   "naskah.md": "text/markdown; charset=utf-8", "transkrip.txt": "text/plain; charset=utf-8" };
-const CLIP = /^(aset\/(\d{2}-[a-c]\.mp4|lembar\/\d{2}\.jpg)|export\/(final\.mp4|sampul\.jpg|qc\/lembar-\d+\.jpg))$/;
+const CLIP = /^(aset\/(\d{2}-[a-c]\.mp4|lembar\/\d{2}\.jpg)|export\/(final\.mp4|sampul\.jpg|thumbnail\.jpg|qc\/(pra-)?lembar-\d+\.jpg)|thumbnail\/objek\.png)$/;
 
 /** File hasil agent untuk satu video (audio, subtitle, timing, klip aset). Hanya nama file yang terdaftar. */
 export async function GET(req: Request) {
   if (!["127.0.0.1:3210", "localhost:3210"].includes(req.headers.get("host") ?? "")) return new Response("ditolak", { status: 403 });
   const q = new URL(req.url).searchParams, slug = q.get("slug") ?? "", file = q.get("file") ?? "";
-  const type = TYPES[file] ?? (CLIP.test(file) ? (file.endsWith(".jpg") ? "image/jpeg" : "video/mp4") : null);
+  const type = TYPES[file] ?? (CLIP.test(file) ? (file.endsWith(".jpg") ? "image/jpeg" : file.endsWith(".png") ? "image/png" : "video/mp4") : null);
   if (!SLUG.test(slug) || !type) return new Response("tidak ditemukan", { status: 404 });
   const full = path.join(P.videos, slug, ...file.split("/"));
   let size: number;

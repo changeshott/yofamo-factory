@@ -48,6 +48,8 @@ Contoh bagus:
 
 Jangan: "Tau nggak, di video ini kita bahas…" (basa-basi), "Tau nggak tentang kulit buatan?" (datar, bukan kejutan), atau "Tahukah kamu" (terlalu formal). Teks besar di layar (`hook_teks`) **≤ 6 kata** tetap berisi klaimnya, tanpa "tau nggak" (contoh `ROBOT CAIR YANG BISA BERUBAH WUJUD`). Kai menampilkannya bertingkat di tengah layar: subjek **putih** besar → kata penghubung **kuning** lebih kecil → kata kunci terakhir **biru** besar. Kalau pembagian otomatis kurang pas, tulis sendiri `hook_baris`, misalnya `[{"teks": "ROBOT CAIR", "warna": "putih"}, {"teks": "YANG BISA BERUBAH", "warna": "kuning"}, {"teks": "WUJUD", "warna": "biru"}]` (maksimal 5 baris, tiap baris ≤ 12 huruf; warna: putih/kuning/biru/oranye/merah/hijau). Jangan nama superhero sebagai satu-satunya daya tarik.
 
+Tulis juga `thumbnail_objek`: **satu benda fisik** yang dibahas, bahasa Inggris, konkret dan bisa digambar utuh tanpa orang (contoh `soft robotic hand covered in electronic skin`, `transparent solar window panel`, `tiny swimming biohybrid robot`). Mila menggambarnya (latar transparan) di belakang tulisan hook, di thumbnail dan di detik awal video. Jangan merek/logo, orang, hewan sungguhan yang dilukai, atau tulisan.
+
 ### 4. Susun beat (setiap kalimat diberi `bagian`)
 1. `hook` — 1 kalimat, diawali "Tau nggak,". Kejutan.
 2. `konteks` — apa ini & siapa yang membuat (1 kalimat). Sebut status jujur (prototipe/riset/dijual).
@@ -112,6 +114,7 @@ Dara mengukur durasi suara asli; produser memanggilmu kalau terlalu panjang. Bac
   "judul": "ROBOT BISA MERASAKAN SAKIT?! Kulit Buatan Ini Bikin Merinding #Shorts #Teknologi",
   "judul_alternatif": ["KULIT INI LEBIH PEKA DARI KULITMU?! #Shorts #Teknologi", "Robot Pertama yang Bisa Bilang 'Aduh' #Shorts #Teknologi"],
   "hook_teks": "ROBOT BISA NGERASA SAKIT?!",
+  "thumbnail_objek": "soft robotic hand covered in electronic skin",
   "target_durasi": 40,
   "suasana": "misterius",
   "penutup_tipe": "pertanyaan",

@@ -162,7 +162,34 @@ def metadata(slug: str) -> dict:
         if t and n + len(t) + 1 <= 480:
             tags.append(t)
             n += len(t) + 1
-    return {"judul": judul, "deskripsi": desk, "tag": tags, "sintetis": bool(man.get("pakai_ai"))}
+    ti = rj(VIDEOS / slug / "thumbnail" / "info.json")
+    objek_ai = ti.get("ada_objek") and ti.get("sumber") == "ai"     # objek Mila (gambar AI) tampil di hook video
+    return {"judul": judul, "deskripsi": desk, "tag": tags, "sintetis": bool(man.get("pakai_ai") or objek_ai)}
+
+
+def pasang_thumbnail(yt, vid: str, vdir: Path) -> dict:
+    """Thumbnail Mila (export/thumbnail.jpg) dipasang otomatis. Shorts: thumbnail khusus tampil di beranda, tab Shorts channel,
+    pencarian & saat dibagikan (feed Shorts tetap memutar video, karena itu frame pembukanya dibuat sama dengan thumbnail)."""
+    from googleapiclient.errors import HttpError
+    from googleapiclient.http import MediaFileUpload
+    f = vdir / "export" / "thumbnail.jpg"
+    if not f.exists():
+        return {"dipasang": False, "alasan": "belum ada export/thumbnail.jpg (Mila)"}
+    try:
+        yt.thumbnails().set(videoId=vid, media_body=MediaFileUpload(str(f), mimetype="image/jpeg")).execute()
+        log("thumbnail Mila terpasang")
+        return {"dipasang": True}
+    except HttpError as err:
+        teks = str(err)
+        if "forbidden" in teks.lower() or getattr(err, "status_code", 0) == 403 or " 403 " in teks:
+            alasan = ("YouTube belum mengizinkan thumbnail khusus untuk channel ini (perlu verifikasi nomor HP di "
+                      "youtube.com/verify; thumbnail khusus Shorts dibuka bertahap). Pasang manual di YouTube Studio (desktop).")
+        elif "quotaExceeded" in teks:
+            alasan = "kuota YouTube API habis; pasang manual di YouTube Studio (desktop)"
+        else:
+            alasan = f"ditolak YouTube: {getattr(err, 'reason', teks)[:160]}"
+        log(f"thumbnail tidak terpasang otomatis: {alasan} File: {f.relative_to(ROOT)}")
+        return {"dipasang": False, "alasan": alasan}
 
 
 def unggah(slug: str, jadwal: str | None) -> None:
@@ -216,6 +243,7 @@ def unggah(slug: str, jadwal: str | None) -> None:
     pin = str(rj(vdir / "script.json").get("komentar_pin") or "").strip()
     if pin:
         info["komentar_pin"] = pin       # API tidak bisa menyematkan komentar; Zona tempel & sematkan sendiri
+    info["thumbnail"] = pasang_thumbnail(yt, vid, vdir)
     up.write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
     subprocess.run([sys.executable, str(ROOT / "agents" / "pabrik.py"), "set", slug, "export", "--note", f"diupload private: {vid}"], cwd=ROOT)
     log(f"selesai: {info['url']} (private{', tayang ' + jadwal + ' WIB' if jadwal else ''}).")

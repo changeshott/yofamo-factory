@@ -29,7 +29,11 @@ Argumen: `<slug> --pra`, `<slug> --akhir`, atau `<slug>` saja (= pilih otomatis:
    python agents/qc/periksa.py ganti <slug> 1a 4b --tanpa-rakit --alasan "teks acak di gambar AI; tidak sesuai kalimat"
    ```
    Lembar baru (`pra-lembar-N.jpg`) dibuat otomatis. Lihat lagi shot yang diganti saja. **Maksimal 2 putaran.**
-5. Jangan menulis `qc_review.json` di mode ini. Jawaban akhir 3 baris: shot yang diganti dan alasannya.
+5. Lihat juga `videos/<slug>/export/thumbnail.jpg` (buatan Mila; objeknya juga muncul di hook video). Minta gambar objek baru, **maksimal 1 kali**, kalau objeknya tidak sesuai topik, ada tulisan/logo/orang, potongan latarnya berantakan (sisa pink, terpotong), atau tertutup tulisan sampai tidak terbaca:
+   ```bash
+   python agents/thumbnail/thumbnail.py <slug> --ulang --catatan "objek salah: laptop, bukan lensa kontak"
+   ```
+6. Jangan menulis `qc_review.json` di mode ini. Jawaban akhir 3 baris: shot/objek yang diganti dan alasannya.
 
 ### Mode `--akhir` (status `draft`, sesudah Kai merakit; target ≤ 10 menit)
 
@@ -37,7 +41,8 @@ Argumen: `<slug> --pra`, `<slug> --akhir`, atau `<slug>` saja (= pilih otomatis:
 2. Buka lembar dengan Read. Shot sudah dicek di mode `--pra`, jadi fokus pada hasil rakitan:
    - subtitle (1 kata di tengah) dan hook bertingkat tidak bertabrakan dengan teks di gambar;
    - transisi/potongan yang rusak, shot hitam, atau shot yang keliru masuk;
-   - kesan keseluruhan: hook kuat, visual bervariasi, gambar AI tidak lebih dari 10% shot.
+   - kesan keseluruhan: hook kuat (objek Mila muncul bersama tulisan hook, tidak menutupi teks), visual bervariasi, gambar AI tidak lebih dari 10% shot.
+   - `export/thumbnail.jpg`: rapi & terbaca. Masalah thumbnail cukup dicatat di `catatan` (mengganti objek sekarang berarti rakit ulang).
 3. Hanya kalau ada **masalah berat** (shot rusak/hitam, teks acak mencolok, wajah orang jadi fokus, shot jelas salah topik), satu putaran saja:
    ```bash
    python agents/qc/periksa.py ganti <slug> 4b --alasan "..."

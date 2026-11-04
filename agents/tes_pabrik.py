@@ -250,6 +250,21 @@ def offline() -> None:
         pq2 = json.loads((vdir / "export" / "qc_pra.json").read_text(encoding="utf-8")) if (vdir / "export" / "qc_pra.json").exists() else {}
         cek("Rara pra: tolak manual tanpa rakit + hitung putaran", r.returncode == 0 and pq2.get("putaran_rara") == 1 and not (vdir / "export" / "final.mp4").exists(),
             f"putaran {pq2.get('putaran_rara')}" if pq2 else (r.stdout + r.stderr)[-300:])
+        # Mila: objek transparan + thumbnail 1080x1920 (< 2 MB) dengan hook yang sama dengan video
+        t0 = time.time()
+        r = run(tmp, "agents/thumbnail/thumbnail.py", slug, "--uji")
+        th = vdir / "export" / "thumbnail.jpg"
+        ti = json.loads((vdir / "thumbnail" / "info.json").read_text(encoding="utf-8")) if (vdir / "thumbnail" / "info.json").exists() else {}
+        cek("Mila: thumbnail 1080x1920 < 2 MB dengan objek", r.returncode == 0 and th.exists() and ffprobe_size(th)[:2] == (1080, 1920)
+            and th.stat().st_size < 2_000_000 and ti.get("ada_objek"), f"{th.stat().st_size // 1024} KB, objek: {ti.get('objek')}, {time.time() - t0:.0f} dtk"
+            if th.exists() else (r.stdout + r.stderr)[-300:])
+        try:
+            from PIL import Image
+            ob = Image.open(vdir / "thumbnail" / "objek.png")
+            transparan = ob.mode == "RGBA" and ob.getchannel("A").getextrema()[0] == 0
+        except Exception:  # noqa: BLE001
+            transparan = False
+        cek("Mila: objek berlatar transparan", transparan)
         # Kai (mode uji)
         run(tmp, "agents/pabrik.py", "set", slug, "aset")
         (tmp / "musik").mkdir(exist_ok=True)
@@ -306,6 +321,9 @@ def offline() -> None:
         cek("Kai: penutup, teks layar & penekanan tampil", ",Akhir," in ass_txt and ",Layar," in ass_txt and "PROTOTIPE" in ass_txt and "REFLEKS!" not in ass_txt and "&H003FD2FF&" in ass_txt)
         ar = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=codec_name", "-of", "csv=p=0", str(fin)], capture_output=True, text=True)
         cek("Kai: ada audio AAC", "aac" in ar.stdout)
+        hfd = json.loads((vdir / "export" / "hf" / "data.json").read_text(encoding="utf-8")) if (vdir / "export" / "hf" / "data.json").exists() else {}
+        cek("Kai: objek Mila muncul bersama hook (sama dengan thumbnail)", bool(hfd.get("objek")) and (vdir / "export" / "hf" / "assets" / "objek.png").exists(),
+            json.dumps(hfd.get("objek"))[:120])
         cek("Kai: subtitle & sampul dibuat", (vdir / "export" / "subtitle.ass").exists() and (vdir / "export" / "sampul.jpg").exists())
 
         # Rara (QC otomatis): rusak satu shot dengan klip hitam → harus terdeteksi dan diganti
@@ -420,7 +438,10 @@ def offline() -> None:
     except Exception:
         cek("tes tanpa internet berjalan sampai selesai", False, traceback.format_exc().strip().splitlines()[-1])
     finally:
-        shutil.rmtree(tmp, ignore_errors=True)
+        if os.environ.get("YOFAMO_SIMPAN_TES"):      # untuk memeriksa hasil (frame, thumbnail) setelah tes
+            print(f"  (folder tes disimpan: {tmp})")
+        else:
+            shutil.rmtree(tmp, ignore_errors=True)
 
 
 # ------------------------------------------------------------------ tes koneksi sungguhan

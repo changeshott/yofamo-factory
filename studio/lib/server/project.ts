@@ -229,6 +229,7 @@ export async function videos(): Promise<Video[]> {
     media: media(r.slug),
     aset: aset(r.slug),
     final: final(r.slug),
+    thumb: thumb(r.slug),
     qc: qc(r.slug),
     upload: readJson<NonNullable<Video["upload"]>>(path.join(P.videos, r.slug, "export", "upload.json")),
   }));
@@ -247,6 +248,16 @@ function final(slug: string): Video["final"] {
   const dir = path.join(P.videos, slug, "export");
   const i = readJson<{ durasi?: number; musik?: string; dibuat?: string; uji?: boolean }>(path.join(dir, "info.json"));
   return { ada: fs.existsSync(path.join(dir, "final.mp4")), durasi: i?.durasi ?? null, musik: i?.musik ?? null, dibuat: i?.dibuat ?? null, uji: !!i?.uji };
+}
+
+function thumb(slug: string): Video["thumb"] {
+  const dir = path.join(P.videos, slug);
+  const ada = fs.existsSync(path.join(dir, "export", "thumbnail.jpg"));
+  const i = readJson<{ objek?: string; ada_objek?: boolean; sumber?: string; dibuat?: string }>(path.join(dir, "thumbnail", "info.json"));
+  if (!ada && !i) return null;
+  const up = readJson<{ thumbnail?: { dipasang?: boolean; alasan?: string } }>(path.join(dir, "export", "upload.json"));
+  return { ada, objek: i?.objek ?? null, adaObjek: !!i?.ada_objek, sumber: i?.sumber ?? null, dibuat: i?.dibuat ?? null,
+    dipasang: up?.thumbnail ? !!up.thumbnail.dipasang : null, alasan: up?.thumbnail?.alasan ?? null };
 }
 
 function aset(slug: string): Video["aset"] {

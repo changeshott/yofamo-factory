@@ -160,9 +160,27 @@ def layar_penuh(klip: list[dict]) -> list[dict]:
     return out
 
 
+def objek_hook(png: Path | None, st: dict) -> dict | None:
+    """Objek Mila (PNG transparan) di belakang tulisan hook: posisi sama persis dengan thumbnail."""
+    if not png or not Path(png).exists():
+        return None
+    try:
+        from PIL import Image
+        with Image.open(png) as im:
+            ukuran = im.size
+    except Exception:  # noqa: BLE001
+        return None
+    t = st.get("thumbnail") or {}
+    s = min(int(t.get("objek_lebar_maks", 900)) / ukuran[0], int(t.get("objek_tinggi_maks", 840)) / ukuran[1])
+    w, h = round(ukuran[0] * s), round(ukuran[1] * s)
+    cy = int(st.get("hyperframes", {}).get("hook_y", 1000)) - int(t.get("objek_naik", 290))
+    return {"src": "assets/objek.png", "file": str(png), "x": (1080 - w) // 2, "y": cy - h // 2, "w": w, "h": h}
+
+
 def data_video(st: dict, script: dict, idea: dict, words: dict, narasi: list[dict], total: float, akhir: float,
                senyap: list[tuple[float, float]], hook_baris: list[tuple[str, str, float]], hook_end: float,
-               tekan: set[tuple[int, str]], kal_dari, klip_grafis: list[dict] | None = None, gaya: dict | None = None) -> dict:
+               tekan: set[tuple[int, str]], kal_dari, klip_grafis: list[dict] | None = None, gaya: dict | None = None,
+               objek: Path | None = None) -> dict:
     hf = st.get("hyperframes", {})
     gaya = gaya or {k: v[0] for k, v in VARIAN.items()}
     warna = {k: str(v).lstrip("#") for k, v in (st.get("palet") or {}).items() if k in ("utama", "terang", "gelap", "kuning")}
@@ -204,6 +222,7 @@ def data_video(st: dict, script: dict, idea: dict, words: dict, narasi: list[dic
         "hook": {"akhir": round(hook_end, 3), "y": int(hf.get("hook_y", 1000)), "rapat": float(hk.get("jarak_baris", 0.8)) + 0.12,
                  "tinggi_maks": int(hk.get("tinggi_maks", 900)), "jeda": float(hk.get("jeda_baris", 0.09)) + 0.03,
                  "baris": [{"teks": t, "warna": warna.get("utama", w) if w.upper().lstrip("#") == utama0 else w, "maks": int(float(hf.get("hook_px_maks", 230)) * sk)} for t, w, sk in hook_baris]},
+        "objek": objek_hook(objek, st) if hook_baris and hook_end > 0 else None,
         "kata": kata, "grafis": grafis, "potong": potong, "layar": layar_penuh(klip_grafis or []),
         "penutup": {"a": round(total, 3), "b": round(akhir, 3), "teks": str(pn.get("teks", ""))} if akhir > total + 0.05 and pn.get("teks") else None,
     }
@@ -218,6 +237,10 @@ def tulis_proyek(hf_dir: Path, base_mp4: Path, data: dict, judul: str) -> Path:
     except OSError:
         shutil.copy2(base_mp4, tujuan)
     shutil.copy2(GSAP, hf_dir / "assets" / "gsap.min.js")
+    ob = data.get("objek") or {}
+    if ob.get("file") and Path(ob["file"]).exists():
+        shutil.copy2(ob["file"], hf_dir / "assets" / "objek.png")
+        data = {**data, "objek": {k: v for k, v in ob.items() if k != "file"}}
     for f in ("Poppins-Black.ttf", "Poppins-ExtraBold.ttf"):
         if (FONTS / f).exists():
             shutil.copy2(FONTS / f, hf_dir / "assets" / "fonts" / f)

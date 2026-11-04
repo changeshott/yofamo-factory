@@ -16,7 +16,7 @@ const TITLES: Record<string, string> = {
   bible: "Channel bible", activity: "Log kantor", health: "Cek sistem", server: "Server agent", produksi: "Buat video", galeri: "Galeri video", kelola: "Kelola hasil", animasi: "Ruang Animasi · video panjang",
 };
 const FOKUS = /^(agent:|founder$|queue$|analytics$|bible$|server$|animasi$)/;
-const JOB_TXT: Record<string, string> = { steve: "Steve menganalisis", fetch: "Steve mengambil data", check: "Cek koneksi YouTube", ide: "Nova mencari ide", penulis: "Raka menulis naskah", suara: "Dara membuat suara", aset: "Bima mencari klip", editor: "Kai merakit video", produksi: "Produksi video", qc: "Rara memeriksa video", data: "Steve mengumpulkan data", upload: "Uli mengunggah", login: "Menghubungkan YouTube" };
+const JOB_TXT: Record<string, string> = { steve: "Steve menganalisis", fetch: "Steve mengambil data", check: "Cek koneksi YouTube", ide: "Nova mencari ide", penulis: "Raka menulis naskah", suara: "Dara membuat suara", aset: "Bima mencari klip", editor: "Kai merakit video", produksi: "Produksi video", qc: "Rara memeriksa video", data: "Steve mengumpulkan data", upload: "Uli mengunggah", thumbnail: "Mila mendesain thumbnail", login: "Menghubungkan YouTube" };
 
 interface Toast { id: number; text: string; tone: "ok" | "err" | "info" }
 
@@ -402,7 +402,7 @@ function PipelineStrip({ state, onOpen }: { state: StudioState; onOpen: () => vo
   const p = state.produksi[0];
   if (!p || p.status !== "berjalan") return null;            // juga produksi autopilot (berjalan di latar)
   const done = p.tahap.filter((t) => t.status === "ok").length, cur = p.tahap.find((t) => t.status === "jalan");
-  const warna: Record<string, string> = { steve: "#47B5FF", nova: "#6FD29A", setuju: "#F4F1E8", raka: "#FF9A4D", dara: "#C792EA", bima: "#4FD1C5", kai: "#F2C94C", rara: "#F07178" };
+  const warna: Record<string, string> = { steve: "#47B5FF", nova: "#6FD29A", setuju: "#F4F1E8", raka: "#FF9A4D", dara: "#C792EA", bima: "#4FD1C5", mila: "#FF6BCB", kai: "#F2C94C", rara: "#F07178" };
   return (
     <button onClick={onOpen} className="absolute top-[62px] left-1/2 z-10 -translate-x-1/2 rounded-2xl border border-line/70 bg-ink-800/85 px-4 py-2.5 text-left shadow-xl backdrop-blur-xl hover:border-brand/60 max-lg:top-auto max-lg:bottom-[86px] max-md:bottom-[92px]">
       <div className="flex items-center gap-1.5" aria-hidden>
@@ -468,7 +468,7 @@ function CommandPalette({ ctx, onClose }: { ctx: PanelCtx; onClose: () => void }
 function TimSidebar({ state, open, panel, kerja, inbox, lipat, setLipat, ruang }: { state: StudioState; open: (id: string) => void; panel: string | null; kerja: string[]; inbox: number; lipat: boolean; setLipat: (v: boolean) => void; ruang: Ruang }) {
   const tampil = (r: Ruang) => ruang === "semua" || ruang === r;
   const running = kerja.length > 0;
-  const urut = ["steve", "nova", "raka", "dara", "bima", "kai", "rara", "uli"];
+  const urut = ["steve", "nova", "raka", "dara", "bima", "mila", "kai", "rara", "uli"];
   const tahap = state.produksi[0]?.status === "berjalan" ? state.produksi[0].tahap : [];
   const statusTahap = (id: string) => tahap.find((t) => t.kunci === id)?.status;
   return (

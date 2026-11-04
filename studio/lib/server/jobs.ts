@@ -81,6 +81,16 @@ async function command(job: JobName, arg: string): Promise<{ cmd: string; args: 
     if (opsi && !/^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(opsi)) return "Format jadwal tidak valid.";
     return { cmd: py, args: ["agents/upload/unggah.py", "unggah", slug, ...(opsi ? ["--jadwal", opsi] : [])] };
   }
+  if (job === "thumbnail") {
+    if (!py) return "Python tidak ditemukan.";
+    const [slug, opsi = ""] = arg.split("|");
+    if (!SLUG.test(slug ?? "")) return "Video tidak ditemukan.";
+    const rows = await pabrik<{ slug: string; status: string }[]>(["list", "--json"]);
+    const v = rows.find((r) => r.slug === slug);
+    if (!v) return "Video tidak ditemukan.";
+    if (!["naskah", "suara", "aset", "draft", "export", "terbit"].includes(v.status)) return "Thumbnail dibuat setelah Raka menulis naskah.";
+    return { cmd: py, args: ["agents/thumbnail/thumbnail.py", slug, ...(opsi === "ulang" ? ["--ulang", "--catatan", "diminta Zona dari Studio"] : [])] };
+  }
   if (job === "login") return py ? { cmd: py, args: ["agents/upload/unggah.py", "login"] } : "Python tidak ditemukan.";
   if (job === "produksi") {
     if (!py) return "Python tidak ditemukan.";
@@ -140,6 +150,7 @@ const LABEL: Record<JobName, string> = {
   qc: "Rara memeriksa video",
   data: "Steve mengumpulkan data",
   upload: "Uli mengunggah ke YouTube",
+  thumbnail: "Mila mendesain thumbnail",
   login: "Menghubungkan YouTube",
 };
 

@@ -95,5 +95,11 @@
     "tampil": true,
     "teks": "@yofamoo_technology",
     "ukuran": 34
+  },
+  "thumbnail": {
+    "objek_lebar_maks": 900,
+    "objek_tinggi_maks": 840,
+    "objek_naik": 290,
+    "_catatan": "Mila (agents/thumbnail/thumbnail.py): objek transparan di belakang hook, sama di thumbnail & detik awal video. objek_naik = jarak pusat objek di atas pusat hook (hyperframes.hook_y)."
   }
 }

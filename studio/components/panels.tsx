@@ -132,6 +132,28 @@ function AgentPanelShorts({ def, ctx }: { def: AgentDef; ctx: PanelCtx }) {
           <MusikPanel ctx={ctx} />
         </>);
       })()}
+      {def.id === "mila" && (() => {
+        const ok = state.videos.filter((v) => ["aset", "draft", "export"].includes(v.status) || (v.thumb?.ada && v.status !== "terbit")).slice(0, 12);
+        return (<>
+          {ok.length ? (
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">{ok.map((v) => (
+              <li key={v.slug} className="flex flex-col gap-1.5 rounded-xl border border-line/70 bg-ink-800/60 p-2 text-[12.5px]">
+                {v.thumb?.ada
+                  ? <a href={`/api/media?slug=${v.slug}&file=export/thumbnail.jpg&unduh=1`} title="Unduh thumbnail"><img src={`/api/media?slug=${v.slug}&file=export/thumbnail.jpg&v=${encodeURIComponent(v.thumb.dibuat ?? "")}`} alt={`Thumbnail ${v.judul_kerja}`} className="aspect-[9/16] w-full rounded-lg object-cover" /></a>
+                  : <span className="grid aspect-[9/16] w-full place-items-center rounded-lg bg-ink-700 text-faint">belum ada</span>}
+                <span className="line-clamp-2 leading-tight">{v.judul_kerja}</span>
+                {v.thumb && <small className="text-faint">{v.thumb.adaObjek ? `objek: ${v.thumb.objek}` : "tanpa objek"}{v.thumb.dipasang === true ? " · terpasang di YouTube" : v.thumb.dipasang === false ? " · belum terpasang di YouTube" : ""}</small>}
+                {v.thumb?.dipasang === false && v.thumb.alasan && <small className="text-signal">{v.thumb.alasan}</small>}
+                <span className="flex flex-wrap gap-1.5">
+                  <Btn size="sm" tone="primary" disabled={busy(state)} onClick={() => ctx.run("thumbnail", v.slug)}>{v.thumb?.ada ? "Susun ulang" : "Buat"}</Btn>
+                  {v.thumb?.ada && <Btn size="sm" disabled={busy(state)} onClick={() => ctx.run("thumbnail", `${v.slug}|ulang`)}>Objek baru</Btn>}
+                </span>
+              </li>))}
+            </ul>
+          ) : <Muted>Belum ada video yang visualnya sudah disiapkan Bima.</Muted>}
+          <Muted className="mt-2">Di Buat video & autopilot, Mila jalan otomatis setelah Bima. Objek yang sama muncul bersama tulisan hook di detik awal video (rakit ulang Kai kalau objeknya diganti). Thumbnail dipasang Uli saat upload; YouTube hanya mengizinkan thumbnail khusus Shorts untuk channel yang sudah diverifikasi/diberi akses. Gaya: <code>bible/gaya-edit.json</code> → <code>thumbnail</code>.</Muted>
+        </>);
+      })()}
       {def.id === "kai" && (() => {
         const ok = state.videos.filter((v) => v.status === "aset" || v.status === "draft");
         return (<>

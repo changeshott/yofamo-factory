@@ -21,11 +21,11 @@ export function kotakRuang(id: Ruang): [number, number, number, number] {
   return [px(x0, RD) - 8, py(x0, 0, WALL) - 12, px(x1, 0) + 8, py(x1, RD) + 10];
 }
 
-export type AgentId = "steve" | "nova" | "raka" | "dara" | "bima" | "kai" | "rara" | "uli" | "bayu" | "citra" | "gilang" | "laras" | "tio" | "wulan";
+export type AgentId = "steve" | "nova" | "raka" | "dara" | "bima" | "kai" | "rara" | "uli" | "mila" | "bayu" | "citra" | "gilang" | "laras" | "tio" | "wulan";
 export interface AgentDef {
   id: AgentId;
   skill: string;
-  job: "steve" | "ide" | "penulis" | "suara" | "aset" | "editor" | "qc" | "upload" | "panjang";
+  job: "steve" | "ide" | "penulis" | "suara" | "aset" | "editor" | "qc" | "upload" | "thumbnail" | "panjang";
   ruang?: "animasi";
   name: string;
   role: string;
@@ -72,6 +72,12 @@ export const TEAM: AgentDef[] = [
     about: "Merakit video final dengan HyperFrames: hook bertingkat, subtitle 1 kata, grafis gerak biru sesuai kalimat, transisi halus, musik latar volume 10, dan penutup Subscribe. Gratis, tanpa kuota Claude.",
     look: { skin: "#E0AC86", hair: "#3B2A20", shirt: "#E3B23C", pants: "#2A2F3A", accent: "#1C1C1C", style: "short", glasses: true },
     busy: { editor: "Merender video…" },
+  },
+  {
+    id: "mila", skill: "thumbnail", job: "thumbnail", name: "Mila", role: "Desainer thumbnail", desk: [13.0, 2.6], color: "#FF6BCB",
+    about: "Mendesain thumbnail tiap Short: objek yang dibahas digambar (latar transparan, bayangan tebal di sekelilingnya) di belakang tulisan hook dengan font & warna yang sama persis dengan video. Objek yang sama muncul bersama hook di detik awal video. Uli memasangnya otomatis saat upload.",
+    look: { skin: "#F3CFB0", hair: "#2E2140", shirt: "#FF6BCB", pants: "#2D3A52", accent: "#FFF4E6", style: "bun" },
+    busy: { thumbnail: "Mendesain thumbnail…" },
   },
   {
     id: "rara", skill: "qc", job: "qc", name: "Rara", role: "Quality control", desk: [13.0, 7.0], color: "#F07178",

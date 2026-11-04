@@ -511,7 +511,8 @@ def main() -> None:
             data = komposisi.data_video(st, script, read_json(vdir / "idea.json", {}), words, narasi, total, akhir, senyap,
                                         hook_baris(script.get("hook_teks", ""), script, [str(x) for x in st["hook"].get("warna", [])]),
                                         hook_end, tekanan(words.get("kalimat", []), narasi), kal_dari,
-                                        [k for k in klip if k.get("jenis") == "grafis"], gaya)
+                                        [k for k in klip if k.get("jenis") == "grafis"], gaya,
+                                        objek=vdir / "thumbnail" / "objek.png")   # objek Mila di belakang hook (= thumbnail)
             komposisi.tulis_proyek(out_dir / "hf", base_mp4, data, str(script.get("judul", a.slug)))
             log(f"HyperFrames: {len(data['kata'])} kata subtitle, {len(data['grafis'])} grafis gerak, gaya "
                 + ", ".join(f"{k}={v}" for k, v in data["gaya"].items()) + ", merender…")
