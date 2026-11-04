@@ -28,3 +28,9 @@ bible/maskot/
 # Ruang Trading: data pindaian, sinyal, jurnal (pribadi, tidak di-commit)
 /trading/
 /trading-uji/
+
+# hasil olahan yang dibuat ulang otomatis di tiap komputer (jadwal.py, radar.py)
+insights/jadwal.json
+insights/jadwal.md
+insights/radar.json
+insights/radar.md
