@@ -66,3 +66,25 @@ export function activeStage(state: { produksi?: { status: string; tahap: { statu
   const t = p.tahap.find((x) => x.status === "jalan") ?? [...p.tahap].reverse().find((x) => x.status !== "menunggu");
   return t?.job ?? "";
 }
+
+type StateKerja = Parameters<typeof activeStage>[0] & { job?: { status: string; job?: string | null }; autopilot?: { berjalan: boolean; kerja?: string } | null };
+
+/** Siapa di tim Shorts yang SEDANG bekerja, apa pun pemicunya (tombol Studio, antrean, atau autopilot di latar).
+ *  Hasil: kunci `busy` agent (fetch/ide/penulis/suara/aset/editor/qc/upload) atau "" kalau kantor diam. */
+export function kerjaShortsSemua(state: StateKerja | null): string[] {
+  if (!state) return [];
+  const out: string[] = [];
+  if (state.produksi?.[0]?.status === "berjalan") out.push(activeStage(state));   // produksi berjalan (Studio ATAU autopilot)
+  if (state.job?.status === "running" && state.job.job !== "produksi" && state.job.job) out.push(state.job.job);   // mis. Nova cari ide
+  if (state.job?.status === "running" && state.job.job === "produksi" && !out.length) out.push(activeStage(state));
+  if (state.autopilot?.berjalan && state.autopilot.kerja) out.push(state.autopilot.kerja);   // autopilot sedang upload
+  return [...new Set(out.filter(Boolean))];
+}
+
+export const kerjaShorts = (state: StateKerja | null): string => kerjaShortsSemua(state)[0] ?? "";
+
+/** Teks tugas agent ini kalau salah satu pekerjaan yang berjalan memakai dia, selain itu null. */
+export function tugasAgent(busy: Record<string, string | undefined>, kerja: string[]): string | null {
+  for (const k of kerja) if (busy[k]) return busy[k]!;
+  return null;
+}

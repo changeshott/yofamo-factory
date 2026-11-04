@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { StudioState, VideoStatus } from "@/lib/types";
-import { activeStage, api, daysSince, fmt } from "@/lib/format";
+import { api, daysSince, fmt, kerjaShorts, kerjaShortsSemua, tugasAgent } from "@/lib/format";
 import Office from "./office/Office";
 import { drawAvatar } from "./office/sprites";
 import { FOUNDER, RUANG, TEAM, TEAM2, TEAM3, type Ruang } from "./office/world";
@@ -118,8 +118,10 @@ export default function Studio() {
     } });
   }, [refresh, toast]);
   const ctx: PanelCtx | null = state ? { state, run, move, open, target, setTarget, stop, hapus, kelolaTick } : null;
-  const busyKey = state?.job.job === "produksi" ? activeStage(state) : state?.job.job ?? "";
-  const prodStage = state?.job.job === "produksi" ? state.produksi[0]?.tahap.find((t) => t.status === "jalan")?.nama : null;
+  const busyKey = kerjaShorts(state);   // sama untuk karakter kantor, sidebar & dock: tombol Studio ATAU autopilot
+  const kerja = kerjaShortsSemua(state);
+  const prodLatar = state?.job.status !== "running" && state?.produksi[0]?.status === "berjalan";   // produksi autopilot di latar
+  const prodStage = state?.job.job === "produksi" || prodLatar ? state?.produksi[0]?.tahap.find((t) => t.status === "jalan")?.nama : null;
   const inbox = state ? state.videos.filter((v) => v.status === "ide" || v.status === "draft").length : 0;
   const ideas = state?.videos.filter((v) => v.status === "ide").length ?? 0, ready = state?.videos.filter((v) => v.status === "draft").length ?? 0;
   const lastUp = state?.snapshot?.videos.reduce((a, v) => (v.published > a ? v.published : a), "") ?? "";
@@ -150,6 +152,14 @@ export default function Studio() {
               <Btn size="sm" tone="danger" onClick={stop}>Hentikan</Btn>
             </div>
           )}
+          {state && state.job.status !== "running" && busyKey && (
+            <div className="mt-2 flex items-center gap-2 text-sm">
+              <span className="size-2 animate-pulse rounded-full bg-signal motion-reduce:animate-none" aria-hidden />
+              <button className="text-left hover:underline" onClick={() => open(prodLatar ? "produksi" : "agent:uli")}>
+                Autopilot · {prodStage ? `Produksi: ${prodStage}` : busyKey === "upload" ? `Uli mengunggah ${state.autopilot?.slug ?? ""}` : "bekerja"}…
+              </button>
+            </div>
+          )}
           {problems.length > 0 && (
             <button onClick={() => open("health")} className="mt-2 block text-left text-sm text-signal hover:underline">Perlu disiapkan: {problems.join(", ")}. Buka cek sistem</button>
           )}
@@ -161,7 +171,7 @@ export default function Studio() {
         </div>
       </header>
       {state && !tabAtas && <RuangTabs state={state} ruang={ruang} setRuang={setRuang} />}
-      {state && <TimSidebar state={state} open={open} panel={panel} busyKey={busyKey} inbox={inbox} lipat={lipat} setLipat={setLipatSimpan} ruang={ruang} />}
+      {state && <TimSidebar state={state} open={open} panel={panel} kerja={kerja} inbox={inbox} lipat={lipat} setLipat={setLipatSimpan} ruang={ruang} />}
       </div>
 
       {/* statistik kanan atas */}
@@ -181,7 +191,7 @@ export default function Studio() {
       {state && <PipelineStrip state={state} onOpen={() => open("produksi")} />}
 
       {/* dok bawah: ringkas, dikelompokkan */}
-      <Dock state={state} open={open} inbox={inbox} busyKey={busyKey} problems={problems.length} onPalette={() => setPalette(true)} ruang={ruang} />
+      <Dock state={state} open={open} inbox={inbox} kerja={kerja} problems={problems.length} onPalette={() => setPalette(true)} ruang={ruang} />
 
       {palette && ctx && <CommandPalette ctx={ctx} onClose={() => setPalette(false)} />}
 
@@ -267,7 +277,7 @@ const ICON = {
 };
 const Ico = ({ d, className = "size-[18px]" }: { d: string; className?: string }) => <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden><path d={d} /></svg>;
 
-function Dock({ state, open, inbox, busyKey, problems, onPalette, ruang }: { state: StudioState | null; open: (id: string) => void; inbox: number; busyKey: string; problems: number; onPalette: () => void; ruang: Ruang }) {
+function Dock({ state, open, inbox, kerja, problems, onPalette, ruang }: { state: StudioState | null; open: (id: string) => void; inbox: number; kerja: string[]; problems: number; onPalette: () => void; ruang: Ruang }) {
   const [menu, setMenu] = useState<null | "tim" | "video" | "data">(null);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -278,9 +288,8 @@ function Dock({ state, open, inbox, busyKey, problems, onPalette, ruang }: { sta
     return () => { window.removeEventListener("pointerdown", f); window.removeEventListener("keydown", k); };
   }, [menu]);
   const go = (id: string) => { setMenu(null); open(id); };
-  const running = state?.job.status === "running";
   const timRuang = ruang === "animasi" ? TEAM2 : ruang === "trading" ? TEAM3 : ruang === "shorts" ? TEAM : [...TEAM, ...TEAM2, ...TEAM3];
-  const sibuk = timRuang.filter((t) => (t.ruang === "animasi" ? !!state?.panjang?.tahap && !!t.busy[state.panjang.tahap] : t.ruang === "trading" ? !!state?.trading?.tahap && !!t.busy[state.trading.tahap] : running && !!t.busy[busyKey]));
+  const sibuk = timRuang.filter((t) => (t.ruang === "animasi" ? !!state?.panjang?.tahap && !!t.busy[state.panjang.tahap] : t.ruang === "trading" ? !!state?.trading?.tahap && !!t.busy[state.trading.tahap] : !!tugasAgent(t.busy, kerja)));
   const utama = ruang === "animasi" ? { id: "animasi", teks: "Video panjang" } : ruang === "trading" ? { id: "trading", teks: "Sinyal trading" } : { id: "produksi", teks: "Buat video" };
   const ideas = state?.videos.filter((v) => v.status === "ide").length ?? 0;
   const drafts = state?.videos.filter((v) => v.status === "draft").length ?? 0;
@@ -370,7 +379,7 @@ function AgentAvatar({ id }: { id: string }) {
 
 /* ---------------------------------------------------------------- pemilih ruang */
 function RuangTabs({ state, ruang, setRuang }: { state: StudioState; ruang: Ruang; setRuang: (r: Ruang) => void }) {
-  const sibuk: Record<Ruang, boolean> = { semua: false, shorts: state.job.status === "running", animasi: !!state.panjang, trading: !!state.trading };
+  const sibuk: Record<Ruang, boolean> = { semua: false, shorts: !!kerjaShorts(state), animasi: !!state.panjang, trading: !!state.trading };
   const badge: Partial<Record<Ruang, number>> = { shorts: state.videos.filter((v) => v.status === "ide" || v.status === "draft").length || 0 };
   return (
     <div role="tablist" aria-label="Pilih ruang kantor" className="pointer-events-auto flex shrink-0 items-center gap-1 rounded-2xl border border-line/70 bg-ink-800/85 p-1 shadow-xl backdrop-blur-xl max-xl:w-full">
@@ -392,7 +401,7 @@ function RuangTabs({ state, ruang, setRuang }: { state: StudioState; ruang: Ruan
 /* ---------------------------------------------------------------- pipeline produksi langsung */
 function PipelineStrip({ state, onOpen }: { state: StudioState; onOpen: () => void }) {
   const p = state.produksi[0];
-  if (!p || p.status !== "berjalan" || state.job.status !== "running" || state.job.job !== "produksi") return null;
+  if (!p || p.status !== "berjalan") return null;            // juga produksi autopilot (berjalan di latar)
   const done = p.tahap.filter((t) => t.status === "ok").length, cur = p.tahap.find((t) => t.status === "jalan");
   const warna: Record<string, string> = { steve: "#47B5FF", nova: "#6FD29A", setuju: "#F4F1E8", raka: "#FF9A4D", dara: "#C792EA", bima: "#4FD1C5", kai: "#F2C94C", rara: "#F07178" };
   return (
@@ -459,9 +468,9 @@ function CommandPalette({ ctx, onClose }: { ctx: PanelCtx; onClose: () => void }
 }
 
 /* ---------------------------------------------------------------- sidebar tim (kiri) */
-function TimSidebar({ state, open, panel, busyKey, inbox, lipat, setLipat, ruang }: { state: StudioState; open: (id: string) => void; panel: string | null; busyKey: string; inbox: number; lipat: boolean; setLipat: (v: boolean) => void; ruang: Ruang }) {
+function TimSidebar({ state, open, panel, kerja, inbox, lipat, setLipat, ruang }: { state: StudioState; open: (id: string) => void; panel: string | null; kerja: string[]; inbox: number; lipat: boolean; setLipat: (v: boolean) => void; ruang: Ruang }) {
   const tampil = (r: Ruang) => ruang === "semua" || ruang === r;
-  const running = state.job.status === "running";
+  const running = kerja.length > 0;
   const urut = ["steve", "nova", "raka", "dara", "bima", "kai", "rara", "uli"];
   const tahap = state.produksi[0]?.status === "berjalan" ? state.produksi[0].tahap : [];
   const statusTahap = (id: string) => tahap.find((t) => t.kunci === id)?.status;
@@ -475,11 +484,19 @@ function TimSidebar({ state, open, panel, busyKey, inbox, lipat, setLipat, ruang
       </div>
       <ul className="tanpa-scroll min-h-0 flex-1 space-y-1 overflow-y-auto p-2">
         {tampil("shorts") && ruang !== "semua" && !lipat && <li className="px-1.5 pb-1"><button onClick={() => open("produksi")} className="w-full rounded-lg border border-brand/40 bg-brand/10 px-2 py-1.5 text-left text-[12.5px] hover:border-brand">+ Buat video Shorts</button></li>}
+        {tampil("shorts") && !lipat && tahap.length > 0 && (
+          <li className="px-1.5 pb-1">
+            <button onClick={() => open("produksi")} className="w-full rounded-lg border border-signal/40 bg-signal/10 px-2 py-1.5 text-left hover:border-signal">
+              <span className="block font-pixel text-[11px] leading-none text-signal">{state.job.status === "running" && state.job.job === "produksi" ? "Produksi dari Studio" : "Produksi autopilot"} · {tahap.filter((t) => t.status === "ok").length}/{tahap.length}</span>
+              <span className="mt-1 block truncate text-[12.5px] leading-tight">{state.produksi[0].slug ?? (state.produksi[0].permintaan || "Nova mencari topik…")}</span>
+            </button>
+          </li>)}
         {tampil("shorts") && urut.map((id) => {
           const t = agentById(id)!;
-          const on = running && !!t.busy[busyKey];
+          const tugas = tugasAgent(t.busy, kerja), on = !!tugas;
           const st = statusTahap(id), sel = panel === `agent:${id}`;
-          const sub = on ? t.busy[busyKey] : st === "ok" ? "Selesai ✓" : st === "gagal" ? "Gagal, cek log" : t.role;
+          const cat = tahap.find((x) => x.kunci === id && x.status === "jalan")?.catatan;   // mis. "memeriksa shot Bima sebelum dirakit"
+          const sub = on ? (cat ? cat.charAt(0).toUpperCase() + cat.slice(1) : tugas) : st === "ok" ? "Selesai ✓" : st === "gagal" ? "Gagal, cek log" : t.role;
           return (
             <li key={id}>
               <button onClick={() => open(`agent:${id}`)} title={lipat ? `${t.name} · ${sub}` : undefined}

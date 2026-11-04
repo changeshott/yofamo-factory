@@ -1,6 +1,6 @@
 import type { StudioState } from "@/lib/types";
 import { shade, sprite, type Look, type Pose } from "./sprites";
-import { activeStage } from "@/lib/format";
+import { activeStage, kerjaShorts, kerjaShortsSemua, tugasAgent } from "@/lib/format";
 import { BH, BLOCKED, BW, FOUNDER, FUTURE, OX, OY, PINTU, R2X, R3X, RD, RW, SPOTS, T, TEAM, TEAM2, TEAM3, TW, WALL, type AgentDef } from "./world";
 
 type Pt = [number, number];
@@ -98,10 +98,11 @@ export class OfficeEngine {
       const tahap = this.state?.panjang?.tahap;
       return tahap && def.busy[tahap] ? { kind: "busy", text: def.busy[tahap]! } : null;
     }
+    const kini = kerjaShortsSemua(this.state);   // tombol Studio, antrean, ATAU autopilot di latar
+    if (kini.length) { const t = tugasAgent(def.busy, kini); return t ? { kind: "busy", text: t } : null; }
     const j = this.state?.job;
     const key = j?.job === "produksi" ? activeStage(this.state) : j?.job;
     if (!j?.job || !key || !def.busy[key]) return null;
-    if (j.status === "running") return { kind: "busy", text: def.busy[key]! };
     const fin = j.finished ? Date.parse(j.finished) : 0;
     if (!fin || Date.now() - fin > 3 * 60_000) return null;
     if (j.status === "ok") return { kind: "ok", text: "Selesai! Cek hasilnya" };
@@ -516,7 +517,7 @@ export class OfficeEngine {
   }
   private server(): BBox {
     const top = this.box(13.25, 0.1, 1.05, 0.8, 78, "#1E2633");
-    const busy = this.state?.job.status === "running";
+    const busy = !!kerjaShorts(this.state);
     for (let r = 0; r < 9; r++) {
       const z = 8 + r * 8; this.poly(this.qy(0.9, 13.3, 14.25, z, z + 6), "#2A3444");
       for (let l = 0; l < 4; l++) { const on = (this.tick + r * 3 + l * 5) % (busy ? 4 : 11) < 2; this.poly(this.qy(0.9, 13.4 + l * 0.12, 13.47 + l * 0.12, z + 2, z + 4), on ? (l % 2 ? "#6FD29A" : "#47B5FF") : "#3A4658"); }

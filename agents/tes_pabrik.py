@@ -233,6 +233,23 @@ def offline() -> None:
             f = vdir / "aset" / frames[0]["file"]
             cek("Bima: kartu grafis ter-render & ringan", ffprobe_size(f)[0] == 1080 and f.stat().st_size < 8 * 1024 * 1024,
                 f"{f.stat().st_size / 1048576:.1f} MB")
+        # Rara pra-periksa (sebelum Kai merakit): shot hitam diganti Bima TANPA render, lembar shot dibuat
+        run(tmp, "agents/pabrik.py", "set", slug, "aset")
+        kl_now = json.loads((vdir / "aset" / "manifest.json").read_text(encoding="utf-8")).get("klip", [])
+        rusak = next(k for k in kl_now if k["jenis"] != "grafis")
+        subprocess.run(["ffmpeg", "-loglevel", "error", "-y", "-f", "lavfi", "-i", f"color=black:s=1080x1920:r=30:d={rusak['durasi']:.3f}",
+                        "-pix_fmt", "yuv420p", str(vdir / "aset" / rusak["file"])], check=False)
+        t0 = time.time()
+        r = run(tmp, "agents/qc/periksa.py", "pra", slug, "--uji")
+        pq = json.loads((vdir / "export" / "qc_pra.json").read_text(encoding="utf-8")) if (vdir / "export" / "qc_pra.json").exists() else {}
+        cek("Rara pra: shot hitam diganti sebelum dirakit (tanpa render)", r.returncode == 0 and bool(pq) and not pq.get("ganti_otomatis")
+            and not (vdir / "export" / "final.mp4").exists(), f"{pq.get('shot')} shot, {time.time() - t0:.0f} dtk" if pq else (r.stdout + r.stderr)[-300:])
+        cek("Rara pra: lembar shot dibuat", bool(pq.get("lembar")) and all((vdir / x).exists() for x in pq.get("lembar", [])) and "pra-lembar" in str(pq.get("lembar")))
+        lbl = pq.get("shot_info", [{}])[0].get("shot", "1a")
+        r = run(tmp, "agents/qc/periksa.py", "ganti", slug, lbl, "--tanpa-rakit", "--alasan", "uji tolak manual", "--uji")
+        pq2 = json.loads((vdir / "export" / "qc_pra.json").read_text(encoding="utf-8")) if (vdir / "export" / "qc_pra.json").exists() else {}
+        cek("Rara pra: tolak manual tanpa rakit + hitung putaran", r.returncode == 0 and pq2.get("putaran_rara") == 1 and not (vdir / "export" / "final.mp4").exists(),
+            f"putaran {pq2.get('putaran_rara')}" if pq2 else (r.stdout + r.stderr)[-300:])
         # Kai (mode uji)
         run(tmp, "agents/pabrik.py", "set", slug, "aset")
         (tmp / "musik").mkdir(exist_ok=True)

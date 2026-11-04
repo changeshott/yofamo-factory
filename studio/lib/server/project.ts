@@ -303,7 +303,7 @@ export function produksi(running: boolean): Produksi[] {
     let hidup = false;
     try { if (kunci?.pid) { process.kill(kunci.pid, 0); hidup = true; } } catch (e) { hidup = (e as NodeJS.ErrnoException).code === "EPERM"; }
     const jalanId = hidup ? kunci?.nama : undefined;
-    return fs.readdirSync(P.produksi).filter((f) => /^[\w-]+\.json$/.test(f) && f !== "autopilot.json" && f !== "antrean.json")
+    return fs.readdirSync(P.produksi).filter((f) => /^[\w-]+\.json$/.test(f) && f !== "autopilot.json" && f !== "antrean.json" && f !== "autopilot-kerja.json" && f !== "maskot.json")
       .map((f) => ({ f, t: fs.statSync(path.join(P.produksi, f)).mtimeMs })).sort((a, b) => b.t - a.t).slice(0, 12)
       .map(({ f }) => readJson<Produksi>(path.join(P.produksi, f)))
       .filter((x): x is Produksi => !!x && Array.isArray(x.tahap))

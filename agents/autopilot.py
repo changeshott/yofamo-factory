@@ -218,7 +218,26 @@ def siap_tayang(state: dict, c: dict) -> list[tuple[str, str]]:
     return out
 
 
+KERJA = ROOT / "produksi" / "autopilot-kerja.json"
+
+
+def kerja(apa: str, slug: str | None = None) -> None:
+    """Beri tahu Studio siapa yang sedang bekerja untuk autopilot (karakter & sidebar ikut bergerak)."""
+    try:
+        wj(KERJA, {"kerja": apa, "slug": slug, "sejak": datetime.now().isoformat(timespec="seconds")})
+    except OSError:
+        pass
+
+
 def unggah(slug: str, t: datetime) -> dict | None:
+    kerja("upload", slug)
+    try:
+        return _unggah(slug, t)
+    finally:
+        kerja("")
+
+
+def _unggah(slug: str, t: datetime) -> dict | None:
     jadwal_str = t.strftime("%Y-%m-%dT%H:%M")
     if UJI:
         log(f"[uji] {slug} → tayang {jadwal_str} WIB (tidak benar-benar diupload)")

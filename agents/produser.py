@@ -394,9 +394,29 @@ def main() -> None:
         m = json.loads((ROOT / "videos" / slug / "aset" / "manifest.json").read_text(encoding="utf-8"))
         cat.tahap("bima", "ok", f"{len(m.get('klip', []))} shot")
 
-        # 6. Kai (dilewati kalau video yang dilanjutkan sudah jadi: tidak merakit ulang 20+ menit tanpa alasan)
         exp = ROOT / "videos" / slug / "export"
         sudah_jadi = bool(lanjut) and sudah(slug, "draft") and (exp / "final.mp4").exists()
+
+        # 5b. Rara pra-periksa: shot Bima dicek SEBELUM dirakit (paralel, tanpa render). Shot jelek langsung diganti Bima,
+        #     jadi Kai cukup merakit sekali; pemeriksaan sesudah rakit tinggal menilai hasil akhir.
+        if not sudah_jadi and not sudah(slug, "draft"):
+            t0 = time.time()
+            cat.tahap("rara", "jalan", "memeriksa shot Bima sebelum dirakit")
+            jalan([PY, "agents/qc/periksa.py", "pra", slug, *(["--uji"] if a.uji else [])], 20 * 60)
+            if not a.uji and a.visual != "cepat":
+                claude(f"/qc {slug} --pra", tools("agents/pabrik.py", "agents/qc/periksa.py", "agents/aset/cari_aset.py"), 30 * 60, turns=30)
+            if not sudah(slug, "aset"):    # penggantian terputus: Bima melengkapi otomatis
+                jalan([PY, "agents/aset/cari_aset.py", "semua", slug, *(["--uji"] if a.uji else [])], 30 * 60)
+            if not sudah(slug, "aset"):
+                cat.tahap("rara", "gagal", "Shot yang ditolak belum berhasil diganti. Lanjutkan dari kartu video.")
+                return cat.akhir("gagal", "Berhenti di pra-periksa Rara.")
+            pq = rj(exp / "qc_pra.json")
+            r = next(x for x in cat.d["tahap"] if x["kunci"] == "rara")
+            r["mulai"] = None                       # durasi Rara dihitung lagi saat penilaian akhir
+            cat.tahap("rara", "menunggu", f"pra-periksa {round((time.time() - t0) / 60)} mnt: {pq.get('shot', '?')} shot dicek, "
+                                         f"{len(pq.get('ganti_otomatis') or [])} masih jelek, {pq.get('putaran_rara', 0)} putaran ganti; menunggu Kai")
+
+        # 6. Kai (dilewati kalau video yang dilanjutkan sudah jadi: tidak merakit ulang 20+ menit tanpa alasan)
         cat.tahap("kai", "jalan")
         code = 0 if sudah_jadi else jalan([PY, "agents/editor/rakit.py", slug, *(["--uji"] if a.uji else [])], 45 * 60)
         if a.uji and code == 0 and not sudah_jadi:
@@ -406,7 +426,7 @@ def main() -> None:
             return cat.akhir("gagal", "Berhenti di tahap rakit.")
         cat.tahap("kai", "ok", "sudah jadi sebelumnya (tidak dirakit ulang)" if sudah_jadi else "export/final.mp4")
 
-        # 7. Rara (QC): periksa, ganti shot jelek, rakit ulang (maks 2 putaran)
+        # 7. Rara (QC akhir): shot sudah dicek sebelum rakit → di sini cukup menilai hasil akhir (ganti maks 1 putaran, hanya masalah berat)
         cat.tahap("rara", "jalan")
         if sudah_jadi and (exp / "qc_review.json").exists():
             pass
@@ -414,7 +434,7 @@ def main() -> None:
             jalan([PY, "agents/qc/periksa.py", "otomatis", slug, *(["--uji"] if a.uji else [])], 75 * 60)
         else:
             alat_qc = tools("agents/pabrik.py", "agents/qc/periksa.py", "agents/editor/rakit.py", "agents/aset/cari_aset.py")
-            claude(f"/qc {slug}", alat_qc, 90 * 60)
+            claude(f"/qc {slug} --akhir", alat_qc, 45 * 60, turns=30)
             # jaring pengaman: kalau Rara sudah mengganti shot tapi rakit ulangnya terputus (mis. batas waktu perintah),
             # produser menyelesaikan rakit ulang, lalu Rara menilai sekali lagi
             mf = ROOT / "videos" / slug / "aset" / "manifest.json"

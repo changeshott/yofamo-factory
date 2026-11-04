@@ -23,6 +23,13 @@ export function kunciAktif(nama: string): { pid: number; nama: string } | null {
 
 export const autopilotBerjalan = () => kunciAktif("autopilot.lock") !== null;
 
+/** Untuk kantor: autopilot sedang mengerjakan apa (ditulis agents/autopilot.py ke produksi/autopilot-kerja.json). */
+export function statusKantorAutopilot(): { berjalan: boolean; kerja: string; slug: string | null } | null {
+  if (!autopilotBerjalan()) return null;
+  const k = baca(path.join(P.produksi, "autopilot-kerja.json"));
+  return { berjalan: true, kerja: typeof k?.kerja === "string" ? k.kerja : "", slug: typeof k?.slug === "string" ? k.slug : null };
+}
+
 export function jalankanAutopilot(manual = false): { ok: boolean; message: string } {
   if (autopilotBerjalan()) return { ok: false, message: "Autopilot sedang bekerja. Tunggu putaran ini selesai." };
   const tgl = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
