@@ -47,7 +47,7 @@ function AgentPanelShorts({ def, ctx }: { def: AgentDef; ctx: PanelCtx }) {
   const [theme, setTheme] = useState("");
   const [log, setLog] = useState<string | null>(mine ? j.log : null);
   useEffect(() => { if (mine && j.log) setLog(j.log); }, [mine, j.log]);
-  const logs = state.logs.filter((l) => l.name.startsWith(def.job + "-") || (def.id === "steve" && (l.name.startsWith("fetch-") || l.name.startsWith("data-")))).slice(0, 6);
+  const logs = state.logs.filter((l) => l.name.startsWith(def.job + "-") || (def.id === "steve" && (l.name.startsWith("fetch-") || l.name.startsWith("data-"))) || (def.id === "mila" && l.name.startsWith("pasang_rembg-"))).slice(0, 6);
   const noClaude = !state.health.claude;
   return (
     <div>
