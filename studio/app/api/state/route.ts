@@ -4,13 +4,20 @@ import { jobState, readQueue, startJob } from "@/lib/server/jobs";
 import { json } from "@/lib/server/guard";
 import { autopilotOtomatis, statusKantorAutopilot } from "@/lib/server/autopilot";
 import { statusKantorPanjang } from "@/lib/server/panjang";
-import { P, activity, envHas, hasModule, latestSnapshot, listFiles, localIso, produksi, steveInsight, pythonCmd, videos, week, which } from "@/lib/server/project";
+import { P, activity, envHas, hasModule, jalankanLatar, latestSnapshot, listFiles, localIso, produksi, steveInsight, pythonCmd, videos, week, which } from "@/lib/server/project";
 import type { StudioState } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 const AGENTS = ["steve-analis", "ide-riset", "penulis", "suara", "aset", "editor", "upload"];
 
-const auto = globalThis as unknown as { __yofamoAutoData?: string };
+const auto = globalThis as unknown as { __yofamoAutoData?: string; __yofamoRembg?: number };
+
+/** Mila butuh rembg (pemotong latar foto asli). Belum terpasang → dipasang otomatis di latar, sekali per Studio dibuka. */
+function siapkanMila(py: string | null, adaRembg: boolean) {
+  if (!py || adaRembg || auto.__yofamoRembg) return;
+  auto.__yofamoRembg = Date.now();
+  jalankanLatar(["agents/thumbnail/thumbnail.py", "--siapkan"], `thumbnail-siapkan-${localIso().slice(0, 10)}.txt`);
+}
 
 /** Sekali sehari saat Studio terbuka & kantor kosong: Steve memperbarui statistik (tanpa kuota Claude). */
 async function dataHarian(py: string | null) {
@@ -50,5 +57,6 @@ export async function GET() {
       ytdlp: py ? await hasModule("yt_dlp") : false, rembg: py ? await hasModule("rembg") : false, aiKey: envHas("CLOUDFLARE_API_TOKEN") && envHas("CLOUDFLARE_ACCOUNT_ID"),
       google: py ? await hasModule("googleapiclient") : false, ytClient: fs.existsSync(path.join(P.rahasia, "client_secret.json")), ytLogin: fs.existsSync(path.join(P.rahasia, "token.json")) },
   };
+  siapkanMila(py, state.health.rembg);
   return json(state);
 }

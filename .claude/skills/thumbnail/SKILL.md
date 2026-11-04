@@ -25,7 +25,7 @@ Thumbnail Yofamo **sama persis gayanya dengan hook di video**: font Poppins Blac
 ## Pitfalls
 
 - Sumber hanya lewat script (foto berlisensi bebas & footage Bima yang sudah dikredit). Jangan mengunduh gambar lain sendiri. Foto Wikimedia CC BY otomatis dikredit di deskripsi oleh Uli.
-- Pemotong latar `rembg` dipasang sekali (Studio → meja Mila → Pasang sekarang, atau `python -m pip install "rembg[cpu]"`). Tanpa rembg hanya foto berlatar polos yang bisa dipotong; sisanya thumbnail tanpa objek.
+- Pemotong latar `rembg` dipasang OTOMATIS sekali (saat Studio dibuka atau saat Mila pertama bekerja; gagal → dicoba lagi besok, catatan di `produksi/rembg-gagal.json`). Tanpa rembg hanya foto berlatar polos yang bisa dipotong; sisanya thumbnail tanpa objek.
 - Gambar AI hanya kalau Zona menyalakan `thumbnail.objek_ai_cadangan` di `bible/gaya-edit.json` (video lalu diberi label konten sintetis).
 - Gaya (ukuran & posisi objek) di `bible/gaya-edit.json` → `thumbnail`; warna & ukuran hook di `hook` / `hyperframes`. Jangan mengubah font atau warna hook di thumbnail saja: harus sama dengan video.
 - Uli memasang thumbnail otomatis saat upload. Thumbnail khusus Shorts butuh izin YouTube (verifikasi nomor HP; dibuka bertahap untuk channel). Kalau ditolak, `export/upload.json` → `thumbnail.alasan` menjelaskan dan Zona memasangnya manual di YouTube Studio (desktop).

@@ -210,6 +210,12 @@ def unggah(slug: str, jadwal: str | None) -> None:
     up = vdir / "export" / "upload.json"
     if rj(up).get("videoId"):
         sys.exit(f"[uli] Video ini sudah diupload: {rj(up).get('url')}")
+    if not (vdir / "export" / "thumbnail.jpg").exists():      # video lama / dibuat sebelum ada Mila → thumbnail dibuat dulu
+        log("thumbnail belum ada → Mila membuatnya dulu")
+        try:
+            subprocess.run([sys.executable, str(ROOT / "agents" / "thumbnail" / "thumbnail.py"), slug], cwd=ROOT, timeout=20 * 60)
+        except (subprocess.TimeoutExpired, OSError) as err:
+            log(f"thumbnail gagal dibuat ({err}); upload tetap lanjut")
     m = metadata(slug)
     status = {"privacyStatus": "private", "selfDeclaredMadeForKids": False, "containsSyntheticMedia": m["sintetis"], "embeddable": True}
     if jadwal:

@@ -138,8 +138,7 @@ function AgentPanelShorts({ def, ctx }: { def: AgentDef; ctx: PanelCtx }) {
         return (<>
           {!siap && (
             <div className="mb-3 rounded-xl border border-signal/50 bg-signal/10 p-3 text-sm">
-              <b>Pemotong latar belum terpasang.</b> Mila butuh <code>rembg</code> (gratis, jalan di laptop) untuk memotong objek asli dari footage. Sekali pasang ±300 MB (termasuk model).
-              <Btn className="mt-2" size="sm" tone="primary" disabled={busy(state)} onClick={() => ctx.run("pasang_rembg")}>Pasang sekarang</Btn>
+              <b>Pemotong latar sedang dipasang otomatis</b> (sekali saja, ±300 MB, beberapa menit; log <code>thumbnail-siapkan-…</code>). Tidak perlu menekan apa pun: Mila memakainya begitu siap.
             </div>)}
           {ok.length ? (
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">{ok.map((v) => (

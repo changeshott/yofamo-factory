@@ -96,17 +96,70 @@ def prompt_objek(objek: str) -> str:
 _SESI: dict = {}
 
 
+PAKET_REMBG = "rembg[cpu]>=2.0.60"
+
+
+def pasang_rembg() -> bool:
+    """Pasang rembg OTOMATIS sekali (permintaan Zona: tanpa klik). Satu proses pada satu waktu; gagal → dicoba lagi besok."""
+    import importlib
+    import time
+    sys.path.insert(0, str(ROOT / "agents"))
+    from kunci import Kunci
+    tanda = ROOT / "produksi" / "rembg-gagal.json"
+    gagal = rj(tanda)
+    if gagal and time.time() - float(gagal.get("waktu", 0)) < 20 * 3600:
+        log(f"rembg gagal dipasang sebelumnya ({str(gagal.get('pesan', ''))[-120:]}); dicoba lagi besok")
+        return False
+    (ROOT / "produksi").mkdir(exist_ok=True)
+    k = Kunci(ROOT / "produksi" / "rembg.lock", maks_jam=1)
+    mulai = time.time()
+    while not k.ambil("pasang-rembg"):            # proses lain sedang memasang → tunggu
+        if time.time() - mulai > 30 * 60:
+            return False
+        time.sleep(10)
+    try:
+        try:
+            importlib.invalidate_caches()
+            import rembg  # type: ignore  # noqa: F401
+            return True
+        except ImportError:
+            pass
+        log("memasang pemotong latar (rembg) otomatis — sekali saja, ±300 MB, beberapa menit…")
+        r = subprocess.run([sys.executable, "-m", "pip", "install", "--disable-pip-version-check", PAKET_REMBG],
+                           capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=40 * 60)
+        importlib.invalidate_caches()
+        try:
+            import rembg  # type: ignore  # noqa: F401
+            tanda.unlink(missing_ok=True)
+            log("rembg terpasang")
+            return True
+        except ImportError:
+            pesan = (r.stderr or r.stdout or "").strip()[-600:]
+            tanda.write_text(json.dumps({"waktu": time.time(), "pesan": pesan}, ensure_ascii=False), encoding="utf-8")
+            log(f"rembg gagal dipasang: {pesan[-300:]}")
+            return False
+    finally:
+        k.lepas()
+
+
 def pemotong(model: str):
-    """Penghapus latar foto asli (rembg, gratis & lokal; model diunduh sekali ±170 MB). None kalau belum terpasang."""
+    """Penghapus latar foto asli (rembg, gratis & lokal; model diunduh sekali ±170 MB). Belum ada → dipasang otomatis."""
     if "f" in _SESI:
         return _SESI["f"]
-    try:
-        import rembg  # type: ignore
-        sesi = rembg.new_session(model)
-        _SESI["f"] = lambda im: rembg.remove(im, session=sesi, only_mask=True, post_process_mask=True).convert("L")
-    except Exception as err:  # noqa: BLE001
-        log(f"pemotong latar (rembg) belum siap: {str(err)[:120]}. Pasang sekali: python -m pip install \"rembg[cpu]\"")
-        _SESI["f"] = None
+    _SESI["f"] = None
+    for coba in range(2):
+        try:
+            import rembg  # type: ignore
+            sesi = rembg.new_session(model)
+            _SESI["f"] = lambda im: rembg.remove(im, session=sesi, only_mask=True, post_process_mask=True).convert("L")
+            break
+        except ImportError:
+            if coba or not pasang_rembg():
+                log("tanpa rembg: hanya foto berlatar polos yang bisa dipotong")
+                break
+        except Exception as err:  # noqa: BLE001 — model gagal diunduh dsb.
+            log(f"pemotong latar (rembg) belum siap: {str(err)[:160]}")
+            break
     return _SESI["f"]
 
 
@@ -566,7 +619,8 @@ def susun(vdir: Path, script: dict, st: dict, png: Path | None) -> Path:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Mila: thumbnail Shorts (objek transparan di belakang hook)")
-    ap.add_argument("slug")
+    ap.add_argument("slug", nargs="?", default="")
+    ap.add_argument("--siapkan", action="store_true", help="pasang rembg & unduh modelnya saja (otomatis saat Studio dibuka)")
     ap.add_argument("--ulang", action="store_true", help="pakai kandidat objek berikutnya")
     ap.add_argument("--pilih", type=int, default=0, help="pakai kandidat objek nomor N (lihat thumbnail/kandidat.jpg)")
     ap.add_argument("--potong", default="", help="nama frame/foto (lihat thumbnail/frame-lembar.jpg), dipakai dengan --kotak")
@@ -574,6 +628,12 @@ def main() -> None:
     ap.add_argument("--uji", action="store_true")
     ap.add_argument("--catatan", default="", help="alasan --ulang (dicatat)")
     a = ap.parse_args()
+    if a.siapkan:
+        ok = pemotong(str((rakit.style().get("thumbnail") or {}).get("model_potong", "isnet-general-use"))) is not None
+        log("pemotong latar siap" if ok else "pemotong latar belum siap")
+        sys.exit(0 if ok else 1)
+    if not a.slug:
+        ap.error("slug wajib")
     vdir = VIDEOS / a.slug
     script = rj(vdir / "script.json")
     if not script:
