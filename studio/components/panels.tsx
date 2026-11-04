@@ -4,7 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import type { Produksi, StudioState, Video, VideoStatus } from "@/lib/types";
 import { api, cleanTitle, dec, daysSince, fmt, md, short, when } from "@/lib/format";
 import { Btn, Copy, CopyBtn, H3, Muted, Pill } from "./ui";
-import { FUTURE, TEAM, TEAM2, type AgentDef } from "./office/world";
+import { FUTURE, TEAM, TEAM2, TEAM3, type AgentDef } from "./office/world";
+import { RuangTradingPanel } from "./trading";
+export { RuangTradingPanel };
 
 export interface PanelCtx {
   state: StudioState;
@@ -39,6 +41,7 @@ export function LogView({ name, live }: { name: string | null; live?: boolean })
 /* ---------------------------------------------------------------- agent */
 export function AgentPanel({ def, ctx }: { def: AgentDef; ctx: PanelCtx }) {
   if (def.ruang === "animasi") return <RuangAnimasiPanel ctx={ctx} def={def} />;
+  if (def.ruang === "trading") return <RuangTradingPanel ctx={ctx} def={def} />;
   return <AgentPanelShorts def={def} ctx={ctx} />;
 }
 
@@ -706,7 +709,7 @@ export function KelolaPanel({ ctx }: { ctx: PanelCtx }) {
   </>);
 }
 
-export const agentById = (id: string) => TEAM.find((t) => t.id === id) ?? TEAM2.find((t) => t.id === id);
+export const agentById = (id: string) => TEAM.find((t) => t.id === id) ?? TEAM2.find((t) => t.id === id) ?? TEAM3.find((t) => t.id === id);
 
 /* ---------------------------------------------------------------- musik latar (meja Uli) */
 interface Lagu { file: string; nama: string; suasana: string; mb: number; kredit: boolean }

@@ -1,7 +1,7 @@
 import type { StudioState } from "@/lib/types";
 import { shade, sprite, type Look, type Pose } from "./sprites";
 import { activeStage } from "@/lib/format";
-import { BH, BLOCKED, BW, FOUNDER, FUTURE, OX, OY, PINTU, R2X, RD, RW, SPOTS, T, TEAM, TEAM2, TW, WALL, type AgentDef } from "./world";
+import { BH, BLOCKED, BW, FOUNDER, FUTURE, OX, OY, PINTU, R2X, R3X, RD, RW, SPOTS, T, TEAM, TEAM2, TEAM3, TW, WALL, type AgentDef } from "./world";
 
 type Pt = [number, number];
 type BBox = [number, number, number, number];
@@ -23,7 +23,8 @@ export function dayPhase(d = new Date()): Phase {
 
 /* ------------------------------------------------------------ jalan (BFS grid 0,5 tile) */
 const G = 2, GW = TW * G, GH = RD * G;
-const SEMUA = [...TEAM, ...TEAM2];
+const SEMUA = [...TEAM, ...TEAM2, ...TEAM3];
+const ruangDi = (x: number) => (x > R3X ? "trading" : x > R2X ? "animasi" : "");
 const blocked = new Uint8Array(GW * GH);
 for (let gx = 0; gx < GW; gx++) for (let gy = 0; gy < GH; gy++) {
   const cx = (gx + 0.5) / G, cy = (gy + 0.5) / G;
@@ -89,6 +90,10 @@ export class OfficeEngine {
   get canvas() { return this.buf; }
 
   jobFor(def: AgentDef): { kind: "busy" | "ok" | "err" | "stopped"; text: string } | null {
+    if (def.ruang === "trading") {   // tim trading: tahap pindaian yang sedang berjalan
+      const tahap = this.state?.trading?.tahap;
+      return tahap && def.busy[tahap] ? { kind: "busy", text: def.busy[tahap]! } : null;
+    }
     if (def.ruang === "animasi") {   // tim video panjang: status dari produksi panjang yang sedang berjalan
       const tahap = this.state?.panjang?.tahap;
       return tahap && def.busy[tahap] ? { kind: "busy", text: def.busy[tahap]! } : null;
@@ -116,7 +121,7 @@ export class OfficeEngine {
       const st = this.jobFor(a.def), seat = seatOf(a.def);
       if (st?.kind === "busy" && a.mode !== "work") { a.mode = "work"; a.sitIdle = true; this.go(a, seat); }
       if (st?.kind === "ok" && a.mode === "work" && a.reportedAt !== this.state?.job.finished) {
-        a.mode = "report"; a.reportedAt = this.state?.job.finished; this.go(a, a.def.ruang ? SPOTS.lapor_animasi : SPOTS.lapor); a.wait = 50;
+        a.mode = "report"; a.reportedAt = this.state?.job.finished; this.go(a, a.def.ruang === "trading" ? SPOTS.lapor_trading : a.def.ruang ? SPOTS.lapor_animasi : SPOTS.lapor); a.wait = 50;
       }
       if (!st || (st.kind !== "busy" && a.mode === "work")) { if (a.mode === "work") { a.mode = "idle"; a.wait = 40; } }
       if (a.path.length) {
@@ -131,7 +136,7 @@ export class OfficeEngine {
       if (!atSeat) a.facing = "front";
       if (a.mode === "work") continue;
       if (--a.wait > 0) continue;
-      const names = Object.keys(SPOTS).filter((k) => !k.startsWith("lapor") && (SPOTS[k][0] > R2X) === !!a.def.ruang);
+      const names = Object.keys(SPOTS).filter((k) => !k.startsWith("lapor") && ruangDi(SPOTS[k][0]) === (a.def.ruang ?? ""));
       if (Math.random() < 0.45) { a.sitIdle = true; this.go(a, seat); }
       else { a.sitIdle = false; const s = SPOTS[names[Math.floor(Math.random() * names.length)]]; this.go(a, [s[0] + (Math.random() - 0.5) * 0.4, s[1] + (Math.random() - 0.5) * 0.3]); }
       a.wait = 80 + Math.floor(Math.random() * 140);
@@ -236,7 +241,7 @@ export class OfficeEngine {
 
   /* ---------- Ruang Animasi (kanan): nuansa kartun & arcade 80-an ---------- */
   private room2(ph: Phase) {
-    const x0 = 22, g = this.g;
+    const x0 = 22, g = this.g, TW = 36;
     this.poly([P(x0, 0), P(TW, 0), P(TW, 0, WALL), P(x0, 0, WALL)], "#3B1F6E");
     this.poly([P(x0, 0), P(TW, 0), P(TW, 0, 30), P(x0, 0, 30)], "#1B1440");
     this.poly([P(x0, 0, 30), P(TW, 0, 30), P(TW, 0, 32), P(x0, 0, 32)], "#FF4FA3");
@@ -274,6 +279,92 @@ export class OfficeEngine {
       x += 0.52;
     }
     g.restore();
+  }
+  /* ---------- Ruang Trading (paling kanan): lantai bursa gelap, layar candlestick, neon hijau ---------- */
+  private room3(ph: Phase) {
+    const x0 = 36, g = this.g;
+    this.poly([P(x0, 0), P(TW, 0), P(TW, 0, WALL), P(x0, 0, WALL)], "#13201B");
+    this.poly([P(x0, 0), P(TW, 0), P(TW, 0, 30), P(x0, 0, 30)], "#0B1310");
+    this.poly([P(x0, 0, 30), P(TW, 0, 30), P(TW, 0, 32), P(x0, 0, 32)], "#39D36B");
+    this.poly([P(x0, 0, WALL), P(TW, 0, WALL), P(TW, -0.35, WALL), P(x0, -0.35, WALL)], "#2E4A3E");
+    this.poly([P(TW, 0), P(TW, RD), P(TW, RD, 6), P(TW, 0, 6)], "#0B1310");
+    for (let i = x0; i < TW; i++) for (let j = 0; j < RD; j++) {
+      const c = (i + j) % 2 ? "#1A2420" : "#1F2B26";
+      this.poly([P(i - 0.02, j - 0.02), P(i + 1.02, j - 0.02), P(i + 1.02, j + 1.02), P(i - 0.02, j + 1.02)], c);
+    }
+    // jalur LED hijau di lantai
+    this.poly([P(x0 + 0.6, 5.55), P(TW, 5.55), P(TW, 5.65), P(x0 + 0.6, 5.65)], "rgba(57,211,107,.35)");
+    this.poly([P(x0 + 0.6, 9.95), P(TW, 9.95), P(TW, 10.05), P(x0 + 0.6, 10.05)], "rgba(57,211,107,.35)");
+    { const [cx, cy] = P(42, 7), gr = g.createRadialGradient(cx, cy, 10, cx, cy, 240);
+      gr.addColorStop(0, "rgba(57,211,107,.10)"); gr.addColorStop(1, "rgba(5,12,8,.25)");
+      this.poly([P(x0, 0), P(TW, 0), P(TW, RD), P(x0, RD)], gr); }
+    const ao = (pts: Pt[], a: Pt, b: Pt) => { const gr = g.createLinearGradient(a[0], a[1], b[0], b[1]); gr.addColorStop(0, "rgba(0,0,0,.45)"); gr.addColorStop(1, "rgba(0,0,0,0)"); this.poly(pts, gr); };
+    ao([P(x0, 0), P(TW, 0), P(TW, 0.9), P(x0, 0.9)], P(42, 0), P(42, 0.9));
+    // karpet lounge
+    this.poly([P(37.0, 10.8), P(41.0, 10.8), P(41.0, 14.8), P(37.0, 14.8)], "#0F3324");
+    this.poly([P(37.3, 11.1), P(40.7, 11.1), P(40.7, 14.5), P(37.3, 14.5)], undefined, "#39D36B");
+    // neon TRADING
+    const glyph: Record<string, string[]> = {
+      T: ["111", "010", "010", "010", "010"], R: ["110", "101", "110", "101", "101"], A: ["010", "101", "111", "101", "101"],
+      D: ["110", "101", "101", "101", "110"], I: ["111", "010", "010", "010", "111"], N: ["101", "111", "111", "111", "101"], G: ["111", "100", "101", "101", "111"],
+    };
+    g.save(); g.shadowColor = "#39D36B"; g.shadowBlur = ph.night ? 12 : 6;
+    let x = 44.0;
+    for (const ch of "TRADING") {
+      glyph[ch].forEach((row, rr) => [...row].forEach((b, c) => { if (b === "1") this.poly(this.qy(0, x + c * 0.13, x + c * 0.13 + 0.1, 92 - rr * 3.4, 94.6 - rr * 3.4), "#C8FFD9"); }));
+      x += 0.52;
+    }
+    g.restore();
+    // pita harga di bawah neon
+    this.poly(this.qy(0, 44.0, 47.6, 60, 68), "#06100B");
+    for (let k = 0; k < 9; k++) { const xx = 44.1 + ((k * 0.42 + (this.tick % 84) * 0.05) % 3.4); this.poly(this.qy(0, xx, xx + 0.22, 62, 66), k % 3 ? "#39D36B" : "#F2385A"); }
+  }
+  /** Layar dinding candlestick (diklik → panel Ruang Trading). */
+  private layarTrading(): BBox {
+    const q = this.qy(0, 37.4, 43.4, 42, 98);
+    this.poly(this.qy(0, 37.3, 43.5, 40, 100), "#1F2B26"); this.poly(q, "#06100B");
+    const n = 22, w = 6.0 / n, geser = this.tick >> 3;
+    let harga = 70;
+    for (let i = 0; i < n; i++) {
+      const s = Math.sin((i + geser) * 1.7) * 7 + Math.cos((i + geser) * 0.53) * 9, o = harga, c = Math.max(50, Math.min(90, o + s * 0.6));
+      const hi = Math.max(o, c) + 3 + ((i + geser) % 3), lo = Math.min(o, c) - 3 - ((i + geser * 2) % 3);
+      const xa = 37.5 + i * w, col = c >= o ? "#39D36B" : "#F2385A";
+      this.poly(this.qy(0, xa + w * 0.42, xa + w * 0.5, lo, hi), col);
+      this.poly(this.qy(0, xa + w * 0.15, xa + w * 0.78, Math.min(o, c), Math.max(o, c) + 1), col);
+      harga = c;
+    }
+    const posisi = this.state?.trading?.tahap ? "#FFE14D" : "#39D36B";
+    this.poly(this.qy(0, 37.5, 39.1, 90, 95), posisi);
+    return bboxOf(q);
+  }
+  private partisi3() {
+    const kaca = (y0: number, y1: number) => {
+      this.poly(this.qx(36.3, y0, y1, 0, 70), "rgba(120,255,170,.14)"); this.poly(this.qx(36.3, y0, y1, 66, 72), "#2E6B4A"); this.poly(this.qx(36.3, y0, y1, 0, 4), "#2E6B4A");
+    };
+    for (let y = 0; y < PINTU[0]; y += 1.1) kaca(y, Math.min(PINTU[0], y + 1.1));
+    for (let y = PINTU[1]; y < RD; y += 1.1) kaca(y, Math.min(RD, y + 1.1));
+    this.poly(this.qx(36.3, PINTU[0], PINTU[1], 70, 80), "#06100B");
+    this.poly(this.qx(36.3, PINTU[0] + 0.2, PINTU[1] - 0.2, 72, 78), "#39D36B");
+  }
+  private sofaTrading() {
+    this.box(37.4, 13.6, 2.8, 0.9, 10, "#1E5B3F"); this.box(37.4, 14.2, 2.8, 0.35, 26, "#164530");
+    this.box(37.4, 12.0, 0.8, 2.4, 18, "#164530");
+    this.box(38.6, 13.7, 0.6, 0.5, 5, "#FFE14D", 10);
+  }
+  private mejaBerdiri() {
+    this.box(42.8, 11.7, 0.9, 0.7, 34, "#2A3833");
+    this.box(42.95, 11.8, 0.6, 0.45, 1, "#0B1310", 34);
+    this.poly(this.qy(11.85, 43.0, 43.5, 35, 44), "#06100B");
+    this.poly(this.qy(11.85, 43.05, 43.45, 37, 42), (this.tick >> 4) % 2 ? "#39D36B" : "#19D3FF");
+  }
+  private banteng() {
+    this.box(46.1, 11.7, 1.4, 1.4, 10, "#2A3833");
+    const [cx, cy] = P(46.8, 12.4, 10), g = this.g, emas = "#E8B83A", gelap = "#B8871E";
+    g.fillStyle = gelap; g.beginPath(); g.ellipse(cx + 2, cy - 12, 13, 8, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = emas; g.beginPath(); g.ellipse(cx, cy - 14, 12, 7, 0, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.ellipse(cx - 12, cy - 18, 5, 5, 0, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = emas; g.lineWidth = 2; g.beginPath(); g.moveTo(cx - 15, cy - 22); g.quadraticCurveTo(cx - 20, cy - 30, cx - 13, cy - 31); g.moveTo(cx - 9, cy - 22); g.quadraticCurveTo(cx - 5, cy - 30, cx - 11, cy - 32); g.stroke();
+    for (const dx of [-7, -2, 5, 9]) this.px(cx + dx, cy - 9, 2, 6, gelap);
   }
   private partisi() {
     // dinding kaca pemisah kantor Shorts ↔ Ruang Animasi, dengan pintu
@@ -507,6 +598,7 @@ export class OfficeEngine {
     g.clearRect(0, 0, BW, BH);
     this.room(ph);
     this.room2(ph);
+    this.room3(ph);
     const hits: Hit[] = [this.whiteboard(), this.tv()];
     this.neon(ph); this.door(); this.trophyCabinet();
 
@@ -526,6 +618,7 @@ export class OfficeEngine {
           if (def.id === "uli") { const pct = (tk % 24) / 24; this.poly(this.qy(yy, x0 + 0.04, x1 - 0.04, 37, 40), "#2A3B5C"); this.poly(this.qy(yy, x0 + 0.04, x0 + 0.04 + (w - 0.08) * pct, 37, 40), "#FF4D4D"); this.poly(this.qy(yy, x0 + w * 0.4, x0 + w * 0.6, 42, 46), "#FFFFFF"); return; }
           if (def.id === "kai") { const cols = ["#F2C94C", "#47B5FF", "#C792EA", "#6FD29A"]; for (let r = 0; r < 3; r++) { let p = x0 + 0.02; for (let c = 0; c < 4 && p < x1 - 0.05; c++) { const len = (((c * 5 + r * 3 + tk + i) % 4) + 1) * w / 12; this.poly(this.qy(yy, p, Math.min(p + len, x1 - 0.02), 35 + r * 3, 37 + r * 3), cols[(c + r) % 4]); p += len + 0.03; } } const ph = x0 + ((tk % 20) / 20) * w; this.poly(this.qy(yy, ph, ph + 0.02, 33, 45), "#FFFFFF"); return; }
           if (def.id === "bima") { for (let c = 0; c < 3; c++) { const a = x0 + c * w / 3 + 0.02, b = x0 + (c + 1) * w / 3 - 0.02, lit = (c + tk + i) % 3 === 0; this.poly(this.qy(yy, a, b, 35, 41), lit ? "#4FD1C5" : "#BFEFEA"); this.poly(this.qy(yy, a + 0.03, a + (b - a) * 0.5, 36, 37), "#1E5E59"); } return; }
+          if (def.ruang === "trading") { let h0 = 40; for (let b = 0; b < 6; b++) { const d = Math.sin((b + tk * 0.35 + i * 3 + def.desk[0]) * 1.9) * 3, h1 = Math.max(34, Math.min(45, h0 + d)); const xa = x0 + b * w / 6; this.poly(this.qy(yy, xa + 0.02, xa + w / 6 - 0.03, Math.min(h0, h1), Math.max(h0, h1) + 1), h1 >= h0 ? "#39D36B" : "#F2385A"); h0 = h1; } return; }
           if (def.ruang) { const cols = ["#FFD23F", "#F2385A", "#19C6C6", "#FF7A2F"]; for (let c = 0; c < 3; c++) { const a = x0 + c * w / 3 + 0.02, b = x0 + (c + 1) * w / 3 - 0.02; this.poly(this.qy(yy, a, b, 34, 44), cols[(c + tk + i) % 4]); this.poly(this.qy(yy, a + 0.04, b - 0.04, 38, 40), "#14101F"); } return; }
           if (def.id === "steve") for (let b = 0; b < 5; b++) { const h = 3 + ((b * 5 + tk + i * 3) % 8); this.poly(this.qy(yy, x0 + b * w / 5 + 0.02, x0 + (b + 0.7) * w / 5, 34, 34 + h), b === 2 ? "#FF9A4D" : "#BFE3FF"); }
           else for (let l = 0; l < 4; l++) { const len = (((l * 3 + tk + i * 2) % 6) + 2) / 8 * w; this.poly(this.qy(yy, x0 + 0.02, x0 + Math.min(len, w), 42 - l * 3, 43 - l * 3), def.id === "nova" && l === 0 ? "#6FD29A" : "#DCEBFA"); }
@@ -567,6 +660,11 @@ export class OfficeEngine {
     objs.push({ key: 5.2 + 12.0, draw: () => this.beanbag(5.2, 12.0, "#2D8CFF") }, { key: 5.6 + 13.4, draw: () => this.beanbag(5.6, 13.4, "#47B5FF") });
     objs.push({ key: 11.2 + 10.5, draw: () => this.roundTable() });
     objs.push({ key: 26.0, draw: () => this.pantry() }, { key: 28.8, draw: () => this.cooler() });
+    // Ruang Trading
+    objs.push({ key: 36.3 + 0.01, draw: () => this.partisi3() });
+    objs.push({ key: 43.4 + 0.5, id: "trading", label: "Ruang Trading: memecoin & gold", draw: () => this.layarTrading() });
+    objs.push({ key: 40.2 + 14.5, draw: () => this.sofaTrading() }, { key: 43.7 + 12.4, draw: () => this.mejaBerdiri() }, { key: 47.5 + 13.1, draw: () => this.banteng() });
+    objs.push({ key: 47.4 + 0.8, draw: () => this.plant(47.4, 0.8, 1.1) }, { key: 36.9 + 10.4, draw: () => this.plant(36.9, 10.4, 1.0) });
     // Ruang Animasi
     objs.push({ key: 22.3 + 0.01, draw: () => this.partisi() });
     objs.push({ key: 35.8 + 1.05, id: "animasi", label: "Ruang Animasi: video panjang", draw: () => this.arcade() });
@@ -589,7 +687,8 @@ export class OfficeEngine {
       const glow = (x: number, y: number, r: number, c: string) => { const [lx, ly] = P(x, y); const gr = g.createRadialGradient(lx, ly, 2, lx, ly, r); gr.addColorStop(0, c); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(lx - r, ly - r, r * 2, r * 2); };
       if (ph.tint) { g.fillStyle = ph.tint; g.fillRect(0, 0, BW, BH); }
       g.globalCompositeOperation = "lighter";
-      for (const d of SEMUA) glow(d.desk[0] + 1, d.desk[1] + 0.9, 40, d.ruang ? "rgba(255,120,200,.15)" : "rgba(255,214,150,.15)");
+      for (const d of SEMUA) glow(d.desk[0] + 1, d.desk[1] + 0.9, 40, d.ruang === "trading" ? "rgba(80,255,150,.13)" : d.ruang ? "rgba(255,120,200,.15)" : "rgba(255,214,150,.15)");
+      glow(41, 1.5, 70, "rgba(60,255,140,.12)");
       glow(28.5, 1.5, 70, "rgba(255,80,170,.14)");
       glow(11.5, 1.5, 70, "rgba(80,170,255,.14)");
       glow(fx + 1.3, fy + 1.0, 50, "rgba(255,190,120,.16)"); glow(4, 12.6, 60, "rgba(200,140,255,.10)"); glow(11.2, 13.6, 50, "rgba(255,220,160,.12)");

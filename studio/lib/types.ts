@@ -135,5 +135,7 @@ export interface StudioState {
   antrean: { id: string; teks: string; suara: string; visual: string; dibuat: string }[];
   /** produksi video panjang (Ruang Animasi) yang sedang berjalan: tahap aktif (p_ide … p_rakit) */
   panjang?: { id: string; tahap: string | null; slug: string | null } | null;
+  /** pindaian Ruang Trading yang sedang berjalan: tahap aktif (t_pindai … t_jurnal) */
+  trading?: { tahap: string | null } | null;
   health: { env: boolean; claude: boolean; python: boolean; pythonCmd: string; edgeTts: boolean; stockKey: boolean; ffmpeg: boolean; ytdlp: boolean; aiKey: boolean; google: boolean; ytClient: boolean; ytLogin: boolean };
 }

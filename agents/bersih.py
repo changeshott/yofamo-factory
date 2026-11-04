@@ -167,6 +167,10 @@ def bersih_lain(c: dict) -> int:
             n += hapus(f)
     for f in (prod.glob("*.tmp") if prod.is_dir() else []):
         n += hapus(f)
+    tc = ROOT / "trading" / "cache"              # cache data pasar Ruang Trading (hanya berlaku beberapa menit)
+    for f in (tc.iterdir() if tc.is_dir() else []):
+        if f.is_file() and f.stat().st_mtime < time.time() - 86400:
+            n += hapus(f)
     return n
 
 

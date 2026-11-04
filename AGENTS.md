@@ -32,6 +32,21 @@ Video 5–8 menit, 16:9, **full animasi gaya lukis-komik hibrida** (3D dipahat +
 
 Alur: tombol **Buat** di Studio → Ruang Animasi (`agents/panjang/produser_panjang.py`, kemajuan `produksi/panjang/<id>.json`) → Bayu → Citra → Gilang → Laras → Tio → Wulan → status `draft` → **Zona menonton & menyetujui** (`export`) → Uli mengunggah private + jadwal tayang (`agents/panjang/unggah_panjang.py`; chapter & deskripsi tanpa link, thumbnail kartun). Video panjang **tidak pernah** disetujui otomatis. Tidak mengganggu Shorts: prioritas CPU rendah, tiap adegan menunggu kalau produksi Shorts sedang jalan, satu video panjang pada satu waktu (`produksi/panjang.lock`).
 
+### Ruang Trading — analisa memecoin (FOMO) & gold (kantor ketiga, paling kanan)
+
+Tim analisa untuk Zona yang trading memecoin Solana lewat aplikasi **FOMO** (tidak punya API) dan gold (perpetual `xyz:GOLD` di Hyperliquid, cadangan PAXG). Metode diadaptasi dari [day-trader-skill](https://github.com/Jakeschincariol/day-trader-skill) (MIT, `agents/trading/LISENSI-day-trader-skill.txt`). Aturan: `bible/trading-bible.md`; angka & batas risiko: `bible/trading.json` (diubah Zona di Studio). Data gratis tanpa key: DexScreener, GeckoTerminal, RugCheck, Hyperliquid. Data pribadi di `trading/` (tidak di-commit).
+
+| Nama | Peran | Script / skill | Status |
+| --- | --- | --- | --- |
+| Arga | Pemindai: pool trending GeckoTerminal + profil/boost DexScreener → saring likuiditas, volume, umur, market cap → ±8 kandidat | `agents/trading/meja.py pindai` | aktif |
+| Sinta | Keamanan: RugCheck (risiko danger, skor), mint/freeze authority, top 10 holder, LP terkunci, pola honeypot, sudah terbang terlalu jauh → BLOKIR | `agents/trading/keamanan.py` | aktif |
+| Dimas | Teknikal 5 m + tren 1 j (EMA 9/21/50, VWAP, RSI, ATR, volume, swing, S/R): setup breakout & pullback, stop & target sebelum masuk, target dihitung bersih setelah biaya | `agents/trading/teknikal.py` | aktif |
+| Nadia | Fundamental on-chain (likuiditas/mcap, perputaran, tekanan beli, holder, umur, sosial; gold: funding/OI) + analisa mendalam narasi & berita (Claude + web) | `fundamental.py`, `/trading-analisa` | aktif |
+| Bagas | Mesin waktu 10.000× dari candle koin itu sendiri + uji ulang riwayat setup, ukuran posisi dari rugi maks, biaya FOMO + slippage, PASS/BLOKIR | `simulasi.py`, `risiko.py` | aktif |
+| Yudi | Jurnal: posisi latihan ditutup otomatis di stop/target/waktu, posisi nyata diberi peringatan (Zona yang menjual), statistik & evaluasi jujur | `jurnal.py`, `/trading-evaluasi` | aktif |
+
+Alur: Studio → **Ruang Trading** → Pindai memecoin / gold (atau Pantau otomatis tiap `pantau_menit`) → kartu sinyal (alamat kontrak, masuk/stop/target, dolar rugi & untung bersih, peluang vs impas, alasan) → **mode latihan**: dicatat otomatis sebagai trade pura-pura · **mode nyata**: Zona beli sendiri di FOMO lalu menekan "Saya beli" dan "Saya sudah jual". **Tidak ada agent yang mengirim order, memindahkan dana, atau memegang private key/seed phrase**; FOMO dipakai manual. Mode nyata hanya diaktifkan Zona (konfirmasi tertulis). Bukan nasihat keuangan.
+
 Setiap agent adalah satu skill Claude Code di `.claude/skills/`. Kalau diminta "panggil Steve/Nova/Raka/Dara/Bima/Kai/Rara/Uli", jalankan skill-nya.
 
 Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetujui di Studio Yofamo** (`disetujui`) → Raka (naskah, status `naskah`) → Dara (suara + subtitle, status `suara`) → Bima (klip, status `aset`) → Kai (video final, status `draft`) → Rara (QC + perbaikan) → **Zona menonton & menyetujui** (`export`) → Uli (upload private) → Zona menayangkan di YouTube Studio → `terbit` → Steve membaca retensi → `insights/pelajaran.md` → putaran berikutnya lebih baik.
@@ -64,6 +79,7 @@ Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetu
 - `insights/topik_backlog.json` — topik berperingkat yang belum pernah dibahas (Steve → Nova).
 - `insights/eksperimen.md` — uji coba aktif (Steve → Raka/Bima/Kai); Raka mencatat varian di `script.json` → `eksperimen`.
 - `panjang/<slug>/` — video panjang Ruang Animasi: `ide.json`, `naskah.json`, `naskah.md`, `suara/`, `ilustrasi/`, `hf/`, `adegan/`, `export/` (final.mp4, thumbnail.jpg, bab.txt, subtitle.srt, qc.json, upload.json). Tidak di-commit.
+- `trading/` — Ruang Trading: `papan.json` (pindaian terakhir), `sinyal/`, `jurnal.json` (posisi latihan & nyata), `analisa/` (Nadia), cache data pasar. Tidak di-commit.
 - `cache/` — unduhan mentah Bima (boleh dihapus Zona kalau penuh, tidak di-commit).
 
 ## Aturan kerja
@@ -110,6 +126,9 @@ python agents/steve/analisa.py              # Steve: hitung KPI, pola, retensi, 
 python agents/panjang/produser_panjang.py ["tema"]   # Ruang Animasi: video panjang full animasi (--lanjut <slug>, --uji)
 python agents/panjang/animasi.py <slug> --pratinjau   # Tio: foto beberapa frame tiap adegan (cepat, tanpa render)
 python agents/panjang/unggah_panjang.py pratinjau|unggah <slug> [--jadwal 2026-11-03T19:30]
+python agents/trading/meja.py pindai --pasar meme|gold|semua   # Ruang Trading: pindai → sinyal (tidak pernah mengirim order)
+python agents/trading/meja.py status|pantau|loop              # statistik · perbarui posisi · pantau otomatis
+python agents/trading/lihat.py <alamat_token|gold>            # analisa lengkap satu koin tanpa membuat sinyal
 python agents/tes_pabrik.py [--online]     # tes seluruh pabrik (aman, di folder sementara)
 start_studio.bat                            # buka Studio Yofamo (Windows)
 cd studio && npm run dev                    # sama, manual (http://127.0.0.1:3210)

@@ -3,15 +3,18 @@ import type { Look } from "./sprites";
 /** Ukuran ruangan (tile isometrik) dan buffer piksel. */
 export const RW = 22, RD = 15, WALL = 112, T = 16;
 /** Ruang Animasi (tim video panjang) di samping kanan kantor Shorts: x dari R2X sampai TW, dipisah dinding kaca + pintu. */
-export const R2X = 22.6, TW = 36, PINTU: [number, number] = [6.6, 8.8];
-export const BW = 864, BH = 560, OX = 256, OY = 132;
+export const R2X = 22.6, PINTU: [number, number] = [6.6, 8.8];
+/** Ruang Trading (analisa memecoin FOMO & gold) di samping kanan Ruang Animasi: x dari R3X sampai TW. */
+export const R3X = 36.6, TW = 48;
+export const BW = 1072, BH = 660, OX = 256, OY = 132;
 
-export type AgentId = "steve" | "nova" | "raka" | "dara" | "bima" | "kai" | "rara" | "uli" | "bayu" | "citra" | "gilang" | "laras" | "tio" | "wulan";
+export type AgentId = "steve" | "nova" | "raka" | "dara" | "bima" | "kai" | "rara" | "uli" | "bayu" | "citra" | "gilang" | "laras" | "tio" | "wulan"
+  | "arga" | "sinta" | "dimas" | "nadia" | "bagas" | "yudi";
 export interface AgentDef {
   id: AgentId;
   skill: string;
-  job: "steve" | "ide" | "penulis" | "suara" | "aset" | "editor" | "qc" | "upload" | "panjang";
-  ruang?: "animasi";
+  job: "steve" | "ide" | "penulis" | "suara" | "aset" | "editor" | "qc" | "upload" | "panjang" | "trading";
+  ruang?: "animasi" | "trading";
   name: string;
   role: string;
   about: string;
@@ -112,6 +115,46 @@ export const TEAM2: AgentDef[] = [
   },
 ];
 
+/** Tim Ruang Trading: analisa memecoin Solana (dibeli Zona sendiri di FOMO) & gold. Hanya membaca data — tidak pernah mengirim order. */
+export const TEAM3: AgentDef[] = [
+  {
+    id: "arga", skill: "trading-kepala", job: "trading", ruang: "trading", name: "Arga", role: "Pemindai pasar", desk: [37.8, 2.6], color: "#39D36B",
+    about: "Memindai pool trending GeckoTerminal & profil DexScreener tiap putaran, lalu menyaring yang sepi, tipis, terlalu baru, atau di luar rentang market cap. Hanya ±8 kandidat terbaik yang diteruskan ke tim.",
+    look: { skin: "#C99068", hair: "#121212", shirt: "#39D36B", pants: "#1E2A22", accent: "#E6FFE9", style: "cap" },
+    busy: { t_pindai: "Memindai pasar…" },
+  },
+  {
+    id: "sinta", skill: "trading-kepala", job: "trading", ruang: "trading", name: "Sinta", role: "Penjaga keamanan", desk: [41.6, 2.6], color: "#F2385A",
+    about: "Membuang koin berbahaya sebelum dianalisa: laporan RugCheck, mint/freeze authority, top 10 holder, LP terkunci, pola honeypot, likuiditas, dan koin yang sudah terbang terlalu jauh. Satu syarat gagal = blokir.",
+    look: { skin: "#EFC6A0", hair: "#2E2140", shirt: "#F2385A", pants: "#2A2F3A", accent: "#FFF4E6", style: "long", glasses: true },
+    busy: { t_aman: "Memeriksa keamanan koin…" },
+  },
+  {
+    id: "dimas", skill: "trading-kepala", job: "trading", ruang: "trading", name: "Dimas", role: "Analis teknikal", desk: [45.4, 2.6], color: "#19D3FF",
+    about: "Membaca chart 5 menit + tren 1 jam: EMA 9/21/50, VWAP, RSI, ATR, lonjakan volume, struktur swing, support/resistance. Hanya dua setup tertulis (breakout & pullback); stop & target ditentukan sebelum masuk, target dihitung setelah biaya FOMO.",
+    look: { skin: "#B97D57", hair: "#3B2A20", shirt: "#19D3FF", pants: "#2D3A52", accent: "#121212", style: "curly", glasses: true },
+    busy: { t_teknikal: "Membaca chart…" },
+  },
+  {
+    id: "nadia", skill: "trading-analisa", job: "trading", ruang: "trading", name: "Nadia", role: "Fundamental & narasi", desk: [37.8, 7.0], color: "#FFE14D",
+    about: "Menilai kesehatan on-chain (likuiditas vs market cap, perputaran volume, tekanan beli, holder, umur, komunitas) dan untuk gold: funding & open interest. Tombol Analisa mendalam: riset narasi, berita & tanda bahaya di web.",
+    look: { skin: "#F3CFB0", hair: "#5A2E1E", shirt: "#E6C83A", pants: "#3A3550", accent: "#121212", style: "bun" },
+    busy: { t_fundamental: "Menilai fundamental…" },
+  },
+  {
+    id: "bagas", skill: "trading-kepala", job: "trading", ruang: "trading", name: "Bagas", role: "Mesin waktu & risiko", desk: [41.6, 7.0], color: "#B48CFF",
+    about: "Memutar ulang jam-jam berikutnya 10.000 kali dari candle koin itu sendiri + menguji setup yang sama di riwayatnya, lalu mengukur posisi dari modal & rugi maksimal, memotong biaya & slippage, dan memblokir yang nilai harapannya negatif.",
+    look: { skin: "#E0AC86", hair: "#1A1A1A", shirt: "#8E6BD9", pants: "#2A2F3A", accent: "#F4F1E8", style: "short" },
+    busy: { t_simulasi: "Memutar 10.000 kemungkinan…" },
+  },
+  {
+    id: "yudi", skill: "trading-evaluasi", job: "trading", ruang: "trading", name: "Yudi", role: "Jurnal & evaluasi", desk: [45.4, 7.0], color: "#FF9A4D",
+    about: "Mencatat setiap posisi latihan & nyata, menutup posisi latihan di stop/target, memberi peringatan saat posisi nyata menyentuh stop/target, dan menilai hasil dengan jujur (win rate, R, PnL setelah biaya).",
+    look: { skin: "#D9A47E", hair: "#1C1C1C", shirt: "#FF9A4D", pants: "#30323D", accent: "#F4F1E8", style: "short" },
+    busy: { t_jurnal: "Mencatat jurnal…" },
+  },
+];
+
 export const FUTURE: { key: string; name: string; role: string; desk: [number, number] }[] = [];
 
 export const FOUNDER = {
@@ -136,6 +179,11 @@ export const SPOTS: Record<string, [number, number]> = {
   sofa_animasi: [33.4, 12.0],
   meja_cahaya: [27.0, 11.6],
   lapor_animasi: [29.5, 9.8],
+  layar_trading: [42.0, 1.7],
+  meja_berdiri: [43.2, 11.0],
+  patung_banteng: [45.6, 13.8],
+  sofa_trading: [39.2, 12.4],
+  lapor_trading: [43.5, 9.8],
 };
 
 /** Area yang tidak bisa dilewati (x0, y0, x1, y1) dalam tile. */
@@ -160,4 +208,10 @@ export const BLOCKED: [number, number, number, number][] = [
   [32.4, 11.4, 36, 14.6], // sofa retro
   [25.8, 10.8, 28.4, 12.2], // meja cahaya animator
   [23.0, 13.4, 25.4, 15], // rak kaset & TV CRT
+  // Ruang Trading
+  [36.0, 0, 36.9, PINTU[0]], [36.0, PINTU[1], 36.9, 15], // dinding kaca pemisah
+  ...TEAM3.map((a) => a.desk).map(([x, y]) => [x - 0.05, y - 0.05, x + 2.05, y + 1.05] as [number, number, number, number]),
+  [37.2, 13.2, 40.4, 15], // sofa
+  [42.7, 11.6, 43.8, 12.5], // meja berdiri
+  [46.0, 11.6, 47.6, 13.2], // patung banteng
 ];

@@ -24,3 +24,7 @@ suara-khas/
 
 # host Yofa & acuan gaya: digambar di laptop (agents/panjang/maskot.py), bukan bagian kode
 bible/maskot/
+
+# Ruang Trading: data pindaian, sinyal, jurnal (pribadi, tidak di-commit)
+/trading/
+/trading-uji/

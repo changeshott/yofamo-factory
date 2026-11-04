@@ -1,0 +1,38 @@
+{
+  "mode": "latihan",
+  "modal_usd": 20,
+  "risiko_per_trade_usd": 1.0,
+  "batas_rugi_harian_usd": 2.0,
+  "maks_trade_harian": 3,
+  "maks_porsi_modal": 0.5,
+  "target_harian_usd": 3.0,
+  "biaya_fomo_per_sisi_pct": 0.5,
+  "biaya_gold_per_sisi_pct": 0.1,
+  "slippage_min_pct": 0.4,
+  "min_rr": 2.0,
+  "min_peluang_target_pct": 40,
+  "min_ev_r": 0.15,
+  "pantau_menit": 10,
+  "meme": {
+    "chain": "solana",
+    "kandidat_maks": 8,
+    "likuiditas_min_usd": 40000,
+    "volume_1j_min_usd": 15000,
+    "mcap_min_usd": 150000,
+    "mcap_maks_usd": 80000000,
+    "umur_min_jam": 2,
+    "naik_24j_maks_pct": 400,
+    "top10_holder_maks_pct": 35,
+    "rugcheck_skor_maks": 50,
+    "lp_terkunci_min_pct": 80,
+    "tahan_maks_jam": 4
+  },
+  "gold": {
+    "coin": "xyz:GOLD",
+    "dex": "xyz",
+    "cadangan": "PAXG",
+    "leverage_maks": 5,
+    "tahan_maks_jam": 12
+  },
+  "_catatan": "Diubah Zona lewat Studio → Ruang Trading → Aturan. mode: latihan (uang pura-pura, semua sinyal yang lolos dicatat otomatis) atau nyata (sinyal dikirim ke kamu, kamu yang tap beli/jual di FOMO lalu mencatatnya). Tidak ada agent yang pernah mengirim order atau memegang private key."
+}

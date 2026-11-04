@@ -5,17 +5,17 @@ import type { StudioState, VideoStatus } from "@/lib/types";
 import { activeStage, api, daysSince, fmt } from "@/lib/format";
 import Office from "./office/Office";
 import { drawAvatar } from "./office/sprites";
-import { FOUNDER, TEAM, TEAM2 } from "./office/world";
+import { FOUNDER, TEAM, TEAM2, TEAM3 } from "./office/world";
 import { Btn } from "./ui";
 import {
-  ActivityPanel, AgentPanel, AnalyticsPanel, BiblePanel, RuangAnimasiPanel, FounderPanel, FuturePanel, GaleriPanel, HealthPanel, KelolaPanel, ProduksiPanel, QueuePanel, ReportsPanel, agentById, type PanelCtx,
+  ActivityPanel, AgentPanel, AnalyticsPanel, BiblePanel, RuangAnimasiPanel, RuangTradingPanel, FounderPanel, FuturePanel, GaleriPanel, HealthPanel, KelolaPanel, ProduksiPanel, QueuePanel, ReportsPanel, agentById, type PanelCtx,
 } from "./panels";
 
 const TITLES: Record<string, string> = {
   founder: "Meja Zona", queue: "Papan antrean video", analytics: "Analitik Shorts", reports: "Laporan Steve",
-  bible: "Channel bible", activity: "Log kantor", health: "Cek sistem", server: "Server agent", produksi: "Buat video", galeri: "Galeri video", kelola: "Kelola hasil", animasi: "Ruang Animasi · video panjang",
+  bible: "Channel bible", activity: "Log kantor", health: "Cek sistem", server: "Server agent", produksi: "Buat video", galeri: "Galeri video", kelola: "Kelola hasil", animasi: "Ruang Animasi · video panjang", trading: "Ruang Trading · memecoin & gold",
 };
-const FOKUS = /^(agent:|founder$|queue$|analytics$|bible$|server$|animasi$)/;
+const FOKUS = /^(agent:|founder$|queue$|analytics$|bible$|server$|animasi$|trading$)/;
 const JOB_TXT: Record<string, string> = { steve: "Steve menganalisis", fetch: "Steve mengambil data", check: "Cek koneksi YouTube", ide: "Nova mencari ide", penulis: "Raka menulis naskah", suara: "Dara membuat suara", aset: "Bima mencari klip", editor: "Kai merakit video", produksi: "Produksi video", qc: "Rara memeriksa video", data: "Steve mengumpulkan data", upload: "Uli mengunggah", login: "Menghubungkan YouTube" };
 
 interface Toast { id: number; text: string; tone: "ok" | "err" | "info" }
@@ -204,6 +204,7 @@ export default function Studio() {
             : panel.startsWith("future:") ? <FuturePanel k={panel.slice(7)} />
             : panel === "founder" ? <FounderPanel ctx={ctx} />
             : panel === "animasi" ? <RuangAnimasiPanel ctx={ctx} />
+            : panel === "trading" ? <RuangTradingPanel ctx={ctx} />
             : panel === "queue" ? <QueuePanel ctx={ctx} />
             : panel === "produksi" ? <ProduksiPanel ctx={ctx} />
             : panel === "galeri" ? <GaleriPanel ctx={ctx} />
@@ -384,6 +385,8 @@ function CommandPalette({ ctx, onClose }: { ctx: PanelCtx; onClose: () => void }
     ...TEAM.map((a) => ({ grup: "Tim", t: `${a.name} · ${a.role}`, d: "Buka meja", run: () => ctx.open(`agent:${a.id}`) })),
     ...TEAM2.map((a) => ({ grup: "Animasi", t: `${a.name} · ${a.role}`, d: "Ruang Animasi", run: () => ctx.open(`agent:${a.id}`) })),
     { grup: "Animasi", t: "Ruang Animasi · video panjang", d: "Buat & tonton video panjang", run: () => ctx.open("animasi") },
+    ...TEAM3.map((a) => ({ grup: "Trading", t: `${a.name} · ${a.role}`, d: "Ruang Trading", run: () => ctx.open(`agent:${a.id}`) })),
+    { grup: "Trading", t: "Ruang Trading · sinyal memecoin & gold", d: "Pindai, sinyal, posisi, jurnal", run: () => ctx.open("trading") },
     ...([["founder", "Meja Zona"], ["galeri", "Galeri video"], ["queue", "Papan antrean"], ["kelola", "Kelola hasil"], ["analytics", "Analitik"], ["reports", "Laporan Steve"], ["bible", "Channel bible"], ["activity", "Log kantor"], ["health", "Cek sistem"]] as const)
       .map(([id, t]) => ({ grup: "Buka", t, d: "", run: () => ctx.open(id) })),
     ...ctx.state.videos.slice(0, 30).map((v) => ({ grup: "Video", t: v.judul_kerja, d: v.label, run: () => ctx.open("queue") })),
@@ -475,6 +478,30 @@ function TimSidebar({ state, open, panel, busyKey, inbox, lipat, setLipat }: { s
                   <span className="min-w-0 flex-1">
                     <b className="block font-pixel text-[14px] leading-tight" style={{ color: t.color }}>{t.name}</b>
                     <span className={`block truncate text-[12px] leading-tight ${on ? "text-[#FFC2E2]" : "text-muted"}`}>{sub}</span>
+                  </span>
+                )}
+              </button>
+            </li>);
+        })}
+        {!lipat && <li className="px-1.5 pt-3 pb-1"><button onClick={() => open("trading")} className="flex w-full items-center justify-between font-pixel text-[12px] tracking-wide text-muted uppercase hover:text-ink-50">
+          <span>Ruang Trading</span>{state.trading && <span className="rounded bg-[#39D36B]/20 px-1.5 py-0.5 text-[10px] text-[#C8FFD9]">memindai</span>}</button></li>}
+        {lipat && <li aria-hidden className="mx-2 my-2 border-t border-line/60" />}
+        {TEAM3.map((t) => {
+          const on = state.trading?.tahap ? !!t.busy[state.trading.tahap] : false, sel = panel === `agent:${t.id}`;
+          const sub = on ? t.busy[state.trading!.tahap!] : t.role;
+          return (
+            <li key={t.id}>
+              <button onClick={() => open(`agent:${t.id}`)} title={lipat ? `${t.name} · ${sub}` : undefined}
+                className={`group relative flex w-full items-center gap-2.5 rounded-xl p-1.5 text-left transition ${sel ? "bg-ink-700 ring-1 ring-[#39D36B]/70" : "hover:bg-ink-700/70"} ${lipat ? "justify-center" : ""}`}>
+                {on && <span className="absolute inset-0 rounded-xl ring-1 ring-[#39D36B]/60 shadow-[0_0_18px_rgba(57,211,107,.35)]" aria-hidden />}
+                <span className="relative shrink-0">
+                  <AgentAvatar id={t.id} />
+                  <span className={`absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full ring-2 ring-ink-800 ${on ? "animate-pulse bg-[#39D36B] motion-reduce:animate-none" : "bg-leaf"}`} aria-hidden />
+                </span>
+                {!lipat && (
+                  <span className="min-w-0 flex-1">
+                    <b className="block font-pixel text-[14px] leading-tight" style={{ color: t.color }}>{t.name}</b>
+                    <span className={`block truncate text-[12px] leading-tight ${on ? "text-[#C8FFD9]" : "text-muted"}`}>{sub}</span>
                   </span>
                 )}
               </button>
