@@ -9,15 +9,15 @@ interface Cam { s: number; x: number; y: number; fit: number }
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
-export default function Office({ state, onOpen, fokus = null, kiri = 0, kanan = 0, ruang: ruangAktif = "semua", atas = 0 }: { state: StudioState | null; onOpen: (id: string) => void; fokus?: string | null; kiri?: number; kanan?: number; ruang?: Ruang; atas?: number }) {
+export default function Office({ state, onOpen, fokus = null, kiri = 0, kanan = 0, kananTetap = 0, ruang: ruangAktif = "semua", atas = 0 }: { state: StudioState | null; onOpen: (id: string) => void; fokus?: string | null; kiri?: number; kanan?: number; kananTetap?: number; ruang?: Ruang; atas?: number }) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const overlay = useRef<HTMLDivElement>(null);
   const engine = useRef<OfficeEngine | null>(null);
   const cam = useRef<Cam>({ s: 1, x: 0, y: 0, fit: 1 });
   const openRef = useRef(onOpen);
-  const ruang = useRef({ kiri, kanan, nama: ruangAktif, atas });
-  ruang.current = { kiri, kanan, nama: ruangAktif, atas };
+  const ruang = useRef({ kiri, kanan, kananTetap, nama: ruangAktif, atas });
+  ruang.current = { kiri, kanan, kananTetap, nama: ruangAktif, atas };
   const api = useRef<{ fokus: (id: string | null) => void } | null>(null);
   const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
   openRef.current = onOpen;
@@ -25,7 +25,7 @@ export default function Office({ state, onOpen, fokus = null, kiri = 0, kanan = 
   useEffect(() => {
     if (engine.current) engine.current.state = state;
   }, [state]);
-  useEffect(() => { const t = setTimeout(() => api.current?.fokus(fokus), 30); return () => clearTimeout(t); }, [fokus, kiri, ruangAktif]);
+  useEffect(() => { const t = setTimeout(() => api.current?.fokus(fokus), 30); return () => clearTimeout(t); }, [fokus, kiri, kananTetap, ruangAktif]);
 
   useEffect(() => {
     const eng = new OfficeEngine();
@@ -37,8 +37,8 @@ export default function Office({ state, onOpen, fokus = null, kiri = 0, kanan = 
 
     /** Skala & posisi kamera yang membingkai ruang aktif di area yang tidak tertutup sidebar, HUD atas, dan dok bawah. */
     const bingkai = () => {
-      const L = w < 1024 ? 0 : ruang.current.kiri, T0 = ruang.current.atas, B = w < 700 ? 150 : 96;
-      const [x0, y0, x1, y1] = kotakRuang(ruang.current.nama), bw = x1 - x0, bh = y1 - y0, aw = w - L - 16, ah = Math.max(120, h - T0 - B);
+      const L = w < 1024 ? 0 : ruang.current.kiri, R = w < 1024 ? 0 : ruang.current.kananTetap, T0 = ruang.current.atas, B = w < 700 ? 150 : 96;
+      const [x0, y0, x1, y1] = kotakRuang(ruang.current.nama), bw = x1 - x0, bh = y1 - y0, aw = w - L - R - 16, ah = Math.max(120, h - T0 - B);
       const s = Math.min(aw / bw, ah / bh, ruang.current.nama === "semua" ? 4 : 1.9);
       return { s, x: L + 8 + (aw - bw * s) / 2 - x0 * s, y: T0 + (ah - bh * s) / 2 - y0 * s };
     };

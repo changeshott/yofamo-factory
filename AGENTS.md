@@ -56,7 +56,7 @@ Alur saat ini: Steve (laporan) → Nova (3 ide, status `ide`) → **Zona menyetu
 - `insights/YYYY-Www.md` — laporan mingguan Steve (contoh `2026-W44.md`).
 - `videos/<slug>/` — semua file satu video: `idea.json`, `script.json`, `naskah.md`, `vo.mp3`, `words.json`, `captions.srt`, `transkrip.txt`, `thumbnail/` (`objek.png`, `info.json`), `aset/` (`rencana.json`, `kandidat.json`, `lembar/`, `pilihan.json`, shot `NN-a.mp4`, `manifest.json`, `KREDIT.txt`, `kredit_deskripsi.txt`), `export/`.
 - `state.db` — SQLite antrean & status tiap video. Diakses hanya lewat `python agents/pabrik.py`.
-- `studio/` — Studio Yofamo: kantor virtual lokal (Next.js + TypeScript + Tailwind). Membaca file project dan menjalankan agent lewat `claude -p`.
+- `studio/` — Studio Yofamo: kantor virtual lokal (Next.js + TypeScript + Tailwind). Membaca file project dan menjalankan agent lewat `claude -p`. Sidebar kiri = tim - `studio/` — Studio Yofamo: kantor virtual lokal (Next.js + TypeScript + Tailwind). Membaca file project dan menjalankan agent lewat `claude -p`. siapa mengerjakan apa; sidebar kanan = **jadwal tayang** (slot hari ini/besok/lusa, status tayang/terjadwal/sedang dibuat/kosong, sampul, hitung mundur; di HP lewat tombol Jadwal di dok). Juga layar jadwal di dinding kantor.
 - `logs/` — log setiap tugas yang dijalankan.
 - `produksi/` — catatan kemajuan tiap permintaan "Buat video" (tidak di-commit).
 - `milik-saya/` — rekaman Zona sendiri (layar HP, gadget, dll). Bima memakainya lebih dulu kalau nama file cocok dengan kalimat, misalnya `tangan-robot-lab.mp4`. Tidak di-commit.

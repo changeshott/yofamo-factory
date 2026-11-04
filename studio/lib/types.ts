@@ -137,7 +137,22 @@ export interface StudioState {
   antrean: { id: string; teks: string; suara: string; visual: string; dibuat: string }[];
   /** produksi video panjang (Ruang Animasi) yang sedang berjalan: tahap aktif (p_ide … p_rakit) */
   panjang?: { id: string; tahap: string | null; slug: string | null } | null;
+  /** jadwal tayang (sidebar kanan): slot hari ini, besok, lusa + yang baru tayang */
+  jadwal?: JadwalTayang;
   /** autopilot berjalan di latar: kerja = kunci busy agent yang sedang dipakai (mis. "upload"), slug video */
   autopilot?: { berjalan: boolean; kerja: string; slug: string | null } | null;
   health: { env: boolean; claude: boolean; python: boolean; pythonCmd: string; edgeTts: boolean; stockKey: boolean; ffmpeg: boolean; ytdlp: boolean; rembg: boolean; aiKey: boolean; google: boolean; ytClient: boolean; ytLogin: boolean };
+}
+
+export interface JadwalItem {
+  waktu: string; tanggal: string; jam: string; jenis: "shorts" | "panjang";
+  status: "tayang" | "terjadwal" | "kosong" | "dibuat" | "terlewat";
+  slug: string | null; judul: string | null; url: string | null; gambar: "export/thumbnail.jpg" | "export/sampul.jpg" | null; eksplorasi: boolean;
+}
+export interface JadwalTayang {
+  kini: string;
+  hari: { tanggal: string; label: string; item: JadwalItem[] }[];
+  baruTayang: JadwalItem[];
+  berikut: JadwalItem | null;
+  autopilotAktif: boolean;
 }

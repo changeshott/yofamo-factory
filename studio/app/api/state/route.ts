@@ -3,6 +3,7 @@ import path from "node:path";
 import { jobState, readQueue, startJob } from "@/lib/server/jobs";
 import { json } from "@/lib/server/guard";
 import { autopilotOtomatis, statusKantorAutopilot } from "@/lib/server/autopilot";
+import { jadwalTayang } from "@/lib/server/jadwal";
 import { statusKantorPanjang } from "@/lib/server/panjang";
 import { P, activity, envHas, hasModule, jalankanLatar, latestSnapshot, listFiles, localIso, produksi, steveInsight, pythonCmd, videos, week, which } from "@/lib/server/project";
 import type { StudioState } from "@/lib/types";
@@ -57,6 +58,7 @@ export async function GET() {
       ytdlp: py ? await hasModule("yt_dlp") : false, rembg: py ? await hasModule("rembg") : false, aiKey: envHas("CLOUDFLARE_API_TOKEN") && envHas("CLOUDFLARE_ACCOUNT_ID"),
       google: py ? await hasModule("googleapiclient") : false, ytClient: fs.existsSync(path.join(P.rahasia, "client_secret.json")), ytLogin: fs.existsSync(path.join(P.rahasia, "token.json")) },
   };
+  try { state.jadwal = jadwalTayang(state.produksi[0]?.status === "berjalan" && state.job.status !== "running"); } catch { /* jadwal belum ada */ }
   siapkanMila(py, state.health.rembg);
   return json(state);
 }

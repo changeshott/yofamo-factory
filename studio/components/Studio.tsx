@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { StudioState, VideoStatus } from "@/lib/types";
 import { api, daysSince, fmt, kerjaShorts, kerjaShortsSemua, tugasAgent } from "@/lib/format";
+import { JadwalIsi, JadwalSidebar } from "./jadwal";
 import Office from "./office/Office";
 import { drawAvatar } from "./office/sprites";
 import { FOUNDER, RUANG, TEAM, TEAM2, type Ruang } from "./office/world";
@@ -13,7 +14,7 @@ import {
 
 const TITLES: Record<string, string> = {
   founder: "Meja Zona", queue: "Papan antrean video", analytics: "Analitik Shorts", reports: "Laporan Steve",
-  bible: "Channel bible", activity: "Log kantor", health: "Cek sistem", server: "Server agent", produksi: "Buat video", galeri: "Galeri video", kelola: "Kelola hasil", animasi: "Ruang Animasi · video panjang",
+  bible: "Channel bible", activity: "Log kantor", health: "Cek sistem", server: "Server agent", produksi: "Buat video", galeri: "Galeri video", kelola: "Kelola hasil", jadwal: "Jadwal tayang", animasi: "Ruang Animasi · video panjang",
 };
 const FOKUS = /^(agent:|founder$|queue$|analytics$|bible$|server$|animasi$)/;
 const JOB_TXT: Record<string, string> = { steve: "Steve menganalisis", fetch: "Steve mengambil data", check: "Cek koneksi YouTube", ide: "Nova mencari ide", penulis: "Raka menulis naskah", suara: "Dara membuat suara", aset: "Bima mencari klip", editor: "Kai merakit video", produksi: "Produksi video", qc: "Rara memeriksa video", data: "Steve mengumpulkan data", upload: "Uli mengunggah", thumbnail: "Mila mendesain thumbnail", pasang_rembg: "Memasang pemotong latar", login: "Menghubungkan YouTube" };
@@ -35,6 +36,10 @@ export default function Studio() {
   const [lebar, setLebar] = useState(1600);
   useEffect(() => { const f = () => setLebar(window.innerWidth); f(); window.addEventListener("resize", f); return () => window.removeEventListener("resize", f); }, []);
   const sidebarW = lebar < 1024 ? 0 : lipat ? 64 : 252;
+  const [lipatJ, setLipatJ] = useState(false);
+  useEffect(() => { try { setLipatJ(localStorage.getItem("yofamo.jadwal") === "lipat"); } catch { /* abaikan */ } }, []);
+  const setLipatJSimpan = (v: boolean) => { setLipatJ(v); try { localStorage.setItem("yofamo.jadwal", v ? "lipat" : "buka"); } catch { /* abaikan */ } };
+  const jadwalW = lebar < 1280 ? 0 : lipatJ ? 64 : 280;
   const [ruang, setRuangState] = useState<Ruang>("semua");
   useEffect(() => {
     let r: Ruang | null = null;
@@ -134,7 +139,7 @@ export default function Studio() {
 
   return (
     <main className="fixed inset-0 overflow-hidden bg-ink-900">
-      <Office state={state} onOpen={open} fokus={panel && FOKUS.test(panel) ? panel : null} kiri={sidebarW + 24} kanan={panel ? 540 : 0} ruang={ruang}
+      <Office state={state} onOpen={open} fokus={panel && FOKUS.test(panel) ? panel : null} kiri={sidebarW + 24} kanan={panel ? 540 : 0} kananTetap={jadwalW ? jadwalW + 24 : 0} ruang={ruang}
         atas={tabAtas ? 64 : lebar >= 1024 ? 150 : hp ? 186 : 176} />
 
       {/* HUD kiri atas */}
@@ -174,15 +179,18 @@ export default function Studio() {
       {state && <TimSidebar state={state} open={open} panel={panel} kerja={kerja} inbox={inbox} lipat={lipat} setLipat={setLipatSimpan} ruang={ruang} />}
       </div>
 
-      {/* statistik kanan atas */}
+      {/* kolom kanan: statistik + jadwal tayang (desktop lebar); di layar lebih kecil jadwal ada di dok bawah */}
       {state && (
-        <div className="pointer-events-none absolute top-3 right-3 z-10 flex max-w-[34vw] flex-wrap justify-end gap-2 max-xl:max-w-[28vw] max-lg:hidden">
+        <div className="pointer-events-none absolute top-3 right-3 bottom-[88px] z-10 flex flex-col items-end gap-3 max-lg:hidden">
+        <div className="flex max-w-[34vw] flex-wrap justify-end gap-2 max-xl:max-w-[28vw]">
           {state.snapshot && (<>
             <Stat value={fmt(state.snapshot.channel.subscribers)} label="subscriber" />
             <Stat value={fmt(Math.round(state.snapshot.summary.median_views))} label="median views" />
           </>)}
           {gap != null && <Stat value={String(gap)} label="hari sejak upload" warn={gap > 7} />}
           <Stat value={`${state.week.published}/${target}`} label="terbit minggu ini" good={state.week.published >= target} />
+        </div>
+        {jadwalW > 0 && <JadwalSidebar state={state} open={open} lipat={lipatJ} setLipat={setLipatJSimpan} />}
         </div>
       )}
 
@@ -233,6 +241,7 @@ export default function Studio() {
             : panel === "queue" ? <QueuePanel ctx={ctx} />
             : panel === "produksi" ? <ProduksiPanel ctx={ctx} />
             : panel === "galeri" ? <GaleriPanel ctx={ctx} />
+            : panel === "jadwal" ? <JadwalIsi state={ctx.state} open={open} />
             : panel === "kelola" ? <KelolaPanel ctx={ctx} />
             : panel === "analytics" ? <AnalyticsPanel ctx={ctx} />
             : panel === "reports" ? <ReportsPanel ctx={ctx} />
@@ -269,6 +278,7 @@ function Stat({ value, label, warn, good }: { value: string; label: string; warn
 const ICON = {
   tim: "M16 11a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm-8 0a3 3 0 1 0-3-3 3 3 0 0 0 3 3Zm0 2c-2.7 0-6 1.3-6 3.5V19h12v-2.5C14 14.3 10.7 13 8 13Zm8 0c-.3 0-.7 0-1.1.1A4.2 4.2 0 0 1 16 16.5V19h6v-2.5c0-2.2-3.3-3.5-6-3.5Z",
   zona: "M4 5h16v10H4zM2 17h20v2H2z",
+  jadwal: "M7 2v2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2H7Zm-2 7h14v10H5V9Zm2 2v3h3v-3H7Z",
   video: "M4 6h11a2 2 0 0 1 2 2v1.5l4-2.5v10l-4-2.5V16a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z",
   data: "M4 19V9h3v10H4Zm6 0V5h3v14h-3Zm6 0v-7h3v7h-3Z",
   sistem: "M12 8a4 4 0 1 0 4 4 4 4 0 0 0-4-4Zm8.9 3-1.6-.3a7.5 7.5 0 0 0-.9-2.1l.9-1.4-1.5-1.5-1.4.9a7.5 7.5 0 0 0-2.1-.9L14 4h-2l-.3 1.6a7.5 7.5 0 0 0-2.1.9l-1.4-.9-1.5 1.5.9 1.4a7.5 7.5 0 0 0-.9 2.1L5 11v2l1.6.3c.2.7.5 1.5.9 2.1l-.9 1.4 1.5 1.5 1.4-.9c.6.4 1.4.7 2.1.9L12 20h2l.3-1.6c.7-.2 1.5-.5 2.1-.9l1.4.9 1.5-1.5-.9-1.4c.4-.6.7-1.4.9-2.1L20.9 13Z",
@@ -305,6 +315,7 @@ function Dock({ state, open, inbox, kerja, problems, onPalette, ruang }: { state
           {sibuk.length > 0 && <span className="absolute -top-1 -right-1 size-2.5 animate-pulse rounded-full bg-brand ring-2 ring-ink-800 motion-reduce:animate-none" aria-label="ada yang bekerja" />}
         </DockIcon>
         <DockIcon label="Meja Zona" onClick={() => go("founder")} count={inbox}><Ico d={ICON.zona} /></DockIcon>
+        <DockIcon label="Jadwal" className="xl:hidden" onClick={() => go("jadwal")} dot={state?.jadwal?.hari.some((h) => h.item.some((i) => i.status === "dibuat")) ? "#FF9A4D" : undefined}><Ico d={ICON.jadwal} /></DockIcon>
         <DockIcon label="Video" active={menu === "video"} onClick={() => toggle("video")} expanded={menu === "video"} count={drafts}><Ico d={ICON.video} /></DockIcon>
         <DockIcon label="Data" active={menu === "data"} onClick={() => toggle("data")} expanded={menu === "data"}><Ico d={ICON.data} /></DockIcon>
         <DockIcon label="Sistem" onClick={() => go("health")} dot={problems ? "#F07178" : "#6FD29A"}><Ico d={ICON.sistem} /></DockIcon>

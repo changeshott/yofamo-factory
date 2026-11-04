@@ -206,14 +206,26 @@ export class OfficeEngine {
       this.poly(this.qy(0, x0 - 0.06, x1 + 0.06, 36, 40), "#101B2E");
     });
     // lantai: kayu walnut (kerja), karpet navy (founder), marmer (pantry)
+    const KAYU = ["#C9A27C", "#C39B74", "#CEA986", "#BF966E", "#C7A07A"];
+    const kayu = (i: number, j: number) => !(i >= 16 && j < 6) && !(j >= 13 && i >= 8 && i < 16);
     for (let i = 0; i < RW; i++) for (let j = 0; j < RD; j++) {
       let c: string;
       if (i >= 16 && j < 6) c = "#1D2C47";
-      else if (j >= 13 && i >= 8 && i < 16) c = "#E8EDF3";
-      else c = "#C7A07A";
+      else if (j >= 13 && i >= 8 && i < 16) c = (i + j) % 2 ? "#E8EDF3" : "#DFE6EE";      // marmer pantry, kotak-kotak halus
+      else c = KAYU[(i * 31 + Math.floor((j + (i % 2) * 1.5) / 3) * 17) % KAYU.length]; // kayu bilah memanjang, sambungan berselang
       this.poly([P(i - 0.02, j - 0.02), P(i + 1.02, j - 0.02), P(i + 1.02, j + 1.02), P(i - 0.02, j + 1.02)], c);
     }
     const g = this.g;
+    // garis sambungan bilah kayu (tipis, hangat)
+    g.strokeStyle = "rgba(96,62,34,.22)"; g.lineWidth = 1;
+    g.beginPath();
+    for (let i = 1; i < RW; i++) for (let j = 0; j < RD; j++) if (kayu(i, j) && kayu(i - 1, j)) { g.moveTo(...P(i, j)); g.lineTo(...P(i, j + 1)); }
+    for (let i = 0; i < RW; i++) for (let j = 1; j < RD; j++) if (kayu(i, j) && (j + (i % 2) * 1.5) % 3 < 1 && kayu(i, j - 1)) { g.moveTo(...P(i, j)); g.lineTo(...P(i + 1, j)); }
+    g.stroke();
+    // kilap lantai (pantulan cahaya jendela & lampu)
+    { const [cx, cy] = P(6, 5), gr = g.createRadialGradient(cx, cy, 4, cx, cy, 190);
+      gr.addColorStop(0, ph.night ? "rgba(255,214,150,.10)" : "rgba(255,255,255,.12)"); gr.addColorStop(1, "rgba(255,255,255,0)");
+      this.poly([P(0, 0), P(16, 0), P(16, 13), P(0, 13)], gr); }
     // cahaya ruangan: terang di tengah, meredup ke tepi (tanpa garis)
     { const [cx, cy] = P(8, 6.5), gr = g.createRadialGradient(cx, cy, 10, cx, cy, 330);
       gr.addColorStop(0, "rgba(255,244,226,.20)"); gr.addColorStop(0.6, "rgba(255,244,226,.04)"); gr.addColorStop(1, "rgba(40,24,10,.16)");
@@ -334,6 +346,26 @@ export class OfficeEngine {
     this.poly(this.qy(0, 4.6, 5.0, 44, 46), "#F07178"); this.poly(this.qy(0, 4.1, 4.5, 44, 46), "#2C3B57");
     return { id: "queue", label: "Papan antrean video", bbox: bboxOf(q), person: false };
   }
+  /** Layar "Jadwal tayang" di dinding kiri (di atas sofa): tiap baris = satu slot (hari ini → besok), warna = status. */
+  private layarJadwal(ph: Phase): Hit {
+    const st = this.state, q = this.qx(0, 11.95, 14.6, 46, 98), g = this.g;
+    this.poly(this.qx(0, 11.85, 14.7, 44, 100), "#141B27"); this.poly(q, ph.night ? "#081426" : "#0A1828");
+    this.poly(this.qx(0, 11.95, 14.6, 92, 98), "#2D8CFF");                                     // kepala layar biru khas
+    for (let k = 0; k < 4; k++) this.poly(this.qx(0, 12.1 + k * 0.32, 12.32 + k * 0.32, 93.5, 96.5), "#E8F2FF");   // "tulisan" judul
+    const warna: Record<string, string> = { tayang: "#6FD29A", terjadwal: "#47B5FF", dibuat: "#FF9A4D", kosong: "#33445E", terlewat: "#F07178" };
+    const items = (st?.jadwal?.hari ?? []).flatMap((h) => h.item).filter((i) => i.status !== "terlewat").slice(0, 6);
+    items.forEach((it, r) => {
+      const z1 = 89 - r * 7, z0 = z1 - 5, kedip = it.status === "dibuat" && (this.tick >> 3) % 2 === 0;
+      this.poly(this.qx(0, 12.05, 12.55, z0, z1), "#C9D6E8");                                   // jam
+      this.poly(this.qx(0, 12.7, 13.0, z0 - 0.5, z1 + 0.5), it.slug ? "#7FA6D6" : "#1C2A40");   // sampul kecil
+      this.poly(this.qx(0, 13.15, 14.45, z0 + 1, z1 - 1), kedip ? "#FFD3A8" : warna[it.status] ?? "#33445E");
+    });
+    if (!items.length) this.poly(this.qx(0, 12.6, 14.0, 66, 72), "#1E3A5A");
+    this.poly(this.qx(0, 11.95, 14.6, 44, 46), "#2A3446");
+    if (ph.night) { const [cx, cy] = P(0.2, 13.3, 70), gr = g.createRadialGradient(cx, cy, 2, cx, cy, 60);
+      gr.addColorStop(0, "rgba(70,150,255,.16)"); gr.addColorStop(1, "rgba(70,150,255,0)"); g.fillStyle = gr; g.fillRect(cx - 60, cy - 60, 120, 120); }
+    return { id: "jadwal", label: "Layar jadwal tayang", bbox: bboxOf(q), person: false };
+  }
   private tv(): Hit {
     const st = this.state, q = this.qy(0, 6.2, 9.4, 50, 88);
     this.poly(this.qy(0, 6.1, 9.5, 48, 90), "#141B27"); this.poly(q, "#0A1828");
@@ -390,6 +422,9 @@ export class OfficeEngine {
   }
   private desk(x: number, y: number, o: { w?: number; d?: number; top?: string; legs?: string; screens: number; screen: (i: number) => string; art?: (i: number, x0: number, x1: number) => void; extra?: () => void; glow?: string }) {
     const w = o.w ?? 2, d = o.d ?? 1, legs = o.legs ?? "#E5EAF0";
+    { const g = this.g, [cx, cy] = P(x + w / 2 + 0.1, y + d / 2 + 0.15), gr = g.createRadialGradient(cx, cy, 4, cx, cy, 30 + w * 8);   // bayangan lembut di lantai
+      gr.addColorStop(0, "rgba(28,18,8,.26)"); gr.addColorStop(1, "rgba(28,18,8,0)");
+      this.poly([P(x - 0.25, y - 0.1), P(x + w + 0.3, y - 0.1), P(x + w + 0.3, y + d + 0.4), P(x - 0.25, y + d + 0.4)], gr); }
     if (o.glow) { const g = this.g, [cx, cy] = P(x + w / 2, y + d / 2), gr = g.createRadialGradient(cx, cy, 2, cx, cy, 34); gr.addColorStop(0, o.glow + "55"); gr.addColorStop(1, o.glow + "00"); g.fillStyle = gr; g.fillRect(cx - 34, cy - 34, 68, 68); }
     for (const [a, b] of [[0.06, 0.06], [w - 0.16, 0.06], [0.06, d - 0.16], [w - 0.16, d - 0.16]]) this.box(x + a, y + b, 0.1, 0.1, 22, legs);
     this.box(x + 0.1, y + 0.08, w - 0.2, 0.06, 8, shade(legs, 0.9), 14);
@@ -509,7 +544,7 @@ export class OfficeEngine {
     g.clearRect(0, 0, BW, BH);
     this.room(ph);
     this.room2(ph);
-    const hits: Hit[] = [this.whiteboard(), this.tv()];
+    const hits: Hit[] = [this.whiteboard(), this.tv(), this.layarJadwal(ph)];
     this.neon(ph); this.door(); this.trophyCabinet();
 
     type Obj = { key: number; draw: () => BBox | void; id?: string; label?: string; person?: boolean };
