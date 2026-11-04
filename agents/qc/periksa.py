@@ -149,8 +149,17 @@ def cek(slug: str) -> dict:
     return hasil
 
 
-def cek_shot_semua(vdir: Path, klip: list[dict]) -> list[dict]:
-    """Gelap / beku / hilang untuk semua shot sekaligus (paralel)."""
+def cek_shot_semua(vdir: Path, klip: list[dict], teks: bool = False) -> list[dict]:
+    """Gelap / beku / hilang (+ ada tulisan/subtitle di dalam footage kalau teks=True) untuk semua shot sekaligus (paralel)."""
+    dt = None
+    if teks:
+        try:
+            import deteksi_teks as dt
+            if dt.sesi() is None:
+                dt = None
+        except Exception:  # noqa: BLE001 — pendeteksi belum siap: cek lain tetap jalan
+            dt = None
+
     def satu(k: dict) -> dict | None:
         f = vdir / "aset" / k["file"]
         if not f.exists():
@@ -162,6 +171,10 @@ def cek_shot_semua(vdir: Path, klip: list[dict]) -> list[dict]:
             return {**ref(k), "alasan": f"gelap {gelap:.0%}"}
         if beku > 0.7 and k["jenis"] == "footage":
             return {**ref(k), "alasan": f"diam/beku {beku:.0%}"}
+        if dt and k["jenis"] == "footage" and k.get("sumber") != "milik":
+            alasan, _ = dt.cek_video(f)
+            if alasan:
+                return {**ref(k), "alasan": alasan}
         return None
     with ThreadPoolExecutor(PARALEL) as ex:
         return [x for x in ex.map(satu, klip) if x]
@@ -175,7 +188,7 @@ def pra(slug: str, uji: bool, putaran: int = 2) -> dict:
         if not man:
             sys.exit("[rara] manifest shot belum ada. Bima harus menyiapkan visual dulu.")
         klip = sorted(man["klip"], key=lambda k: (k["i"], k["potong"]))
-        jelek = cek_shot_semua(vdir, klip)
+        jelek = cek_shot_semua(vdir, klip, teks=not uji)
         if not jelek or n == putaran:
             break
         ganti(slug, [g["shot"] for g in jelek], "; ".join(sorted({g["alasan"] for g in jelek})), uji, rakit=False)

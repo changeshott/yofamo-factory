@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1920, height=1080" />
+<title>Yofamo Dokumenter — __JUDUL__</title>
+<script src="assets/gsap.min.js"></script>
+<style>
+  /* Gaya "dokumenter modern" (referensi Video 1 Zona): kertas abu-abu terang, tinta hitam, serif elegan, benda asli
+     berlatar transparan melayang dengan bayangan lembut, foto hitam-putih dengan objek tetap berwarna, butiran film,
+     garis VHS tipis. Tenang, minimalis, tanpa memantul. */
+  @font-face { font-family: "Serif"; src: url("assets/fonts/InstrumentSerif-Regular.ttf") format("truetype"); }
+  @font-face { font-family: "Serif"; src: url("assets/fonts/InstrumentSerif-Italic.ttf") format("truetype"); font-style: italic; }
+  @font-face { font-family: "Inter"; src: url("assets/fonts/Inter.ttf") format("truetype"); font-weight: 100 900; }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { width: 1920px; height: 1080px; margin: 0; overflow: hidden; background: #E7E6E2; }
+  #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; color: var(--tinta); font-family: "Inter", sans-serif;
+          --kertas: #E7E6E2; --tinta: #151515; --abu: #8A8986; --aksen: #2D6BFF; }
+  .lapis { position: absolute; inset: 0; }
+  #kertas { background: var(--kertas) url("assets/kertas.jpg") center / cover; }
+  #cahaya { background: radial-gradient(ellipse 70% 65% at 50% 45%, rgba(255,255,255,.55), rgba(255,255,255,0) 70%); }
+  #kamera { position: absolute; inset: 0; transform-origin: 50% 50%; }
+  .vid { position: absolute; object-fit: cover; }
+  #grain { z-index: 60; pointer-events: none; opacity: .16; mix-blend-mode: overlay; background-size: 512px 512px; }
+  #vhs { z-index: 61; pointer-events: none; opacity: .5;
+         background: repeating-linear-gradient(0deg, rgba(0,0,0,.035) 0 1px, transparent 1px 3px); }
+  #vignet { z-index: 59; pointer-events: none; background: radial-gradient(ellipse 85% 80% at 50% 50%, transparent 55%, rgba(20,20,20,.28) 100%); }
+  .el { position: absolute; opacity: 0; }
+  .serif { font-family: "Serif", serif; font-weight: 400; letter-spacing: -.01em; }
+  .label { font-family: "Inter", sans-serif; font-weight: 600; text-transform: uppercase; letter-spacing: .28em; font-size: 24px; color: var(--abu); }
+  .pil { display: inline-block; padding: 10px 26px; border: 2px solid var(--tinta); border-radius: 999px; background: rgba(255,255,255,.55);
+         font-family: "Inter", sans-serif; font-weight: 600; font-size: 30px; letter-spacing: .01em; white-space: nowrap; }
+  .objek { position: absolute; filter: drop-shadow(0 28px 34px rgba(0,0,0,.28)) drop-shadow(0 6px 10px rgba(0,0,0,.18)); }
+  .objek img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .bayang { position: absolute; border-radius: 50%; background: radial-gradient(ellipse at center, rgba(0,0,0,.22), rgba(0,0,0,0) 70%); }
+  .garis { position: absolute; height: 2px; background: var(--tinta); transform-origin: 0 50%; }
+  svg.panah { position: absolute; overflow: visible; }
+  svg.panah path { fill: none; stroke: var(--tinta); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
+  .kartu { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 22px; text-align: center; }
+  .kartu .no { font-family: "Inter", sans-serif; font-weight: 600; font-size: 22px; letter-spacing: .2em; color: var(--abu); }
+  .kartu .teks { font-family: "Serif", serif; font-size: 50px; line-height: 1.05; max-width: 440px; }
+  .kartu .ikon { position: relative; width: 300px; height: 260px; }
+  .bulat { width: 210px; height: 210px; border-radius: 50%; border: 2px solid var(--tinta); display: grid; place-items: center;
+           font-family: "Serif", serif; font-size: 120px; margin: 25px auto 0; background: rgba(255,255,255,.4); }
+  .foto { position: absolute; background: #fff; padding: 16px 16px 64px; box-shadow: 0 30px 50px rgba(0,0,0,.22), 0 4px 10px rgba(0,0,0,.12); }
+  .foto img, .foto .isi { display: block; width: 100%; height: 100%; object-fit: cover; filter: grayscale(1) contrast(1.08); }
+  .foto .cap { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; font-family: "Serif", serif; font-size: 40px; }
+  .hp { position: absolute; width: 520px; height: 1040px; border-radius: 74px; background: #0E0E10; padding: 22px;
+        box-shadow: 0 50px 80px rgba(0,0,0,.35), inset 0 0 0 3px #2B2B2F; }
+  .hp .layar { position: relative; width: 100%; height: 100%; border-radius: 56px; overflow: hidden; background: #000; }
+  .hp .layar video { width: 100%; height: 100%; object-fit: cover; }
+  .hp .poni { position: absolute; top: 40px; left: 50%; width: 150px; height: 40px; border-radius: 20px; background: #0E0E10; transform: translateX(-50%); z-index: 2; }
+  .tv { position: absolute; background: linear-gradient(160deg, #3A3A3C, #19191B); border-radius: 46px; padding: 46px 210px 46px 46px;
+        box-shadow: 0 50px 80px rgba(0,0,0,.35), inset 0 2px 0 rgba(255,255,255,.12); }
+  .tv .layar { position: relative; width: 100%; height: 100%; border-radius: 60px / 46px; overflow: hidden; background: #000; box-shadow: inset 0 0 60px rgba(0,0,0,.8); }
+  .tv .layar video { width: 100%; height: 100%; object-fit: cover; filter: contrast(1.1) saturate(.85); }
+  .tv .tombol { position: absolute; right: 60px; width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #5A5A5E, #222); }
+  #sub { position: absolute; left: 50%; bottom: 64px; transform: translateX(-50%); z-index: 50; max-width: 1300px; text-align: center; }
+</style>
+</head>
+<body>
+<div id="root" data-composition-id="main" data-start="0" data-duration="__DURASI__" data-width="1920" data-height="1080" data-fps="__FPS__">
+  <div id="kertas" class="lapis"></div>
+  <div id="cahaya" class="lapis"></div>
+  <div id="kamera"></div>
+  <div id="vignet" class="lapis"></div>
+  <div id="grain" class="lapis"></div>
+  <div id="vhs" class="lapis"></div>
+</div>
+<script>
+(() => {
+  const D = __DATA__;
+  window.__timelines = window.__timelines || {};
+  const R = document.getElementById("root"), K = document.getElementById("kamera");
+  const W = D.warna || {};
+  for (const [k, v] of Object.entries(W)) R.style.setProperty("--" + k, v);
+  const tl = gsap.timeline({ paused: true });
+  const T = D.durasi, MASUK = "expo.out", HALUS = "power2.out", KELUAR = "power2.in";
+  const el = (tag, cls, html, parent) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; (parent || K).appendChild(e); return e; };
+  const esc = (s) => String(s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+  const muncul = (e, t, dari = { y: 24, filter: "blur(10px)" }, dur = .9) =>
+    tl.fromTo(e, { opacity: 0, ...dari }, { opacity: 1, y: 0, x: 0, scale: 1, rotation: dari.rotationAkhir ?? 0, filter: "blur(0px)", duration: dur, ease: MASUK }, t);
+  const pergi = (e, t, dur = .35) => tl.to(e, { opacity: 0, y: -14, filter: "blur(6px)", duration: dur, ease: KELUAR }, Math.max(0, t - dur));
+  // waktu tiap butir: ikut kalimat narasi kalau jumlahnya cocok, selain itu dibagi rata
+  const waktuButir = (n, mulai = .35) => {
+    const kal = D.kalimat || [];
+    if (kal.length >= n) return kal.slice(0, n).map((k, i) => Math.max(mulai + i * .12, k.a));
+    const akhir = Math.max(mulai + .5, T * .62);
+    return Array.from({ length: n }, (_, i) => mulai + (akhir - mulai) * i / Math.max(1, n - 1));
+  };
+  const kapanKata = (teks, cadangan) => {
+    const w = String(teks || "").toLowerCase().replace(/[^\p{L}\p{N}]/gu, "").slice(0, 5);
+    const k = (D.kata || []).find((x) => String(x.t).toLowerCase().replace(/[^\p{L}\p{N}]/gu, "").startsWith(w));
+    return k && w ? k.a : cadangan;
+  };
+  const video = (src, cls, parent, gaya = "") => {
+    const v = el("video", "clip " + cls, null, parent);
+    v.src = src; v.muted = true; v.playsInline = true;
+    v.setAttribute("data-start", "0"); v.setAttribute("data-duration", String(T)); v.setAttribute("data-track-index", "1");
+    if (gaya) v.style.cssText += gaya;
+    return v;
+  };
+  // kamera: dorong pelan sepanjang adegan (hidup tapi tenang)
+  tl.fromTo(K, { scale: 1.0 }, { scale: 1.035, duration: T, ease: "none" }, 0);
+  // butiran film "on twos": 4 tekstur bergantian tiap 2 frame
+  const G = document.getElementById("grain"), nGr = (D.grain || []).length;
+  if (nGr) { const step = 2 / D.fps; for (let t = 0, i = 0; t < T; t += step, i++) tl.set(G, { backgroundImage: `url(${D.grain[i % nGr]})`, backgroundPosition: `${(i * 137) % 512}px ${(i * 89) % 512}px` }, t); }
+  const I = D.isi || {}, M = D.media || {};
+
+  if (D.jenis === "kata") {
+    // satu kata / frasa pendek di kertas polos (serif kecil elegan), kata demi kata saat diucapkan
+    const box = el("div", "el serif", null); box.style.cssText += "left:0;right:0;top:50%;text-align:center;transform:translateY(-50%);opacity:1;";
+    const kata = String(I.teks || "").split(/\s+/).filter(Boolean);
+    const ukur = I.ukuran || (kata.join(" ").length > 22 ? 96 : 128);
+    kata.forEach((w, i) => {
+      const s = el("span", "", esc(w), box); s.style.cssText += `display:inline-block;margin:0 .14em;font-size:${ukur}px;opacity:0;` + (I.miring && i === kata.length - 1 ? "font-style:italic;" : "");
+      muncul(s, kapanKata(w, .3 + i * .28), { y: 10, filter: "blur(8px)" }, .8);
+    });
+    if (I.sub) { const s = el("div", "el label", esc(I.sub)); s.style.cssText += "left:0;right:0;top:62%;text-align:center;"; muncul(s, .9); }
+  }
+
+  else if (D.jenis === "angka") {
+    const lab = el("div", "el label", esc(I.label || "")); lab.style.cssText += "left:0;right:0;top:300px;text-align:center;";
+    const wrap = el("div", "el serif", null); wrap.style.cssText += "left:0;right:0;top:350px;text-align:center;line-height:1;white-space:nowrap;";
+    const awal = el("span", "", esc(I.awalan || ""), wrap); awal.style.cssText += "font-size:200px;vertical-align:top;";
+    const n = el("span", "", "0", wrap); n.style.cssText += "font-size:330px;";
+    const ak = el("span", "", esc(I.akhiran || ""), wrap); ak.style.cssText += "font-size:120px;font-style:italic;margin-left:.2em;";
+    const g1 = el("div", "garis el"), g2 = el("div", "garis el");
+    g1.style.cssText += "left:660px;top:716px;width:600px;"; g2.style.cssText += "left:660px;top:716px;width:0;";
+    const ket = el("div", "el serif", esc(I.ket || "")); ket.style.cssText += "left:0;right:0;top:744px;text-align:center;font-size:52px;font-style:italic;";
+    muncul(lab, .2); muncul(wrap, .35, { y: 30, filter: "blur(14px)" }, 1.1);
+    const s = String(I.angka || "0"), target = Number(s.replace(/\./g, "").replace(",", ".")), des = s.includes(",");
+    if (isFinite(target) && target > 0) {
+      const o = { v: 0 };
+      tl.fromTo(o, { v: 0 }, { v: target, duration: Math.min(1.8, T * .4), ease: "power3.out",
+        onUpdate: () => { n.textContent = des ? o.v.toFixed(1).replace(".", ",") : Math.round(o.v).toLocaleString("id-ID"); } }, .45);
+    } else n.textContent = s;
+    tl.fromTo([g1, g2], { opacity: 1, scaleX: 0 }, { scaleX: 1, duration: 1.2, ease: HALUS, stagger: .1 }, .9);
+    if (I.ket) muncul(ket, 1.3);
+  }
+
+  else if (D.jenis === "cara_kerja") {
+    const L = (I.langkah || []).slice(0, 4), n = Math.max(1, L.length);
+    const jud = el("div", "el serif", esc(I.judul || "")); jud.style.cssText += "left:140px;top:110px;font-size:72px;";
+    const no = el("div", "el label", "CARA KERJA"); no.style.cssText += "left:144px;top:86px;";
+    muncul(no, .1); muncul(jud, .2);
+    const lebar = 1640 / n, waktu = waktuButir(n, .6);
+    L.forEach((s, i) => {
+      const cx = 140 + lebar * i + lebar / 2;
+      const k = el("div", "kartu el", null); k.style.cssText += `left:${cx - 230}px;top:300px;width:460px;`;
+      el("div", "no", String(i + 1).padStart(2, "0"), k);
+      const ik = el("div", "ikon", null, k);
+      if (M.objek && M.objek[i]) {
+        const o = el("div", "objek", `<img src="${M.objek[i]}" alt="">`, ik); o.style.cssText += "inset:0;";
+        const b = el("div", "bayang", null, ik); b.style.cssText += "left:40px;right:40px;bottom:-26px;height:36px;";
+        tl.fromTo(o, { y: 0 }, { y: -10, duration: Math.max(1, T - waktu[i]), ease: "sine.inOut" }, waktu[i] + .9);
+      } else el("div", "bulat", String(i + 1), ik);
+      el("div", "teks", esc(s.teks || s), k);
+      muncul(k, waktu[i], { y: 40, filter: "blur(12px)" }, 1.0);
+      if (i < n - 1) {
+        const x0 = cx + 150, x1 = cx + lebar - 150, y = 470;
+        const d = el("div", "lapis", `<svg class="panah" width="1920" height="1080" viewBox="0 0 1920 1080"><path d="M${x0} ${y} C ${x0 + 40} ${y - 50}, ${x1 - 60} ${y - 46}, ${x1} ${y - 4} M${x1 - 22} ${y - 20} L${x1} ${y - 4} L${x1 - 26} ${y + 8}"/></svg>`);
+        d.style.pointerEvents = "none";
+        const p = d.querySelector("path"), len = 700;
+        p.style.strokeDasharray = String(len);
+        tl.fromTo(p, { strokeDashoffset: len }, { strokeDashoffset: 0, duration: .7, ease: HALUS }, (waktu[i + 1] ?? waktu[i] + .6) - .45);
+      }
+    });
+  }
+
+  else if (D.jenis === "banding") {
+    const kiri = I.kiri || {}, kanan = I.kanan || {};
+    if (I.judul) { const j = el("div", "el serif", esc(I.judul)); j.style.cssText += "left:0;right:0;top:110px;text-align:center;font-size:66px;"; muncul(j, .15); }
+    const waktu = waktuButir(2, .5);
+    [[kiri, 300, -3, 0], [kanan, 1100, 2.5, 1]].forEach(([s, x, rot, i]) => {
+      const f = el("div", "foto el", null); f.style.cssText += `left:${x}px;top:260px;width:520px;height:560px;`;
+      if (M.foto && M.foto[i]) el("img", "", null, f).src = M.foto[i];
+      else { const d = el("div", "isi serif", esc(s.nilai || ""), f); d.style.cssText += "display:grid;place-items:center;font-size:140px;background:#ECEBE7;filter:none;"; }
+      el("div", "cap", esc(s.label || ""), f);
+      muncul(f, waktu[i], { y: 60, rotation: rot * 2, rotationAkhir: rot, filter: "blur(10px)" }, 1.0);
+      if (s.ket) { const k = el("div", "el", `<span class="pil">${esc(s.ket)}</span>`); k.style.cssText += `left:${x}px;width:520px;top:860px;text-align:center;`; muncul(k, waktu[i] + .4); }
+    });
+    const vs = el("div", "el serif", "vs"); vs.style.cssText += "left:0;right:0;top:470px;text-align:center;font-size:110px;font-style:italic;";
+    muncul(vs, waktu[1] - .2);
+  }
+
+  else if (D.jenis === "garis_waktu") {
+    const B = (I.butir || []).slice(0, 5), n = Math.max(1, B.length);
+    if (I.judul) { const j = el("div", "el serif", esc(I.judul)); j.style.cssText += "left:140px;top:120px;font-size:70px;"; muncul(j, .15); }
+    const g = el("div", "garis el"); g.style.cssText += "left:160px;top:560px;width:1600px;";
+    tl.fromTo(g, { opacity: 1, scaleX: 0 }, { scaleX: 1, duration: 1.4, ease: HALUS }, .3);
+    const waktu = waktuButir(n, .7);
+    B.forEach((b, i) => {
+      const x = 160 + (1600 / (n + 1)) * (i + 1);
+      const titik = el("div", "el", null); titik.style.cssText += `left:${x - 11}px;top:549px;width:22px;height:22px;border-radius:50%;background:var(--tinta);`;
+      const th = el("div", "el serif", esc(b.waktu)); th.style.cssText += `left:${x - 200}px;width:400px;top:${i % 2 ? 600 : 400}px;text-align:center;font-size:84px;`;
+      const tx = el("div", "el", esc(b.teks)); tx.style.cssText += `left:${x - 190}px;width:380px;top:${i % 2 ? 700 : 340}px;text-align:center;font-size:30px;line-height:1.3;font-weight:500;`;
+      tl.fromTo(titik, { opacity: 0, scale: 0 }, { opacity: 1, scale: 1, duration: .4, ease: HALUS }, waktu[i]);
+      muncul(th, waktu[i] + .05); muncul(tx, waktu[i] + .2);
+    });
+  }
+
+  else if (D.jenis === "objek") {
+    // foto hitam-putih buram di latar + benda asli BERWARNA melayang di depannya (gaya Video 1)
+    if (M.latar) { const l = el("div", "lapis", `<img src="${M.latar}" style="width:100%;height:100%;object-fit:cover;filter:grayscale(1) contrast(1.05) blur(6px) brightness(1.05);">`);
+      l.style.opacity = "0"; tl.fromTo(l, { opacity: 0 }, { opacity: .55, duration: .8, ease: HALUS }, 0);
+      const tutup = el("div", "lapis", null); tutup.style.cssText += "background:linear-gradient(180deg, rgba(231,230,226,.35), rgba(231,230,226,.75));"; }
+    const o = el("div", "objek el", M.objek && M.objek[0] ? `<img src="${M.objek[0]}" alt="">` : "");
+    o.style.cssText += "left:510px;top:150px;width:900px;height:640px;";
+    const b = el("div", "bayang el"); b.style.cssText += "left:660px;top:780px;width:600px;height:60px;";
+    muncul(o, .25, { y: 70, scale: .92, filter: "blur(14px)" }, 1.2); tl.to(b, { opacity: 1, duration: .8 }, .5);
+    tl.to(o, { y: -16, rotation: 1.2, duration: Math.max(1, T - 1.5), ease: "sine.inOut" }, 1.45);
+    if (I.label) { const p = el("div", "el", `<span class="pil">${esc(I.label)}</span>`); p.style.cssText += "left:0;right:0;top:880px;text-align:center;"; muncul(p, kapanKata(I.label, .9)); }
+    if (I.ket) { const k = el("div", "el serif", esc(I.ket)); k.style.cssText += "left:0;right:0;top:80px;text-align:center;font-size:64px;font-style:italic;"; muncul(k, .6); }
+  }
+
+  else if (D.jenis === "hp" || D.jenis === "tv") {
+    // footage diputar di layar HP (di atas kertas) atau di TV retro
+    if (D.jenis === "hp") {
+      const h = el("div", "hp el", '<div class="layar"><div class="poni"></div></div>'); h.style.cssText += "left:700px;top:20px;transform-origin:50% 60%;";
+      if (M.video) video(M.video, "", h.querySelector(".layar"));
+      muncul(h, .1, { y: 140, rotation: -14, rotationAkhir: -6, filter: "blur(6px)" }, 1.2);
+      tl.to(h, { y: -10, duration: Math.max(1, T - 1.4), ease: "sine.inOut" }, 1.3);
+    } else {
+      const tv = el("div", "tv el", '<div class="layar"></div><div class="tombol" style="top:120px"></div><div class="tombol" style="top:260px"></div>');
+      tv.style.cssText += "left:330px;top:150px;width:1260px;height:780px;";
+      if (M.video) video(M.video, "", tv.querySelector(".layar"));
+      muncul(tv, .1, { y: 80, scale: .94, filter: "blur(8px)" }, 1.1);
+    }
+    if (I.label) { const p = el("div", "el", `<span class="pil">${esc(I.label)}</span>`); p.style.cssText += `left:${D.jenis === "hp" ? 1280 : 0}px;${D.jenis === "hp" ? "" : "right:0;text-align:center;"}top:${D.jenis === "hp" ? 470 : 960}px;`; muncul(p, .9, { x: 30, filter: "blur(6px)" }); }
+    if (I.teks) { const k = el("div", "el serif", esc(I.teks)); k.style.cssText += "left:150px;top:420px;width:520px;font-size:78px;line-height:1.02;"; muncul(k, .6); }
+  }
+
+  else if (D.jenis === "judul_bab") {
+    const n = el("div", "el label", `BAB ${String(I.nomor || 1).padStart(2, "0")}`); n.style.cssText += "left:0;right:0;top:420px;text-align:center;";
+    const j = el("div", "el serif", esc(I.judul || "")); j.style.cssText += "left:0;right:0;top:470px;text-align:center;font-size:140px;line-height:1;";
+    const g = el("div", "garis el"); g.style.cssText += "left:810px;top:660px;width:300px;";
+    muncul(n, .15); muncul(j, .3, { y: 30, filter: "blur(16px)" }, 1.2);
+    tl.fromTo(g, { opacity: 1, scaleX: 0 }, { scaleX: 1, duration: 1.0, ease: HALUS }, .8);
+    pergi(n, T); pergi(j, T); pergi(g, T);
+  }
+
+  else if (D.jenis === "pembuka" || D.jenis === "footage_teks") {
+    // footage penuh (sedikit pudar) + kata-kata hook serif muncul saat diucapkan
+    if (M.video) video(M.video, "vid", K, "left:0;top:0;width:1920px;height:1080px;filter:saturate(.8) contrast(1.06);");
+    const gelap = el("div", "lapis", null); gelap.style.cssText += "background:radial-gradient(ellipse 70% 60% at 50% 52%, rgba(0,0,0,.45), rgba(0,0,0,.08));";
+    const box = el("div", "el serif", null); box.style.cssText += "left:160px;right:160px;top:50%;text-align:center;transform:translateY(-50%);opacity:1;color:#F4F2EE;text-shadow:0 4px 30px rgba(0,0,0,.45);";
+    const kata = String(I.teks || "").split(/\s+/).filter(Boolean);
+    kata.forEach((w, i) => {
+      const s = el("span", "", esc(w), box); s.style.cssText += `display:inline-block;margin:0 .13em;font-size:${I.ukuran || 150}px;line-height:1;opacity:0;` + (i === kata.length - 1 ? "font-style:italic;" : "");
+      muncul(s, kapanKata(w, .2 + i * .22), { y: 12, filter: "blur(10px)" }, .7);
+    });
+    tl.to(box, { opacity: 0, duration: .35, ease: KELUAR }, Math.max(.5, T - .35));
+  }
+
+  else if (D.jenis === "penutup") {
+    const q = el("div", "el serif", esc(I.teks || "")); q.style.cssText += "left:240px;right:240px;top:330px;text-align:center;font-size:96px;line-height:1.05;";
+    const s = el("div", "el", `<span class="pil" style="background:var(--tinta);color:#fff;border-color:var(--tinta)">Subscribe</span>`); s.style.cssText += "left:0;right:0;top:690px;text-align:center;";
+    const h = el("div", "el label", esc(D.handle || "")); h.style.cssText += "left:0;right:0;top:800px;text-align:center;";
+    muncul(q, .3, { y: 24, filter: "blur(14px)" }, 1.2); muncul(s, 1.2); muncul(h, 1.5);
+  }
+
+  window.__timelines["main"] = tl;
+})();
+</script>
+</body>
+</html>

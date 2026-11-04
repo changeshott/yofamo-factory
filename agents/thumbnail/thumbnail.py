@@ -631,6 +631,11 @@ def main() -> None:
     if a.siapkan:
         ok = pemotong(str((rakit.style().get("thumbnail") or {}).get("model_potong", "isnet-general-use"))) is not None
         log("pemotong latar siap" if ok else "pemotong latar belum siap")
+        try:                                   # sekalian pendeteksi teks footage (Rara & Bima 16:9)
+            import deteksi_teks
+            log("pendeteksi teks siap" if deteksi_teks.sesi() is not None else "pendeteksi teks belum siap")
+        except Exception as err:  # noqa: BLE001
+            log(f"pendeteksi teks belum siap: {str(err)[:100]}")
         sys.exit(0 if ok else 1)
     if not a.slug:
         ap.error("slug wajib")

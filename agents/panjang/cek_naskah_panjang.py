@@ -45,6 +45,90 @@ def kata(t: str) -> list[str]:
     return re.findall(r"[\w'’-]+", str(t), flags=re.UNICODE)
 
 
+JENIS_DOK = {"pembuka", "footage", "kata", "angka", "cara_kerja", "banding", "garis_waktu", "objek", "hp", "tv", "judul_bab", "penutup"}
+FOOTAGE_DOK = {"pembuka", "footage", "hp", "tv"}
+MOGRAPH_DOK = {"kata", "angka", "cara_kerja", "banding", "garis_waktu", "objek"}
+MAKS_KATA_DOK = {"pembuka": 30, "footage": 45, "hp": 40, "tv": 40, "kata": 30, "angka": 35, "cara_kerja": 60, "banding": 45,
+                 "garis_waktu": 60, "objek": 40, "penutup": 45, "judul_bab": 0}
+
+
+def inggris(t) -> bool:
+    return bool(re.fullmatch(r"[A-Za-z0-9 ,.'/&()-]{3,}", str(t).strip()))
+
+
+def cek_dokumenter(s: dict, ide: dict, fails: list[str], warns: list[str]) -> dict:
+    """Format 'dokumenter' (gaya Video 1): footage asli tanpa teks + selingan motion graphic, 5–12 menit."""
+    ad = s.get("adegan") or []
+    th = s.get("thumbnail") or {}
+    if not 1 <= len(kata(th.get("teks", ""))) <= 4:
+        fails.append("thumbnail.teks harus 1–4 kata")
+    if not inggris(th.get("objek", "")):
+        fails.append("thumbnail.objek wajib: 1 benda fisik yang dibahas, bahasa Inggris (dicari fotonya & dipotong latarnya)")
+    total, n_jenis, kata_footage, kata_isi, nomor, beruntun = 0, {}, 0, 0, 0, 0
+    for i, a in enumerate(ad, 1):
+        j = a.get("jenis")
+        n_jenis[j] = n_jenis.get(j, 0) + 1
+        if j not in JENIS_DOK:
+            fails.append(f"adegan {i}: jenis harus salah satu {sorted(JENIS_DOK)}")
+            continue
+        n = len(kata(a.get("narasi", "")))
+        total += n
+        if j != "judul_bab":
+            kata_isi += n
+            if n == 0:
+                fails.append(f"adegan {i}: narasi kosong")
+        if n > MAKS_KATA_DOK[j]:
+            fails.append(f"adegan {i} ({j}): narasi {n} kata (maks {MAKS_KATA_DOK[j]}) — pecah jadi 2 adegan")
+        if j in FOOTAGE_DOK:
+            kata_footage += n
+            kk = a.get("kata_kunci_visual") or []
+            if not kk or not all(inggris(x) for x in kk):
+                fails.append(f"adegan {i} ({j}): 'kata_kunci_visual' wajib 1–3 kata kunci bahasa Inggris yang MEMPERLIHATKAN teknologinya")
+        if j in MOGRAPH_DOK:
+            beruntun += 1
+            if beruntun > 2:
+                fails.append(f"adegan {i}: lebih dari 2 motion graphic berturut-turut — selingi footage")
+        else:
+            beruntun = 0
+        if j == "judul_bab":
+            nomor += 1
+            a["nomor"] = nomor
+            if not str(a.get("judul", "")).strip() or len(kata(a.get("judul"))) > 6:
+                fails.append(f"adegan {i}: judul_bab butuh 'judul' ≤ 6 kata")
+            if n:
+                fails.append(f"adegan {i}: judul_bab tanpa narasi")
+        if j in ("pembuka", "kata") and not 1 <= len(kata(a.get("teks_layar") or a.get("teks") or "")) <= 6:
+            fails.append(f"adegan {i} ({j}): 'teks_layar' 1–6 kata (kata/frasa kunci yang DIUCAPKAN)")
+        if j == "angka" and not re.search(r"\d", str(a.get("angka", ""))):
+            fails.append(f"adegan {i}: angka butuh 'angka' (digit) + 'label'")
+        if j == "cara_kerja":
+            L = a.get("langkah") or []
+            if not 2 <= len(L) <= 4 or not all(1 <= len(kata((x or {}).get("teks", x) if isinstance(x, dict) else x)) <= 6 for x in L):
+                fails.append(f"adegan {i}: cara_kerja butuh 2–4 'langkah' (teks ≤ 6 kata, 'objek' bahasa Inggris opsional)")
+        if j == "banding" and not ((a.get("kiri") or {}).get("label") and (a.get("kanan") or {}).get("label")):
+            fails.append(f"adegan {i}: banding butuh kiri.label & kanan.label (+ nilai/ket)")
+        if j == "garis_waktu" and not 2 <= len(a.get("butir") or []) <= 5:
+            fails.append(f"adegan {i}: garis_waktu butuh 2–5 butir {{waktu, teks}}")
+        if j == "objek" and (not inggris(a.get("objek", "")) or not 1 <= len(kata(a.get("label", ""))) <= 5):
+            fails.append(f"adegan {i}: objek butuh 'objek' (benda fisik, bahasa Inggris) + 'label' ≤ 5 kata")
+    if not ad or ad[0].get("jenis") != "pembuka" or not PEMBUKA.match(str(ad[0].get("narasi", ""))):
+        fails.append("adegan 1 harus 'pembuka' yang narasinya diawali 'Tau nggak, …'")
+    if ad and ad[-1].get("jenis") != "penutup":
+        fails.append("adegan terakhir harus 'penutup' (teks_layar = pertanyaan untuk komentar)")
+    if n_jenis.get("judul_bab", 0) < 3:
+        fails.append(f"minimal 3 judul_bab (chapter YouTube), sekarang {n_jenis.get('judul_bab', 0)}")
+    mg = sum(n_jenis.get(k, 0) for k in MOGRAPH_DOK)
+    if mg < 4:
+        fails.append(f"minimal 4 motion graphic (cara kerja, angka, perbandingan, …), sekarang {mg}")
+    if kata_isi and kata_footage / kata_isi < 0.5:
+        fails.append(f"footage asli hanya {kata_footage / kata_isi:.0%} narasi (min 50%) — tambah adegan footage")
+    detik = total / WPS + n_jenis.get("judul_bab", 0) * 2.6 + len(ad) * 0.35
+    if not 285 <= detik <= 735:
+        fails.append(f"perkiraan durasi {detik / 60:.1f} menit ({total} kata); target 5–12 menit (±700–1700 kata)")
+    return {"adegan": len(ad), "kata": total, "menit": round(detik / 60, 1), "jenis": n_jenis,
+            "footage": round(kata_footage / max(1, kata_isi), 2)}
+
+
 def cek(slug: str) -> tuple[list[str], list[str], dict, dict]:
     vdir = st_panjang.folder(slug)
     fails, warns = [], []
@@ -67,6 +151,17 @@ def cek(slug: str) -> tuple[list[str], list[str], dict, dict]:
         fails.append("judul > 90 karakter")
     if re.search(r"https?://|www\.", str(s.get("deskripsi", ""))):
         fails.append("deskripsi tidak boleh memuat link")
+    if s.get("format") == "dokumenter":
+        info = cek_dokumenter(s, ide, fails, warns)
+        if ide:
+            sumber = " ".join(str(f.get("klaim", "")) + " " + str(f.get("kutipan", "")) for f in ide.get("fakta", [])) + " " + \
+                     " ".join(str(x.get("angka", "")) for x in ide.get("angka_kunci", []))
+            boleh = set(angka_digit(sumber)) | set(kata_ke_angka(sumber))
+            for i, a in enumerate(ad, 1):
+                for n in set(angka_digit(a.get("narasi", ""))) | set(kata_ke_angka(a.get("narasi", ""))):
+                    if n >= 10 and n not in boleh and not 1900 <= n <= 2100:
+                        warns.append(f"adegan {i}: angka {n:g} tidak ditemukan di fakta ide.json — pastikan bersumber")
+        return fails, warns, info, s
     th = s.get("thumbnail") or {}
     if not 1 <= len(kata(th.get("teks", ""))) <= 5:
         fails.append("thumbnail.teks harus 1–5 kata")
@@ -164,6 +259,8 @@ def main() -> None:
         sys.exit(1)
     if "--tulis" in sys.argv:
         (st_panjang.folder(slug) / "naskah.md").write_text(naskah_md(s, info), encoding="utf-8")
+        if s.get("format") == "dokumenter":       # nomor bab ditulis ke naskah (dipakai kartu judul bab)
+            (st_panjang.folder(slug) / "naskah.json").write_text(json.dumps(s, ensure_ascii=False, indent=1), encoding="utf-8")
         st_panjang.set_status(slug, "naskah", f"{info.get('menit')} menit, {info.get('adegan')} adegan")
     print("LOLOS")
 

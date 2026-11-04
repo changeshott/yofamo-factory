@@ -104,7 +104,8 @@ def main() -> None:
     naskah = json.loads((vdir / "naskah.json").read_text(encoding="utf-8-sig"))
     waktu = json.loads((vdir / "suara" / "waktu.json").read_text(encoding="utf-8"))
     g = animasi.gaya()
-    fps_r, fps_k = int(g.get("fps_render", 12)), int(g.get("fps_keluar", 24))
+    dok = naskah.get("format") == "dokumenter"
+    fps_r, fps_k = (30, 30) if dok else (int(g.get("fps_render", 12)), int(g.get("fps_keluar", 24)))
     adegan = naskah["adegan"]
     klip = [vdir / "adegan" / f"{i + 1:02}.mp4" for i in range(len(adegan))]
     kurang = [k.name for k in klip if not k.exists()]
@@ -165,12 +166,16 @@ def main() -> None:
     (exp / "subtitle.srt").write_text("\n".join(baris), encoding="utf-8")
     # ---- thumbnail
     try:
-        thumbnail(vdir, naskah, exp / "thumbnail.jpg")
-    except (RuntimeError, OSError) as err:
+        if dok:
+            import thumbnail_panjang
+            thumbnail_panjang.buat(vdir, naskah, exp / "thumbnail.jpg")
+        else:
+            thumbnail(vdir, naskah, exp / "thumbnail.jpg")
+    except (RuntimeError, OSError, ValueError) as err:
         log(f"thumbnail gagal ({str(err)[:160]}); memakai frame video")
         ff("-ss", "2", "-i", str(final), "-frames:v", "1", "-vf", "scale=1280:720", "-q:v", "3", str(exp / "thumbnail.jpg"))
     info = {"dibuat": datetime.now().isoformat(timespec="seconds"), "uji": a.uji, "durasi": round(durasi(final), 2), "adegan": n,
-            "musik": musik.name if musik else None, "bab": bab, "fps": fps_k}
+            "musik": musik.name if musik else None, "bab": bab, "fps": fps_k, "format": naskah.get("format", "kartun")}
     (exp / "info.json").write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
     shutil.rmtree(vdir / "hf" / "thumbnail", ignore_errors=True)
     if not a.uji:
