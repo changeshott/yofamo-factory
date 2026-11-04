@@ -529,13 +529,15 @@ def main() -> None:
                      "-c:v", "libx264", "-preset", "medium", "-crf", "19", "-pix_fmt", "yuv420p", "-c:a", "copy",
                      "-movflags", "+faststart", str(tmp))
     tmp.replace(final)
-    gerak.ff("-ss", "0.8", "-i", str(final), "-frames:v", "1", "-q:v", "3", str(out_dir / "sampul.jpg"))
+    # sampul = frame saat pembuka sudah tersusun (objek + hook = tampilan thumbnail Mila); pilih frame ini sebagai sampul di aplikasi YouTube
+    t_sampul = 1.25 if script.get("hook_teks") and st["hook"].get("tampil", True) else 0.8
+    gerak.ff("-ss", f"{t_sampul:.2f}", "-i", str(final), "-frames:v", "1", "-q:v", "3", str(out_dir / "sampul.jpg"))
     info = {"dibuat": datetime.now().isoformat(timespec="seconds"), "uji": a.uji, "durasi": round(gerak.duration(final), 2),
             "shot": n, "musik": music.name if music else None, "font": family, "pakai_ai": bool(man.get("pakai_ai")),
             "suara_detik": round(total, 2), "penutup_detik": round(tutup, 2),
             "transisi": transisi_pakai, "denyut_tekanan": len(titik), "mesin": mesin_dipakai,
             "gaya_gerak": gaya if mesin_dipakai == "hyperframes" else None,
-            "musik_kredit": kredit_musik(music),
+            "musik_kredit": kredit_musik(music), "sampul_detik": t_sampul,
             "musik_di_bawah_narasi_db": float(st["audio"].get("musik_di_bawah_narasi_db", 10)) if music else None}
     (out_dir / "info.json").write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
     log(f"selesai dalam {time.time() - t0:.0f} dtk: videos/{a.slug}/export/final.mp4 ({info['durasi']} dtk)")

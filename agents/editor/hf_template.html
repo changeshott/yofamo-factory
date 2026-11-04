@@ -24,6 +24,11 @@
   .objek-hook { position: absolute; opacity: 0; visibility: hidden; will-change: transform, opacity, filter;
                 filter: drop-shadow(0 0 34px rgba(0,0,0,.9)) drop-shadow(0 28px 46px rgba(0,0,0,.7)); }
   .objek-hook img { display: block; width: 100%; height: 100%; }
+  /* PEMBUKA = THUMBNAIL (Mila): latar diburamkan & digelapkan + cahaya biru di belakang objek + vignette */
+  #tlatar { position: absolute; inset: 0; z-index: 2; opacity: 0; visibility: hidden; pointer-events: none;
+            backdrop-filter: blur(11px) brightness(.5); -webkit-backdrop-filter: blur(11px) brightness(.5); }
+  #tlatar .cahaya { position: absolute; inset: 0; background: radial-gradient(ellipse 58% 26% at 50% 40%, color-mix(in srgb, var(--utama) 42%, transparent), transparent 78%); }
+  #tlatar .vignet { position: absolute; inset: 0; background: radial-gradient(ellipse 78% 58% at 50% 50%, transparent 52%, rgba(2,6,16,.88) 100%); }
   #scrim { position: absolute; inset: 0; background: radial-gradient(ellipse 85% 42% at 50% 52%, rgba(3,10,26,.62), rgba(3,10,26,0) 72%); opacity: 0; }
   /* subtitle 1 kata */
   .kata { font-weight: 900; white-space: nowrap; line-height: 1; }
@@ -136,6 +141,7 @@
 <body>
 <div id="root" data-composition-id="main" data-start="0" data-duration="__AKHIR__" data-width="1080" data-height="1920" data-fps="30">
   <video id="base" class="clip" src="assets/base.mp4" muted playsinline data-start="0" data-duration="__AKHIR__" data-track-index="0"></video>
+  <div id="tlatar"><div class="cahaya"></div><div class="vignet"></div></div>
   <div id="ui"><div id="scrim"></div><div id="kilat"></div><div id="denyut"></div></div>
   <div id="progres"><i></i></div>
   <div id="handle"></div>
@@ -202,14 +208,18 @@ const D = __DATA__;
       if (muat < 1) H.baris.forEach((b) => { b.px = Math.floor(b.px * muat); });
       const tinggi = H.baris.map((b) => b.px * H.rapat);
       let y = H.y - tinggi.reduce((s, x) => s + x, 0) / 2;
-      tl.fromTo("#scrim", { opacity: 0 }, { opacity: 1, duration: .35, ease: HALUS }, 0);
-      tl.to("#scrim", { opacity: 0, duration: .25, ease: KELUAR }, H.akhir - .25);
+      // latar pembuka = latar thumbnail: buram + gelap + cahaya biru, muncul cepat lalu kembali jernih saat hook selesai
+      tampil(tl, "#tlatar", 0, H.akhir + .05);
+      tl.fromTo("#tlatar", { opacity: 0 }, { opacity: 1, duration: .4, ease: HALUS }, 0);
+      tl.fromTo("#tlatar .cahaya", { scale: 1.35, opacity: 0 }, { scale: 1, opacity: 1, duration: .8, ease: MASUK }, .05);
+      tl.to("#tlatar", { opacity: 0, duration: .35, ease: KELUAR }, H.akhir - .3);
       // OBJEK di belakang tulisan: masuk BERSAMA baris pertama (durasi sama dengan baris hook), lalu mendekat & melayang pelan, keluar bersama hook
       if (D.objek) {
         const O = D.objek, ob = el("div", "objek-hook", `<img src="${O.src}" alt="">`);
         ob.style.cssText += `left:${O.x}px;top:${O.y}px;width:${O.w}px;height:${O.h}px;transform-origin:50% 60%;`;
         tampil(tl, ob, 0, H.akhir);
-        tl.fromTo(ob, { opacity: 0, scale: .55, y: 90, rotation: -7 }, { opacity: 1, scale: 1, y: 0, rotation: 0, duration: .7, ease: MASUK }, 0);
+        tl.fromTo(ob, { opacity: 0, scale: .45, y: 140, rotation: -8, filter: "blur(18px) drop-shadow(0 0 34px rgba(0,0,0,.9)) drop-shadow(0 28px 46px rgba(0,0,0,.7))" },
+          { opacity: 1, scale: 1, y: 0, rotation: 0, filter: "blur(0px) drop-shadow(0 0 34px rgba(0,0,0,.9)) drop-shadow(0 28px 46px rgba(0,0,0,.7))", duration: .75, ease: MASUK }, .05);
         const tenang = .7 + (H.baris.length - 1) * H.jeda, sisa = Math.max(.3, H.akhir - .3 - tenang);
         tl.to(ob, { y: -16, rotation: 1.5, scale: 1.06, duration: sisa, ease: "sine.inOut" }, tenang);
         tl.to(ob, { opacity: 0, scale: .9, y: -50, duration: .3, ease: KELUAR }, H.akhir - .3);
