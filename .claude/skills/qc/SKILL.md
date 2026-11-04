@@ -29,9 +29,9 @@ Argumen: `<slug> --pra`, `<slug> --akhir`, atau `<slug>` saja (= pilih otomatis:
    python agents/qc/periksa.py ganti <slug> 1a 4b --tanpa-rakit --alasan "teks acak di gambar AI; tidak sesuai kalimat"
    ```
    Lembar baru (`pra-lembar-N.jpg`) dibuat otomatis. Lihat lagi shot yang diganti saja. **Maksimal 2 putaran.**
-5. Lihat juga `videos/<slug>/export/thumbnail.jpg` (buatan Mila; objeknya juga muncul di hook video). Minta gambar objek baru, **maksimal 1 kali**, kalau objeknya tidak sesuai topik, ada tulisan/logo/orang, potongan latarnya berantakan (sisa pink, terpotong), atau tertutup tulisan sampai tidak terbaca:
+5. Lihat juga `videos/<slug>/export/thumbnail.jpg` (buatan Mila; objek asli yang dipotong dari footage, juga muncul di hook video) dan `thumbnail/kandidat.jpg` (6 kandidat objek bernomor). Kalau objek di thumbnail bukan benda yang dibahas, wajah orang jadi fokus, ada logo/watermark, potongannya berantakan (sisa latar, terpotong), atau tertutup tulisan, pilih kandidat yang lebih baik (**maksimal 2 kali**):
    ```bash
-   python agents/thumbnail/thumbnail.py <slug> --ulang --catatan "objek salah: laptop, bukan lensa kontak"
+   python agents/thumbnail/thumbnail.py <slug> --pilih 3 --catatan "kandidat 1 wajah peneliti, kandidat 3 robotnya utuh"
    ```
 6. Jangan menulis `qc_review.json` di mode ini. Jawaban akhir 3 baris: shot/objek yang diganti dan alasannya.
 

@@ -75,9 +75,9 @@ export const TEAM: AgentDef[] = [
   },
   {
     id: "mila", skill: "thumbnail", job: "thumbnail", name: "Mila", role: "Desainer thumbnail", desk: [13.0, 2.6], color: "#FF6BCB",
-    about: "Mendesain thumbnail tiap Short: objek yang dibahas digambar (latar transparan, bayangan tebal di sekelilingnya) di belakang tulisan hook dengan font & warna yang sama persis dengan video. Objek yang sama muncul bersama hook di detik awal video. Uli memasangnya otomatis saat upload.",
+    about: "Mendesain thumbnail tiap Short: objek ASLI yang dibahas dipotong dari footage (latar transparan, bayangan tebal di sekelilingnya) di belakang tulisan hook dengan font & warna yang sama persis dengan video. Objek yang sama muncul bersama hook di detik awal video. Uli memasangnya otomatis saat upload.",
     look: { skin: "#F3CFB0", hair: "#2E2140", shirt: "#FF6BCB", pants: "#2D3A52", accent: "#FFF4E6", style: "bun" },
-    busy: { thumbnail: "Mendesain thumbnail…" },
+    busy: { thumbnail: "Mendesain thumbnail…", pasang_rembg: "Memasang pemotong latar…" },
   },
   {
     id: "rara", skill: "qc", job: "qc", name: "Rara", role: "Quality control", desk: [13.0, 7.0], color: "#F07178",

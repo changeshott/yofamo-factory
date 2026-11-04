@@ -404,7 +404,9 @@ def main() -> None:
             code = jalan([PY, "agents/thumbnail/thumbnail.py", slug, *(["--uji"] if a.uji else [])], 10 * 60)
             ti = rj(ROOT / "videos" / slug / "thumbnail" / "info.json")
             if code == 0 and (exp / "thumbnail.jpg").exists():
-                cat.tahap("mila", "ok", f"objek: {ti.get('objek', '-')}" if ti.get("ada_objek") else "tanpa objek (gambar AI tidak tersedia)")
+                ket = (f"objek asli dari shot {(ti.get('dari') or {}).get('shot', '?')}" if ti.get("sumber") == "footage"
+                       else f"objek {ti.get('sumber')}" if ti.get("ada_objek") else f"tanpa objek: {ti.get('alasan', '-')}")
+                cat.tahap("mila", "ok", ket[:160])
             else:
                 cat.tahap("mila", "gagal", "Thumbnail gagal dibuat; video tetap lanjut (thumbnail otomatis YouTube).")
         else:

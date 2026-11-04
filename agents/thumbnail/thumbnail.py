@@ -3,18 +3,21 @@
 
 Membuat thumbnail 1080x1920 yang SAMA gayanya dengan hook di video:
   latar = frame shot pembuka Bima (digelapkan + cahaya biru khas) →
-  OBJEK yang dibahas (gambar AI, latar transparan, bayangan tebal di sekelilingnya) di belakang tulisan →
+  OBJEK ASLI yang dibahas (dipotong dari footage asli Bima, latar transparan, bayangan tebal di sekelilingnya) di belakang tulisan →
   hook bertingkat (font Poppins Black, warna putih/kuning/biru, garis hitam, bayangan TEBAL berlapis).
 Objek yang sama dipakai Kai di detik-detik awal video: objek & tulisan hook muncul bersamaan (animasi selaras),
 jadi frame pertama video = thumbnail.
 
     python agents/thumbnail/thumbnail.py <slug>            # objek (sekali, lalu dipakai ulang) + export/thumbnail.jpg
-    python agents/thumbnail/thumbnail.py <slug> --ulang    # gambar objek BARU (mis. ditolak Rara), lalu thumbnail
+    python agents/thumbnail/thumbnail.py <slug> --ulang    # pakai kandidat objek berikutnya (mis. ditolak Rara)
+    python agents/thumbnail/thumbnail.py <slug> --pilih 3  # pakai kandidat nomor 3 (lihat thumbnail/kandidat.jpg)
     python agents/thumbnail/thumbnail.py <slug> --uji      # tanpa internet (objek contoh)
 
+Objek asli: frame dari shot footage Bima (YouTube CC / NASA / Wikimedia / milik Zona — sudah dikredit), shot pembuka & paling
+relevan dulu → latar dihapus dengan rembg (gratis, lokal; `python -m pip install "rembg[cpu]"`) → dinilai (utuh, besar, tajam,
+tidak terpotong tepi) → 6 kandidat terbaik di thumbnail/kandidat.jpg. Tanpa rembg hanya foto berlatar polos yang bisa dipotong.
+Gambar AI hanya cadangan kalau diizinkan (bible/gaya-edit.json → thumbnail.objek_ai_cadangan, bawaan mati).
 Hasil: videos/<slug>/thumbnail/objek.png (transparan), thumbnail/info.json, export/thumbnail.jpg (< 2 MB, siap diunggah Uli).
-Objek diambil dari script.json → thumbnail_objek (Raka, bahasa Inggris); cadangan: kata kunci visual kalimat pembuka.
-Gambar AI: tanpa orang, tangan, tulisan, logo (aturan channel). Gratis: FLUX.2 klein di Cloudflare (kuota bersama Laras).
 """
 from __future__ import annotations
 
@@ -87,57 +90,180 @@ def prompt_objek(objek: str) -> str:
             "no people, no hands, no face, no text, no letters, no numbers, no logo, no watermark")
 
 
-def nilai_potongan(rgba) -> tuple[bool, str]:
-    """Apakah latar benar-benar terhapus & objeknya utuh?"""
+# ------------------------------------------------------------------ objek ASLI dari footage Bima
+_SESI: dict = {}
+
+
+def pemotong(model: str):
+    """Penghapus latar foto asli (rembg, gratis & lokal; model diunduh sekali ±170 MB). None kalau belum terpasang."""
+    if "f" in _SESI:
+        return _SESI["f"]
+    try:
+        import rembg  # type: ignore
+        sesi = rembg.new_session(model)
+        _SESI["f"] = lambda im: rembg.remove(im, session=sesi, only_mask=True, post_process_mask=True).convert("L")
+    except Exception as err:  # noqa: BLE001
+        log(f"pemotong latar (rembg) belum siap: {str(err)[:120]}. Pasang sekali: python -m pip install \"rembg[cpu]\"")
+        _SESI["f"] = None
+    return _SESI["f"]
+
+
+def kandidat_frame(vdir: Path, maks_shot: int = 8) -> list[tuple[str, Path, dict]]:
+    """Frame dari footage ASLI Bima (YouTube CC / NASA / Wikimedia / milik Zona; sudah dikredit), shot pembuka & paling relevan dulu."""
+    man = rj(vdir / "aset" / "manifest.json")
+    klip = [k for k in man.get("klip") or [] if k.get("jenis") == "footage" and (vdir / "aset" / str(k.get("file", ""))).exists()]
+    klip.sort(key=lambda k: (k.get("i", 0) != 0, -float(k.get("relevansi") or 0), k.get("i", 0), k.get("potong", 0)))
+    fdir = vdir / "thumbnail" / "frame"
+    fdir.mkdir(parents=True, exist_ok=True)
+    out = []
+    for k in klip[:maks_shot]:
+        f = vdir / "aset" / k["file"]
+        d = gerak.duration(f) or 1.0
+        lab = f"{int(k.get('i', 0)) + 1}{'abc'[int(k.get('potong', 0)) % 3]}"
+        for n, r in enumerate((.3, .6, .9)):
+            jpg = fdir / f"{lab}-{n}.jpg"
+            if not jpg.exists():
+                subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{d * r:.2f}", "-i", str(f), "-frames:v", "1", "-q:v", "2", str(jpg)],
+                               capture_output=True)
+            if jpg.exists():
+                out.append((f"{lab}-{n}", jpg, k))
+    return out
+
+
+def potong_asli(jpg: Path, cutter):
+    from PIL import Image
+    im = Image.open(jpg).convert("RGB")
+    if cutter:
+        mask = cutter(im)
+    else:                                   # tanpa rembg: hanya berhasil untuk foto berlatar polos (studio/produk)
+        mask = gambar_ai.potong_latar(jpg.read_bytes(), toleransi=38, pangkas=False, garis=0).getchannel("A")
+    rgba = im.convert("RGBA")
+    rgba.putalpha(mask)
+    return rgba
+
+
+def skor_objek(rgba) -> tuple[float, str]:
+    """Objek utuh, cukup besar, tajam, tidak terpotong tepi, potongan yakin (bukan latar acak)."""
+    from PIL import ImageFilter, ImageStat
     a = rgba.getchannel("A")
     w, h = a.size
-    hist = a.point(lambda v: 255 if v > 20 else 0).histogram()
-    isi = hist[255] / (w * h)
-    kotak = a.point(lambda v: 255 if v > 20 else 0).getbbox()
-    if not kotak or isi < 0.05:
-        return False, f"objek terlalu kecil ({isi:.0%})"
-    if isi > 0.82:
-        return False, f"latar tidak terhapus ({isi:.0%} gambar)"
-    sentuh = sum([kotak[0] <= 2, kotak[1] <= 2, kotak[2] >= w - 2, kotak[3] >= h - 2])
-    if sentuh >= 3:
-        return False, "objek terpotong tepi gambar"
-    return True, f"objek {isi:.0%} gambar"
+    keras = a.point(lambda v: 255 if v > 128 else 0)
+    isi = keras.histogram()[255] / (w * h)
+    kotak = keras.getbbox()
+    if not kotak or isi < 0.03:
+        return 0.0, "tidak ada objek"
+    if isi > 0.7:
+        return 0.0, f"latar ikut terpilih ({isi:.0%})"
+    bw, bh = kotak[2] - kotak[0], kotak[3] - kotak[1]
+    padat = isi * w * h / max(1, bw * bh)                       # objek utuh, bukan serpihan tersebar
+    sentuh = sum([kotak[0] <= 3, kotak[1] <= 3, kotak[2] >= w - 3, kotak[3] >= h - 3])
+    hist = a.histogram()
+    ragu = sum(hist[40:216]) / max(1, sum(hist[1:]))           # piksel setengah-transparan = pemotong ragu
+    tepi = rgba.convert("L").filter(ImageFilter.FIND_EDGES)
+    tajam = min(1.0, (ImageStat.Stat(tepi, keras).stddev[0] or 0) / 40)
+    import math
+    ukuran = max(0.0, 1 - abs(math.log(isi / 0.22)) / math.log(8))
+    s = 0.35 * ukuran + 0.2 * min(1.0, padat / 0.45) + 0.25 * tajam + 0.2 * (1 - min(1.0, ragu * 3)) - 0.22 * sentuh
+    return max(0.0, round(s, 3)), f"isi {isi:.0%}, padat {padat:.2f}, tajam {tajam:.2f}, ragu {ragu:.0%}, tepi {sentuh}"
 
 
-def buat_objek(vdir: Path, objek: str, uji: bool, ulang: bool) -> tuple[Path | None, dict]:
+def lembar_kandidat(tdir: Path, daftar: list[dict]) -> None:
+    from PIL import Image, ImageDraw, ImageFont
+    kecil = []
+    for n, d in enumerate(daftar, 1):
+        ob = Image.open(tdir / d["file"]).convert("RGBA")
+        ob.thumbnail((300, 300))
+        kotak = Image.new("RGBA", (320, 360), (30, 38, 54, 255))
+        for yy in range(0, 320, 20):                       # papan catur = transparan
+            for xx in range(0, 320, 20):
+                if (xx // 20 + yy // 20) % 2:
+                    kotak.paste((44, 54, 74, 255), (xx, yy, xx + 20, yy + 20))
+        kotak.alpha_composite(ob, ((320 - ob.width) // 2, (320 - ob.height) // 2))
+        dr = ImageDraw.Draw(kotak)
+        dr.rectangle((0, 320, 320, 360), fill=(255, 107, 203, 255))
+        dr.text((10, 326), f"{n}  shot {d['shot']}  skor {d['skor']:.2f}", fill=(20, 10, 30, 255), font=ImageFont.truetype(str(FONT), 22))
+        kecil.append(kotak)
+    if not kecil:
+        return
+    kol = min(3, len(kecil))
+    lembar = Image.new("RGB", (kol * 320, ((len(kecil) + kol - 1) // kol) * 360), (11, 18, 32))
+    for n, k in enumerate(kecil):
+        lembar.paste(k.convert("RGB"), ((n % kol) * 320, (n // kol) * 360))
+    lembar.save(tdir / "kandidat.jpg", quality=88)
+
+
+def buat_objek(vdir: Path, objek: str, uji: bool, ulang: bool, pilih: int, st: dict) -> tuple[Path | None, dict]:
     tdir = vdir / "thumbnail"
     tdir.mkdir(exist_ok=True)
     png = tdir / "objek.png"
     lama = rj(tdir / "info.json")
-    if png.exists() and not ulang and lama.get("objek") == objek:
-        return png, lama
-    putaran = int(lama.get("putaran_objek", 0)) + (1 if ulang else 0)
-    dasar = int(hashlib.md5(f"{vdir.name}|{objek}".encode()).hexdigest()[:8], 16)
-    info = {"objek": objek, "prompt": prompt_objek(objek), "putaran_objek": putaran, "riwayat": lama.get("riwayat", [])}
-    for coba in range(3):
-        seed = dasar + putaran * 101 + coba * 17
-        try:
-            if uji:
-                mentah = tdir / "objek-mentah.jpg"
-                gambar_ai.contoh_uji(mentah, objek, coba, 1024, 1024, pink=True)
-                data = mentah.read_bytes()
-            else:
-                data = gambar_ai.gambar(info["prompt"], 1024, 1024, seed=seed)
-                (tdir / "objek-mentah.jpg").write_bytes(data)
-        except gambar_ai.KuotaGambar as err:
-            log(f"{err}: thumbnail dibuat tanpa objek (coba lagi setelah 07:00 WIB dengan --ulang)")
-            return None, {**info, "sumber": "tanpa", "alasan": str(err)}
-        except Exception as err:  # noqa: BLE001 — tanpa key/internet: tetap ada thumbnail
-            log(f"gambar objek gagal ({str(err)[:160]}): thumbnail dibuat tanpa objek")
-            return None, {**info, "sumber": "tanpa", "alasan": str(err)[:200]}
-        rgba = gambar_ai.potong_latar(data, toleransi=60, pangkas=False, garis=0)
-        ok, ket = nilai_potongan(rgba)
-        log(f"objek percobaan {coba + 1}: {ket}")
-        if ok:
+    info = {"objek": objek, "riwayat": lama.get("riwayat", [])}
+    if png.exists() and not ulang and not pilih and lama.get("objek") == objek and lama.get("ada_objek"):
+        return png, {**lama, "riwayat": info["riwayat"]}
+    from PIL import Image, ImageFilter
+    daftar = lama.get("kandidat") if lama.get("objek") == objek and (ulang or pilih) else None
+    if not daftar:
+        cutter = None if uji else pemotong(str((st.get("thumbnail") or {}).get("model_potong", "isnet-general-use")))
+        cdir = tdir / "kandidat"
+        cdir.mkdir(exist_ok=True)
+        hasil = []
+        frames = kandidat_frame(vdir)
+        if uji:                                 # mode uji: satu "foto produk" berlatar polos (tanpa model)
+            contoh = tdir / "frame" / "uji-0.jpg"
+            gambar_ai.contoh_uji(contoh, objek, 0, 1080, 1920, pink=True)
+            frames = [("1a-0", contoh, {"i": 0, "potong": 0, "sumber": "uji"})] + frames[:2]
+        for lab, jpg, k in frames:
+            try:
+                rgba = potong_asli(jpg, cutter)
+            except Exception as err:  # noqa: BLE001
+                log(f"frame {lab}: gagal dipotong ({str(err)[:80]})")
+                continue
+            sk, ket = skor_objek(rgba)
+            if sk <= 0.15:
+                continue
             kotak = rgba.getchannel("A").point(lambda v: 255 if v > 20 else 0).getbbox()
-            rgba.crop((max(0, kotak[0] - 6), max(0, kotak[1] - 6), min(rgba.width, kotak[2] + 6), min(rgba.height, kotak[3] + 6))).save(png)
-            return png, {**info, "sumber": "uji" if uji else "ai", "seed": seed, "cek": ket}
-    return None, {**info, "sumber": "tanpa", "alasan": "latar objek tidak bisa dipotong rapi"}
+            nama = f"kandidat/{lab}.png"
+            rgba.crop((max(0, kotak[0] - 8), max(0, kotak[1] - 8), min(rgba.width, kotak[2] + 8), min(rgba.height, kotak[3] + 8))).save(tdir / nama)
+            hasil.append({"file": nama, "shot": lab.split("-")[0], "skor": sk, "cek": ket, "sumber": k.get("sumber"),
+                          "judul": k.get("judul"), "pembuat": k.get("pembuat"), "lisensi": k.get("lisensi")})
+        # satu kandidat terbaik per shot dulu (variasi), lalu sisanya
+        hasil.sort(key=lambda d: -d["skor"])
+        per_shot, sisa = [], []
+        for d in hasil:
+            (sisa if any(x["shot"] == d["shot"] for x in per_shot) else per_shot).append(d)
+        daftar = (per_shot + sisa)[:6]
+        lembar_kandidat(tdir, daftar)
+        log(f"{len(frames)} frame footage asli → {len(daftar)} kandidat objek" + ("" if cutter or uji else " (tanpa rembg: hanya foto berlatar polos)"))
+    info["kandidat"] = daftar
+    if not daftar:
+        if (st.get("thumbnail") or {}).get("objek_ai_cadangan"):
+            return buat_objek_ai(vdir, objek, uji, info)
+        return None, {**info, "sumber": "tanpa", "alasan": "tidak ada objek asli yang bisa dipotong rapi dari footage"}
+    n = pilih if pilih else ((int(lama.get("dipilih", 1)) % len(daftar)) + 1 if ulang else 1)
+    n = max(1, min(n, len(daftar)))
+    d = daftar[n - 1]
+    ob = Image.open(tdir / d["file"]).convert("RGBA")
+    ob = ob.filter(ImageFilter.UnsharpMask(radius=2, percent=60, threshold=2))
+    ob.save(png)
+    log(f"objek asli dipilih: kandidat {n} (shot {d['shot']}, skor {d['skor']:.2f}, {d.get('sumber') or '-'})")
+    return png, {**info, "sumber": "uji" if uji else "footage", "dipilih": n, "dari": d}
+
+
+def buat_objek_ai(vdir: Path, objek: str, uji: bool, info: dict) -> tuple[Path | None, dict]:
+    """Cadangan opsional (bible/gaya-edit.json → thumbnail.objek_ai_cadangan): objek digambar AI berlatar pink lalu dipotong."""
+    tdir = vdir / "thumbnail"
+    png = tdir / "objek.png"
+    dasar = int(hashlib.md5(f"{vdir.name}|{objek}".encode()).hexdigest()[:8], 16)
+    for coba in range(3):
+        try:
+            data = gambar_ai.gambar(prompt_objek(objek), 1024, 1024, seed=dasar + coba * 17)
+        except Exception as err:  # noqa: BLE001
+            return None, {**info, "sumber": "tanpa", "alasan": f"gambar AI gagal: {str(err)[:160]}"}
+        rgba = gambar_ai.potong_latar(data, toleransi=60, pangkas=True, garis=0)
+        if skor_objek(rgba)[0] > 0.15:
+            rgba.save(png)
+            return png, {**info, "sumber": "ai", "prompt": prompt_objek(objek)}
+    return None, {**info, "sumber": "tanpa", "alasan": "objek AI tidak bisa dipotong rapi"}
 
 
 # ------------------------------------------------------------------ gambar
@@ -271,7 +397,8 @@ def susun(vdir: Path, script: dict, st: dict, png: Path | None) -> Path:
 def main() -> None:
     ap = argparse.ArgumentParser(description="Mila: thumbnail Shorts (objek transparan di belakang hook)")
     ap.add_argument("slug")
-    ap.add_argument("--ulang", action="store_true", help="gambar objek baru")
+    ap.add_argument("--ulang", action="store_true", help="pakai kandidat objek berikutnya")
+    ap.add_argument("--pilih", type=int, default=0, help="pakai kandidat objek nomor N (lihat thumbnail/kandidat.jpg)")
     ap.add_argument("--uji", action="store_true")
     ap.add_argument("--catatan", default="", help="alasan --ulang (dicatat)")
     a = ap.parse_args()
@@ -282,7 +409,7 @@ def main() -> None:
     st = rakit.style()
     objek = objek_teks(script, rj(vdir / "idea.json"))
     log(f"objek: {objek}")
-    png, info = buat_objek(vdir, objek, a.uji, a.ulang)
+    png, info = buat_objek(vdir, objek, a.uji, a.ulang, a.pilih, st)
     out = susun(vdir, script, st, png)
     info.update({"dibuat": datetime.now().isoformat(timespec="seconds"), "thumbnail": "export/thumbnail.jpg",
                  "ukuran_kb": round(out.stat().st_size / 1024), "ada_objek": bool(png)})

@@ -133,8 +133,14 @@ function AgentPanelShorts({ def, ctx }: { def: AgentDef; ctx: PanelCtx }) {
         </>);
       })()}
       {def.id === "mila" && (() => {
+        const siap = state.health.rembg;
         const ok = state.videos.filter((v) => ["aset", "draft", "export"].includes(v.status) || (v.thumb?.ada && v.status !== "terbit")).slice(0, 12);
         return (<>
+          {!siap && (
+            <div className="mb-3 rounded-xl border border-signal/50 bg-signal/10 p-3 text-sm">
+              <b>Pemotong latar belum terpasang.</b> Mila butuh <code>rembg</code> (gratis, jalan di laptop) untuk memotong objek asli dari footage. Sekali pasang ±300 MB (termasuk model).
+              <Btn className="mt-2" size="sm" tone="primary" disabled={busy(state)} onClick={() => ctx.run("pasang_rembg")}>Pasang sekarang</Btn>
+            </div>)}
           {ok.length ? (
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">{ok.map((v) => (
               <li key={v.slug} className="flex flex-col gap-1.5 rounded-xl border border-line/70 bg-ink-800/60 p-2 text-[12.5px]">
@@ -146,12 +152,12 @@ function AgentPanelShorts({ def, ctx }: { def: AgentDef; ctx: PanelCtx }) {
                 {v.thumb?.dipasang === false && v.thumb.alasan && <small className="text-signal">{v.thumb.alasan}</small>}
                 <span className="flex flex-wrap gap-1.5">
                   <Btn size="sm" tone="primary" disabled={busy(state)} onClick={() => ctx.run("thumbnail", v.slug)}>{v.thumb?.ada ? "Susun ulang" : "Buat"}</Btn>
-                  {v.thumb?.ada && <Btn size="sm" disabled={busy(state)} onClick={() => ctx.run("thumbnail", `${v.slug}|ulang`)}>Objek baru</Btn>}
+                  {v.thumb?.ada && <Btn size="sm" disabled={busy(state)} onClick={() => ctx.run("thumbnail", `${v.slug}|ulang`)}>Objek lain</Btn>}
                 </span>
               </li>))}
             </ul>
           ) : <Muted>Belum ada video yang visualnya sudah disiapkan Bima.</Muted>}
-          <Muted className="mt-2">Di Buat video & autopilot, Mila jalan otomatis setelah Bima. Objek yang sama muncul bersama tulisan hook di detik awal video (rakit ulang Kai kalau objeknya diganti). Thumbnail dipasang Uli saat upload; YouTube hanya mengizinkan thumbnail khusus Shorts untuk channel yang sudah diverifikasi/diberi akses. Gaya: <code>bible/gaya-edit.json</code> → <code>thumbnail</code>.</Muted>
+          <Muted className="mt-2">Di Buat video & autopilot, Mila jalan otomatis setelah Bima: objek asli dipotong dari footage yang sudah dikredit (6 kandidat terbaik, "Objek lain" = kandidat berikutnya). Objek yang sama muncul bersama tulisan hook di detik awal video (rakit ulang Kai kalau objeknya diganti). Thumbnail dipasang Uli saat upload; YouTube hanya mengizinkan thumbnail khusus Shorts untuk channel yang sudah diverifikasi/diberi akses. Gaya: <code>bible/gaya-edit.json</code> → <code>thumbnail</code>.</Muted>
         </>);
       })()}
       {def.id === "kai" && (() => {

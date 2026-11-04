@@ -4,3 +4,5 @@ yt-dlp[default]==2026.10.26
 google-api-python-client==2.201.0
 google-auth-oauthlib==1.5.0
 google-auth-httplib2==0.4.4
+# Mila: hapus latar foto asli untuk objek thumbnail (lokal, gratis; model ±170 MB diunduh sekali saat pertama dipakai)
+rembg[cpu]>=2.0.60

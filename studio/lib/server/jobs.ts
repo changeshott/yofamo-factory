@@ -81,6 +81,7 @@ async function command(job: JobName, arg: string): Promise<{ cmd: string; args: 
     if (opsi && !/^\d{4}-\d\d-\d\dT\d\d:\d\d$/.test(opsi)) return "Format jadwal tidak valid.";
     return { cmd: py, args: ["agents/upload/unggah.py", "unggah", slug, ...(opsi ? ["--jadwal", opsi] : [])] };
   }
+  if (job === "pasang_rembg") return py ? { cmd: py, args: ["-m", "pip", "install", "rembg[cpu]>=2.0.60"] } : "Python tidak ditemukan.";
   if (job === "thumbnail") {
     if (!py) return "Python tidak ditemukan.";
     const [slug, opsi = ""] = arg.split("|");
@@ -151,6 +152,7 @@ const LABEL: Record<JobName, string> = {
   data: "Steve mengumpulkan data",
   upload: "Uli mengunggah ke YouTube",
   thumbnail: "Mila mendesain thumbnail",
+  pasang_rembg: "Memasang pemotong latar (Mila)",
   login: "Menghubungkan YouTube",
 };
 

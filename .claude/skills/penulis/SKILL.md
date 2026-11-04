@@ -48,7 +48,7 @@ Contoh bagus:
 
 Jangan: "Tau nggak, di video ini kita bahas…" (basa-basi), "Tau nggak tentang kulit buatan?" (datar, bukan kejutan), atau "Tahukah kamu" (terlalu formal). Teks besar di layar (`hook_teks`) **≤ 6 kata** tetap berisi klaimnya, tanpa "tau nggak" (contoh `ROBOT CAIR YANG BISA BERUBAH WUJUD`). Kai menampilkannya bertingkat di tengah layar: subjek **putih** besar → kata penghubung **kuning** lebih kecil → kata kunci terakhir **biru** besar. Kalau pembagian otomatis kurang pas, tulis sendiri `hook_baris`, misalnya `[{"teks": "ROBOT CAIR", "warna": "putih"}, {"teks": "YANG BISA BERUBAH", "warna": "kuning"}, {"teks": "WUJUD", "warna": "biru"}]` (maksimal 5 baris, tiap baris ≤ 12 huruf; warna: putih/kuning/biru/oranye/merah/hijau). Jangan nama superhero sebagai satu-satunya daya tarik.
 
-Tulis juga `thumbnail_objek`: **satu benda fisik** yang dibahas, bahasa Inggris, konkret dan bisa digambar utuh tanpa orang (contoh `soft robotic hand covered in electronic skin`, `transparent solar window panel`, `tiny swimming biohybrid robot`). Mila menggambarnya (latar transparan) di belakang tulisan hook, di thumbnail dan di detik awal video. Jangan merek/logo, orang, hewan sungguhan yang dilukai, atau tulisan.
+Tulis juga `thumbnail_objek`: **satu benda fisik** yang dibahas, bahasa Inggris, konkret (contoh `soft robotic hand covered in electronic skin`, `transparent solar window panel`). Mila memotong benda itu dari footage asli untuk ditaruh di belakang tulisan hook (thumbnail & detik awal video), jadi pastikan kalimat pembuka (`hook`) memakai `kata_kunci_visual` yang memperlihatkan benda itu dengan jelas dan utuh.
 
 ### 4. Susun beat (setiap kalimat diberi `bagian`)
 1. `hook` — 1 kalimat, diawali "Tau nggak,". Kejutan.

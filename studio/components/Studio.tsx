@@ -16,7 +16,7 @@ const TITLES: Record<string, string> = {
   bible: "Channel bible", activity: "Log kantor", health: "Cek sistem", server: "Server agent", produksi: "Buat video", galeri: "Galeri video", kelola: "Kelola hasil", animasi: "Ruang Animasi · video panjang",
 };
 const FOKUS = /^(agent:|founder$|queue$|analytics$|bible$|server$|animasi$)/;
-const JOB_TXT: Record<string, string> = { steve: "Steve menganalisis", fetch: "Steve mengambil data", check: "Cek koneksi YouTube", ide: "Nova mencari ide", penulis: "Raka menulis naskah", suara: "Dara membuat suara", aset: "Bima mencari klip", editor: "Kai merakit video", produksi: "Produksi video", qc: "Rara memeriksa video", data: "Steve mengumpulkan data", upload: "Uli mengunggah", thumbnail: "Mila mendesain thumbnail", login: "Menghubungkan YouTube" };
+const JOB_TXT: Record<string, string> = { steve: "Steve menganalisis", fetch: "Steve mengambil data", check: "Cek koneksi YouTube", ide: "Nova mencari ide", penulis: "Raka menulis naskah", suara: "Dara membuat suara", aset: "Bima mencari klip", editor: "Kai merakit video", produksi: "Produksi video", qc: "Rara memeriksa video", data: "Steve mengumpulkan data", upload: "Uli mengunggah", thumbnail: "Mila mendesain thumbnail", pasang_rembg: "Memasang pemotong latar", login: "Menghubungkan YouTube" };
 
 interface Toast { id: number; text: string; tone: "ok" | "err" | "info" }
 
