@@ -69,6 +69,7 @@ const seatOf = (d: AgentDef): Pt => [d.desk[0] + 1, d.desk[1] + 1.55];
 
 export class OfficeEngine {
   private buf = document.createElement("canvas");
+  private topeng: HTMLCanvasElement | null = null;
   private g: CanvasRenderingContext2D;
   private tick = 0;
   private actors: Actor[];
@@ -622,18 +623,23 @@ export class OfficeEngine {
 
     objs.sort((a, b) => a.key - b.key).forEach((o) => { const bb = o.draw(); if (o.id && bb) hits.push({ id: o.id, label: o.label!, bbox: bb, person: !!o.person }); });
 
-    // cahaya malam
+    // cahaya malam & warna suasana: hanya di dalam ruangan (bagian kosong di sekitar kantor tetap transparan,
+    // supaya tidak muncul "kotak" di latar)
+    const topeng = this.topeng ??= document.createElement("canvas");
+    topeng.width = BW; topeng.height = BH;
+    const tg = topeng.getContext("2d")!;
+    tg.clearRect(0, 0, BW, BH); tg.drawImage(this.buf, 0, 0);
     if (ph.night) {
       const glow = (x: number, y: number, r: number, c: string) => { const [lx, ly] = P(x, y); const gr = g.createRadialGradient(lx, ly, 2, lx, ly, r); gr.addColorStop(0, c); gr.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = gr; g.fillRect(lx - r, ly - r, r * 2, r * 2); };
       if (ph.tint) { g.fillStyle = ph.tint; g.fillRect(0, 0, BW, BH); }
       g.globalCompositeOperation = "lighter";
       for (const d of SEMUA) glow(d.desk[0] + 1, d.desk[1] + 0.9, 40, d.ruang ? "rgba(255,120,200,.15)" : "rgba(255,214,150,.15)");
-      glow(41, 1.5, 70, "rgba(60,255,140,.12)");
       glow(28.5, 1.5, 70, "rgba(255,80,170,.14)");
       glow(11.5, 1.5, 70, "rgba(80,170,255,.14)");
       glow(fx + 1.3, fy + 1.0, 50, "rgba(255,190,120,.16)"); glow(4, 12.6, 60, "rgba(200,140,255,.10)"); glow(11.2, 13.6, 50, "rgba(255,220,160,.12)");
       g.globalCompositeOperation = "source-over";
     } else if (ph.tint) { g.fillStyle = ph.tint; g.fillRect(0, 0, BW, BH); }
+    g.globalCompositeOperation = "destination-in"; g.drawImage(topeng, 0, 0); g.globalCompositeOperation = "source-over";
 
     const h = hits.find((z) => z.id === this.hoverId);
     if (h) { const [x0, y0, x1, y1] = h.bbox; g.strokeStyle = "#FFE3A6"; g.setLineDash([3, 2]); g.strokeRect(x0 - 2.5, y0 - 2.5, x1 - x0 + 5, y1 - y0 + 5); g.setLineDash([]); }
