@@ -306,22 +306,22 @@ def potong_asli(jpg: Path, cutter):
 
 
 def objek_utama(mask):
-    """Hanya objek terbesar (dan bagian yang cukup besar di dekatnya) — orang/benda kecil lain di foto dibuang."""
+    """Hanya objek terbesar (dan bagian yang cukup besar di dekatnya) — orang/benda kecil lain di foto dibuang.
+    Memakai scipy/numpy yang ikut terpasang bersama rembg."""
     try:
-        import cv2  # ikut terpasang bersama rembg
         import numpy as np
+        from scipy import ndimage
     except ImportError:
         return mask
     from PIL import Image
     m = np.array(mask)
-    n, lab, stats, _ = cv2.connectedComponentsWithStats((m > 100).astype("uint8"), connectivity=8)
-    if n <= 2:
+    lab, n = ndimage.label(m > 100, structure=np.ones((3, 3)))
+    if n <= 1:
         return mask
-    luas = stats[1:, cv2.CC_STAT_AREA]
-    besar = int(luas.max())
+    luas = ndimage.sum(np.ones_like(lab), lab, index=range(1, n + 1))
+    besar = float(max(luas))
     simpan = [i + 1 for i, a in enumerate(luas) if a >= besar * 0.3]
-    jaga = np.isin(lab, simpan)
-    jaga = cv2.dilate(jaga.astype("uint8"), np.ones((9, 9), "uint8")) > 0     # tepi halus objek tetap ikut
+    jaga = ndimage.binary_dilation(np.isin(lab, simpan), iterations=4)      # tepi halus objek tetap ikut
     return Image.fromarray(np.where(jaga, m, 0).astype("uint8"))
 
 
