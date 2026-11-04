@@ -1,0 +1,9 @@
+{
+  "_catatan": "Gaya video panjang 'dokumenter modern' (referensi Video 1 Zona): footage asli 16:9 + selingan motion graphic di kertas abu-abu terang. Dibaca agents/panjang/dokumenter.py (Tio), periksa_panjang.py (Wulan) dan autopilot_panjang.py. Semua kunci opsional; nilai bawaan ada di kode.",
+  "durasi_menit": [5, 12],
+  "warna": {"kertas": "#E7E6E2", "tinta": "#151515", "abu": "#8A8986", "aksen": "#2D6BFF"},
+  "subtitle": {"tampil": true, "ukuran": 40, "maks_huruf": 44, "jarak_bawah": 64},
+  "footage": {"saturasi": 0.88, "kontras": 1.04, "butiran": 9, "vignette": true},
+  "handle": "@yofamoo_technology",
+  "qc": {"maks_adegan_cadangan": 3}
+}

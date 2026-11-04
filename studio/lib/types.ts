@@ -127,7 +127,7 @@ export interface StudioState {
   snapshot: Snapshot | null;
   videos: Video[];
   activity: Activity[];
-  week: { since: string; published: number };
+  week: MingguIni;
   reports: FileEntry[];
   logs: FileEntry[];
   agents: { key: string; ready: boolean }[];
@@ -144,10 +144,20 @@ export interface StudioState {
   health: { env: boolean; claude: boolean; python: boolean; pythonCmd: string; edgeTts: boolean; stockKey: boolean; ffmpeg: boolean; ytdlp: boolean; rembg: boolean; aiKey: boolean; google: boolean; ytClient: boolean; ytLogin: boolean };
 }
 
+/** Upload minggu ini (Senin 00:00 WIB s/d Minggu): tayang = sudah publik (jadwal lewat / ditandai terbit),
+ *  terjadwal = sudah diupload private dengan jadwal tayang minggu ini. target = autopilot (video/hari × 7). */
+export interface MingguIni {
+  since: string; published: number; terjadwal: number; target: number;
+  shorts: { tayang: number; terjadwal: number; target: number };
+  panjang: { tayang: number; terjadwal: number; target: number };
+}
+
 export interface JadwalItem {
   waktu: string; tanggal: string; jam: string; jenis: "shorts" | "panjang";
   status: "tayang" | "terjadwal" | "kosong" | "dibuat" | "terlewat";
   slug: string | null; judul: string | null; url: string | null; gambar: "export/thumbnail.jpg" | "export/sampul.jpg" | null; eksplorasi: boolean;
+  /** video panjang: URL thumbnail 16:9 (lewat /api/panjang) */
+  gambarUrl?: string | null;
 }
 export interface JadwalTayang {
   kini: string;
@@ -155,4 +165,5 @@ export interface JadwalTayang {
   baruTayang: JadwalItem[];
   berikut: JadwalItem | null;
   autopilotAktif: boolean;
+  autopilotPanjangAktif?: boolean;
 }

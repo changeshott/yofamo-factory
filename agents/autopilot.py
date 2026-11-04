@@ -489,6 +489,14 @@ def main() -> None:
     if a.perintah == "jalan":
         LOG_FILE = ROOT / "logs" / f"autopilot-{now().strftime('%Y-%m-%d')}.txt"
         LOG_FILE.parent.mkdir(exist_ok=True)
+        if not UJI and not a.sekarang:          # video panjang (1/hari) punya putaran sendiri di latar: tidak menahan Shorts
+            try:
+                sys.path.insert(0, str(ROOT / "agents" / "panjang"))
+                import autopilot_panjang
+                if autopilot_panjang.mulai_latar("dipanggil autopilot Shorts"):
+                    log("autopilot video panjang dijalankan di latar")
+            except Exception as err:  # noqa: BLE001 — video panjang tidak boleh menggagalkan Shorts
+                log(f"autopilot video panjang tidak bisa dimulai: {str(err)[:120]}")
         t0 = time.time()
         putaran(paksa=a.paksa)
         log(f"putaran selesai ({time.time() - t0:.0f} dtk)")

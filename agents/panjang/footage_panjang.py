@@ -4,6 +4,7 @@
     python agents/panjang/footage_panjang.py <slug>            # semua adegan yang butuh footage/objek
     python agents/panjang/footage_panjang.py <slug> --ulang 4  # cari ulang adegan tertentu
     python agents/panjang/footage_panjang.py <slug> --uji      # tanpa internet (klip & objek contoh)
+    python agents/panjang/footage_panjang.py <slug> --cadangan # adegan yang tetap tanpa footage meminjam shot adegan terdekat
 
 Untuk tiap adegan (durasi dari suara Gilang):
   • footage / pembuka / hp / tv → shot 16:9 dari YouTube CC BY, NASA, Wikimedia (PD/CC0/CC BY), Pexels, Pixabay —
@@ -132,7 +133,7 @@ def cari_footage(vdir: Path, i: int, a: dict, dur: float, topik: set[str], dipak
                     ditolak.add(key)
                     raise RuntimeError("gelap" if gelap > 0.35 else "diam/beku")
                 if not uji:
-                    alasan, _ = deteksi_teks.cek_video(out)
+                    alasan, _ = deteksi_teks.cek_video(out, halus=True)
                     if alasan:
                         ditolak.add(key)
                         raise RuntimeError(alasan)
@@ -184,6 +185,7 @@ def main() -> None:
     ap.add_argument("slug")
     ap.add_argument("--ulang", nargs="*", type=int, default=[])
     ap.add_argument("--uji", action="store_true")
+    ap.add_argument("--cadangan", action="store_true", help="adegan tanpa footage meminjam shot adegan terdekat (pilihan terakhir autopilot)")
     a = ap.parse_args()
     bima.UJI = a.uji
     bima.load_env()
@@ -212,6 +214,17 @@ def main() -> None:
         man[str(i)] = cari_footage(vdir, i, ad, dur, topik, dipakai, a.uji)
         if not man[str(i)]:
             kurang.append(i + 1)
+        (vdir / "footage" / "manifest.json").write_text(json.dumps(man, ensure_ascii=False, indent=1), encoding="utf-8")
+    if a.cadangan:
+        kurang = [no for no in range(1, len(adegan) + 1) if adegan[no - 1].get("jenis") in BUTUH_FOOTAGE and not man.get(str(no - 1))]
+        ada = [k for k, v in man.items() if v and not any(s.get("cadangan") for s in v)]
+        for no in list(kurang):
+            dekat = sorted(ada, key=lambda k: abs(int(k) - (no - 1)))
+            pinjam = [{**s, "cadangan": True} for k in dekat[:2] for s in man[k][:1]]
+            if pinjam:
+                man[str(no - 1)] = pinjam
+                kurang.remove(no)
+                log(f"adegan {no:02}: meminjam {len(pinjam)} shot adegan terdekat (cadangan)")
         (vdir / "footage" / "manifest.json").write_text(json.dumps(man, ensure_ascii=False, indent=1), encoding="utf-8")
     # frame cadangan (untuk objek & latar): tengah tiap shot footage
     frames = []
@@ -260,6 +273,8 @@ def main() -> None:
     kredit, desk = [], []
     for daftar in man.values():
         for s in daftar:
+            if s.get("cadangan"):
+                continue
             if s.get("sumber") in ("youtube", "nasa", "wikimedia") or "CC" in str(s.get("lisensi")):
                 kredit.append(f"{s.get('judul')} — {s.get('pembuat') or '-'} ({s.get('lisensi') or s.get('sumber')}) {s.get('url_halaman') or ''}")
                 desk.append(f"\"{s.get('judul')}\" oleh {s.get('pembuat') or '-'} ({s.get('lisensi') or s.get('sumber')})")

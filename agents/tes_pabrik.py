@@ -431,6 +431,65 @@ def offline() -> None:
         except ImportError:
             print("  (lewati pratinjau animasi: playwright tidak terpasang)")
 
+        # Video panjang gaya dokumenter: validator, suara + footage/objek uji, pratinjau motion graphic, jam tayang autopilot
+        dslug = "uji-dokumenter-kulit"
+        ddir = tmp / "panjang" / dslug
+        ddir.mkdir(parents=True)
+        shutil.copy(tmp / "agents" / "panjang" / "contoh" / "ide.json", ddir / "ide.json")
+        shutil.copy(tmp / "agents" / "panjang" / "contoh" / "naskah-dokumenter.json", ddir / "naskah.json")
+        run(tmp, "agents/panjang/status.py", "set", dslug, "ide", "tes")
+        r = run(tmp, "agents/panjang/cek_naskah_panjang.py", dslug)
+        cek("Dokumenter: validator mengenali format & menolak naskah terlalu pendek", r.returncode != 0 and "durasi" in r.stdout.lower(),
+            r.stdout.strip().splitlines()[-1] if r.stdout else r.stderr[-200:])
+        r1 = run(tmp, "agents/panjang/suara_panjang.py", dslug, "--uji")
+        r2 = run(tmp, "agents/panjang/footage_panjang.py", dslug, "--uji", timeout=1800)
+        man = json.loads((ddir / "footage" / "manifest.json").read_text(encoding="utf-8")) if (ddir / "footage" / "manifest.json").exists() else {}
+        cek("Dokumenter: footage 16:9 per adegan + objek asli PNG transparan", r1.returncode == 0 and r2.returncode == 0
+            and all(man.get(str(i)) for i in (0, 2, 6)) and (ddir / "media" / "09-objek0.png").exists()
+            and Image.open(ddir / "media" / "09-objek0.png").mode == "RGBA",
+            (r1.stderr + r2.stdout + r2.stderr)[-300:] if r1.returncode or r2.returncode else f"{sum(len(v) for v in man.values())} shot")
+        try:
+            import playwright  # noqa: F401
+            r = run(tmp, "agents/panjang/dokumenter.py", dslug, "--pratinjau", timeout=1800)
+            foto = list((ddir / "pratinjau").glob("*.jpg"))
+            cek("Dokumenter: semua motion graphic (pembuka, bab, angka, cara kerja, objek, kata, penutup) terbangun tanpa error",
+                r.returncode == 0 and len(foto) >= 9, f"{len(foto)} frame" if r.returncode == 0 else (r.stdout + r.stderr)[-300:])
+        except ImportError:
+            print("  (lewati pratinjau dokumenter: playwright tidak terpasang)")
+        # jam tayang video panjang: ≥ 90 menit dari jam Shorts, menit :30
+        kode = ("import sys, json; sys.path.insert(0, 'agents/panjang'); import autopilot_panjang as a; "
+                "json.dump({'jam': [{'jam': h, 'skor': 1 if h in (16, 19) else 0} for h in range(7, 23)], 'slot': {'2026-11-05': [{'jam': '11:00'}, {'jam': '16:00'}, {'jam': '19:00'}]}}, "
+                "open('insights/jadwal.json', 'w')); k = json.load(open('bible/autopilot.json', encoding='utf-8')); k['video_per_hari'] = 3; "
+                "json.dump(k, open('bible/autopilot.json', 'w', encoding='utf-8')); c = a.cfg(); t = a.jam_slot('2026-11-05', c); print(t.strftime('%H:%M'))")
+        (tmp / "insights").mkdir(exist_ok=True)
+        r = run(tmp, "-c", kode)
+        jam = r.stdout.strip()
+        mnt = int(jam[:2]) * 60 + int(jam[3:]) if re.fullmatch(r"\d\d:\d\d", jam) else -999
+        cek("Autopilot video panjang: jam tayang :30, jauh dari jam Shorts", jam.endswith(":30") and all(abs(mnt - x) >= 90 for x in (660, 960, 1140)),
+            jam or r.stderr[-200:])
+        # pendeteksi teks: label nama kecil (2 baris) di pojok harus ditolak di mode video panjang
+        try:
+            sys.path.insert(0, str(tmp / "agents" / "aset"))
+            import deteksi_teks
+            if deteksi_teks.sesi() is not None:
+                bersih = tmp / "cache" / "uji-bersih.mp4"
+                bersih.parent.mkdir(exist_ok=True)
+                font = (tmp / "fonts" / "Inter.ttf").as_posix().replace(":", "\\:")
+                label = tmp / "cache" / "uji-label.mp4"
+                src = ["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "gradients=s=1920x1080:d=3:speed=0.02"]
+                subprocess.run([*src, "-c:v", "libx264", "-preset", "veryfast", str(bersih)], capture_output=True)
+                subprocess.run([*src, "-vf", f"drawbox=x=1650:y=40:w=240:h=110:color=white:t=fill,drawtext=fontfile='{font}':text='Thomas Blick':x=1675:y=58:fontsize=28:fontcolor=navy,"
+                                f"drawtext=fontfile='{font}':text='219 Design':x=1690:y=96:fontsize=26:fontcolor=black", "-c:v", "libx264", "-preset", "veryfast", str(label)],
+                               capture_output=True)
+                a1, _ = deteksi_teks.cek_video(label, halus=True)
+                a0, _ = deteksi_teks.cek_video(bersih, halus=True)
+                cek("Pendeteksi teks: label nama kecil di pojok ditolak, klip bersih lolos (video panjang)", bool(a1) and not a0 and bersih.exists(),
+                    f"label: {a1 or 'lolos'} · bersih: {a0 or 'lolos'}")
+            else:
+                print("  (lewati pendeteksi teks: model belum terpasang)")
+        except ImportError:
+            print("  (lewati pendeteksi teks: onnxruntime belum terpasang)")
+
         # Kontrol Zona: hapus video
         r = run(tmp, "agents/pabrik.py", "hapus", slug, "--ya")
         rows = json.loads(run(tmp, "agents/pabrik.py", "list", "--json").stdout or "[]")

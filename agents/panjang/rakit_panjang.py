@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Wulan — editor akhir video panjang. Menyambung adegan animasi Tio + suara Gilang + musik → export/final.mp4 (1920x1080, 24 fps).
+"""Wulan — editor akhir video panjang. Menyambung adegan Tio + suara Gilang + musik → export/final.mp4 (1920x1080; dokumenter 30 fps, kartun 24 fps).
 
     python agents/panjang/rakit_panjang.py <slug>          # final.mp4 + thumbnail.jpg + bab (chapter) + subtitle.srt
     python agents/panjang/rakit_panjang.py <slug> --uji    # tanpa status (untuk tes)
@@ -143,7 +143,8 @@ def main() -> None:
     final, tmp = exp / "final.mp4", exp / "final.tmp.mp4"
     log(f"merakit {n} adegan, {total / 60:.1f} menit{', musik: ' + musik.name if musik else ', tanpa musik'}…")
     ff("-f", "concat", "-safe", "0", "-i", str(daftar), *args, "-filter_complex", ";".join(chains),
-       "-map", "0:v:0", "-map", "[aout]", "-r", str(fps_k), "-c:v", "libx264", "-preset", "medium", "-crf", "18",
+       "-map", "0:v:0", "-map", "[aout]", "-r", str(fps_k), "-c:v", "libx264", "-preset", "medium", "-crf", "19" if dok else "18",
+       *(["-maxrate", "16M", "-bufsize", "32M"] if dok else []),        # butiran film membuat bitrate meledak: batasi supaya upload ringan
        "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", "-t", f"{total:.3f}", str(tmp))
     tmp.replace(final)
     daftar.unlink(missing_ok=True)

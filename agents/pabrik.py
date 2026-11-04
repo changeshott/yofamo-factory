@@ -204,7 +204,9 @@ def main() -> None:
         elif args.cmd == "week":
             from datetime import date, timedelta
             monday = date.today() - timedelta(days=date.today().weekday())
-            print(json.dumps({"since": monday.isoformat(), "published": published_since(monday.isoformat())}))
+            with connect() as con:
+                slugs = [r[0] for r in con.execute("SELECT DISTINCT slug FROM riwayat WHERE ke='terbit' AND waktu >= ?", (monday.isoformat(),))]
+            print(json.dumps({"since": monday.isoformat(), "published": published_since(monday.isoformat()), "slugs": slugs}))
         elif args.cmd == "hapus":
             if not args.ya:
                 sys.exit("[pabrik] tambahkan --ya untuk benar-benar menghapus (tidak bisa dibatalkan)")

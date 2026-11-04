@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { P, ROOT, jalankanLatar } from "./project";
 
-const g = globalThis as unknown as { __yofamoAutopilot?: number; __yofamoPoll?: number };
+const g = globalThis as unknown as { __yofamoAutopilot?: number; __yofamoPoll?: number; __yofamoPanjang?: number };
 const DIBUKA = 10 * 60_000;   // tidak ada yang membuka Studio selama ≥ 10 menit → permintaan berikutnya = "Studio dibuka"
 const JEDA = 55 * 60_000;
 
@@ -39,6 +39,25 @@ export function jalankanAutopilot(manual = false): { ok: boolean; message: strin
   return { ok: true, message: "Autopilot mulai bekerja. Kemajuan muncul di log dan di Produksi." };
 }
 
+export const autopilotPanjangBerjalan = () => kunciAktif("autopilot-panjang.lock") !== null;
+
+/** Autopilot video panjang (agents/panjang/autopilot_panjang.py): 1 video panjang/hari, punya kunci & putaran sendiri. */
+export function jalankanAutopilotPanjang(manual = false): { ok: boolean; message: string } {
+  if (autopilotPanjangBerjalan()) return { ok: false, message: "Autopilot video panjang sedang bekerja. Tunggu putaran ini selesai." };
+  const tgl = new Date(Date.now() + 7 * 3600_000).toISOString().slice(0, 10);
+  const r = jalankanLatar(["agents/panjang/autopilot_panjang.py", "jalan", ...(manual ? ["--mulai"] : [])], `autopilot-panjang-latar-${tgl}.txt`);
+  if (!r.ok) return r;
+  g.__yofamoPanjang = Date.now();
+  return { ok: true, message: "Autopilot video panjang mulai bekerja: mengisi slot tayang hari ini & besok." };
+}
+
+/** Video panjang: saat Studio dibuka & tiap ±1 jam selama terbuka, satu putaran (kalau panjang.aktif, bawaan aktif). */
+function autopilotPanjangOtomatis(cfg: { panjang?: { aktif?: boolean } }, dibuka: boolean): void {
+  if (cfg.panjang?.aktif === false || autopilotPanjangBerjalan()) return;
+  if (!dibuka && g.__yofamoPanjang && Date.now() - g.__yofamoPanjang < JEDA) return;
+  jalankanAutopilotPanjang();
+}
+
 /** Dipanggil tiap Studio memuat status.
  *  - Studio DIBUKA (permintaan pertama, atau setelah ≥ 10 menit tidak dibuka): autopilot dinyalakan & mulai mengisi stok
  *    (hari ini + besok). Setelah stok lengkap, autopilot mematikan dirinya sendiri.
@@ -49,6 +68,7 @@ export function autopilotOtomatis(): void {
   if (!cfg) return;
   const sekarang = Date.now(), dibuka = !g.__yofamoPoll || sekarang - g.__yofamoPoll > DIBUKA;
   g.__yofamoPoll = sekarang;
+  try { autopilotPanjangOtomatis(cfg, dibuka); } catch { /* video panjang tidak boleh mengganggu Shorts */ }
   if (dibuka && cfg.jalan_saat_studio_dibuka !== false) {
     if (autopilotBerjalan()) { g.__yofamoAutopilot = sekarang; return; }
     if (!cfg.aktif) { cfg.aktif = true; try { fs.writeFileSync(file, JSON.stringify(cfg, null, 2) + "\n", "utf-8"); } catch { return; } }

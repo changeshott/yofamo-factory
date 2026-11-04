@@ -122,7 +122,7 @@ export default function Studio() {
       setKelolaTick((n) => n + 1); refresh();
     } });
   }, [refresh, toast]);
-  const ctx: PanelCtx | null = state ? { state, run, move, open, target, setTarget, stop, hapus, kelolaTick } : null;
+  const ctx: PanelCtx | null = state ? { state, run, move, open, target: state.week.target || target, setTarget, stop, hapus, kelolaTick } : null;
   const busyKey = kerjaShorts(state);   // sama untuk karakter kantor, sidebar & dock: tombol Studio ATAU autopilot
   const kerja = kerjaShortsSemua(state);
   const prodLatar = state?.job.status !== "running" && state?.produksi[0]?.status === "berjalan";   // produksi autopilot di latar
@@ -188,7 +188,8 @@ export default function Studio() {
             <Stat value={fmt(Math.round(state.snapshot.summary.median_views))} label="median views" />
           </>)}
           {gap != null && <Stat value={String(gap)} label="hari sejak upload" warn={gap > 7} />}
-          <Stat value={`${state.week.published}/${target}`} label="terbit minggu ini" good={state.week.published >= target} />
+          <Stat value={`${state.week.published}/${state.week.target || target}`} label="tayang minggu ini" good={state.week.published >= (state.week.target || target)} />
+          {state.week.terjadwal > 0 && <Stat value={`+${state.week.terjadwal}`} label="terjadwal" good />}
         </div>
         {jadwalW > 0 && <JadwalSidebar state={state} open={open} lipat={lipatJ} setLipat={setLipatJSimpan} />}
         </div>

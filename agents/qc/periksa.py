@@ -172,7 +172,7 @@ def cek_shot_semua(vdir: Path, klip: list[dict], teks: bool = False) -> list[dic
         if beku > 0.7 and k["jenis"] == "footage":
             return {**ref(k), "alasan": f"diam/beku {beku:.0%}"}
         if dt and k["jenis"] == "footage" and k.get("sumber") != "milik":
-            alasan, _ = dt.cek_video(f)
+            alasan, _ = dt.cek_video(f, halus=True)
             if alasan:
                 return {**ref(k), "alasan": alasan}
         return None

@@ -353,15 +353,22 @@ export function FounderPanel({ ctx }: { ctx: PanelCtx }) {
   const { state, target } = ctx, v = state.videos, ideas = v.filter((x) => x.status === "ide"), ready = v.filter((x) => ["disetujui", "naskah", "suara", "aset"].includes(x.status)), cek = v.filter((x) => x.status === "draft"), up = v.filter((x) => x.status === "export");
   const wk = state.week.published, lu = state.snapshot?.videos.reduce((a, x) => (x.published > a ? x.published : a), ""), gap = lu ? daysSince(lu) : null;
   return (<>
-    <H3>Target minggu ini</H3>
-    <p className="text-sm">{wk} dari {target} video terbit sejak Senin.</p>
-    <div className="mt-2 h-3 overflow-hidden rounded-sm border border-line bg-ink-950" role="progressbar" aria-label="Target terbit minggu ini" aria-valuemin={0} aria-valuemax={target} aria-valuenow={wk}>
-      <i className="block h-full bg-[repeating-linear-gradient(90deg,var(--color-leaf)_0_8px,#5BBE86_8px_10px)]" style={{ width: `${Math.min(100, (wk / target) * 100)}%` }} />
+    <H3>Upload minggu ini</H3>
+    <p className="text-sm"><b>{wk}</b> dari {target} video sudah tayang sejak Senin{state.week.terjadwal ? <>, <b>{state.week.terjadwal}</b> lagi sudah terjadwal minggu ini</> : null}.</p>
+    <div className="mt-2 flex h-3 overflow-hidden rounded-sm border border-line bg-ink-950" role="progressbar" aria-label="Upload minggu ini" aria-valuemin={0} aria-valuemax={target} aria-valuenow={wk}>
+      <i className="block h-full bg-[repeating-linear-gradient(90deg,var(--color-leaf)_0_8px,#5BBE86_8px_10px)]" style={{ width: `${Math.min(100, (wk / Math.max(1, target)) * 100)}%` }} />
+      <i className="block h-full bg-circuit/45" style={{ width: `${Math.min(100 - Math.min(100, (wk / Math.max(1, target)) * 100), (state.week.terjadwal / Math.max(1, target)) * 100)}%` }} title="terjadwal" />
     </div>
+    <ul className="mt-2 grid grid-cols-2 gap-2 text-sm">
+      {([["Shorts", state.week.shorts], ["Video panjang", state.week.panjang]] as const).map(([nama, x]) => (
+        <li key={nama} className="rounded-lg border border-line/70 bg-ink-950/50 px-2.5 py-1.5">
+          <b className="block">{nama}</b>
+          <span className="text-muted">{x.tayang} tayang · {x.terjadwal} terjadwal{x.target ? ` · target ${x.target}` : " · autopilot mati"}</span>
+        </li>))}
+    </ul>
     <div className="mt-2.5 flex flex-wrap items-center gap-3 text-sm">
-      <label className="text-muted" htmlFor="tgt">Target per minggu</label>
-      <select id="tgt" value={target} onChange={(e) => ctx.setTarget(+e.target.value)} className="rounded-lg border border-line bg-ink-950 px-2 py-1.5">{[1, 2, 3, 4, 5, 7, 10, 14].map((n) => <option key={n}>{n}</option>)}</select>
-      {gap != null && <span className={gap > 7 ? "text-signal" : "text-muted"}>Upload terakhir {gap} hari lalu.</span>}
+      <span className="text-muted">Target mengikuti autopilot (video per hari × 7). Ubah di panel Autopilot / Ruang Animasi.</span>
+      {gap != null && <span className={gap > 7 ? "text-signal" : "text-muted"}>Upload terakhir di channel {gap} hari lalu.</span>}
     </div>
     <H3>Perlu keputusanmu ({ideas.length})</H3>
     {ideas.length ? ideas.map((x) => <VideoCard key={x.slug} v={x} ctx={ctx} />) : <Muted>Tidak ada ide yang menunggu.</Muted>}
@@ -859,33 +866,62 @@ interface ProdPJ { id: string; permintaan: string; dibuat: string; selesai: stri
 interface VidPJ {
   slug: string; status: string; diubah: string | null; judul: string; judul_kerja: string; adegan: number; menit: number | null; ilustrasi: number; dirender: number;
   final: boolean; thumbnail: boolean; lembar: boolean; info: { durasi?: number; bab?: { t: number; judul: string }[]; dibuat?: string; uji?: boolean } | null;
-  qc: { lolos?: boolean; masalah?: string[]; catatan?: string[] } | null; upload: { url?: string; studio?: string; jadwal?: string } | null;
+  qc: { lolos?: boolean; skor?: number; masalah?: string[]; catatan?: string[] } | null; upload: { url?: string; studio?: string; jadwal?: string } | null;
 }
 interface MaskotPJ { kandidat: number[]; pose: string[]; utama: boolean; acuan: boolean; versi: number; berjalan: boolean; status: string; pesan: string }
-const STATUS_PJ: Record<string, string> = { ide: "Riset", naskah: "Naskah", suara: "Suara", ilustrasi: "Ilustrasi", animasi: "Animasi", draft: "Siap ditonton", export: "Disetujui", terbit: "Terbit", ditolak: "Ditolak" };
+const STATUS_PJ: Record<string, string> = { ide: "Riset", naskah: "Naskah", suara: "Suara", ilustrasi: "Footage siap", animasi: "Dirender", draft: "Siap ditonton", export: "Disetujui", terbit: "Terbit", ditolak: "Ditolak" };
 
-function HostYofa({ m, aksi }: { m: MaskotPJ; aksi: (b: Record<string, string>) => Promise<void> }) {
-  const src = (f: string) => `/api/panjang?maskot=${encodeURIComponent(f)}&v=${m.versi}`;
-  const siap = m.pose.includes("diam") && m.pose.includes("bicara");
+interface AutoPJ {
+  config: { aktif: boolean; video_per_hari: number; setujui_otomatis: boolean; skor_qc_min: number; jam: string };
+  slot: { waktu: string; isi: { slug: string; status: string; alasan?: string; url?: string } | null }[];
+  produksi_hari_ini: number; jeda_sampai: string | null; masalah: string | null; menunggu_zona: Record<string, string>; berjalan: boolean; log: string[];
+}
+
+function AutopilotPanjang({ judul }: { judul: (slug: string) => string }) {
+  const [d, setD] = useState<AutoPJ | null>(null);
+  const [pesan, setPesan] = useState("");
+  const muat = () => fetch("/api/autopilot", { cache: "no-store" }).then((r) => r.json()).then((x) => setD(x.panjang ?? null)).catch(() => setD(null));
+  useEffect(() => { void muat(); const t = setInterval(() => void muat(), 20_000); return () => clearInterval(t); }, []);
+  const ubah = async (panjang: Record<string, unknown>) => {
+    try { const r = await api<{ message: string }>("/api/autopilot", { panjang }); setPesan(r.message); } catch (e) { setPesan((e as Error).message); }
+    void muat();
+  };
+  if (!d) return null;
+  const c = d.config;
   return (<>
-    <H3>Gaya &amp; host Yofa</H3>
-    <Muted>Host & semua gambar dibuat FLUX.2 klein (gratis, ±70 gambar/hari) dengan gaya lukis-komik dari prompt kamu. Pose host dibuat dari satu gambar utama supaya wajahnya selalu sama.{siap ? "" : " Belum ada host: buat kandidat dulu, atau biarkan Laras memilih otomatis saat video pertama dibuat."}</Muted>
-    {siap && <div className="mt-2 grid grid-cols-4 gap-1.5 rounded-lg bg-[#FF2E88]/25 p-1.5">{m.pose.map((p) => (
-      <figure key={p} className="text-center"><img alt={p} loading="lazy" className="aspect-square w-full object-contain" src={src(`pose/${p}.png`)} /><figcaption className="text-xs text-faint">{p}</figcaption></figure>))}
-      {m.acuan && <figure className="col-span-4 mt-1"><img alt="acuan gaya" loading="lazy" className="w-full rounded-md border border-line" src={src("acuan-gaya.jpg")} /><figcaption className="text-xs text-faint">acuan gaya untuk semua ilustrasi</figcaption></figure>}
-    </div>}
-    {m.kandidat.length > 0 && (<>
-      <Muted className="mt-2">Kandidat host — klik <b>Pakai</b> pada yang paling kamu suka:</Muted>
-      <div className="mt-1 grid grid-cols-2 gap-2">{m.kandidat.map((k) => (
-        <div key={k} className="rounded-lg border border-line/70 bg-ink-950/50 p-1.5"><img alt={`kandidat ${k}`} loading="lazy" className="w-full rounded-md" src={src(`kandidat/k${k}.jpg`)} />
-          <Btn size="sm" tone="primary" disabled={m.berjalan} className="mt-1.5 w-full" onClick={() => void aksi({ aksi: "host-pakai", nomor: String(k) })}>Pakai k{k}</Btn></div>))}</div>
-    </>)}
-    <div className="mt-2 flex items-center gap-2">
-      <Btn size="sm" tone={siap ? "ghost" : "primary"} disabled={m.berjalan} onClick={() => void aksi({ aksi: "host-kandidat" })}>{m.kandidat.length ? "Gambar 4 kandidat baru" : "Gambar 4 kandidat host"}</Btn>
-      {siap && <Btn size="sm" tone="ghost" disabled={m.berjalan} onClick={() => void aksi({ aksi: "host-acuan" })}>Gambar ulang acuan gaya</Btn>}
-      {m.status && <Pill tone={m.berjalan ? "running" : m.status === "gagal" ? "error" : m.status === "selesai" ? "ok" : "stopped"}>{m.berjalan ? "menggambar…" : m.status}</Pill>}
+    <H3>Autopilot video panjang</H3>
+    <div className="flex flex-wrap items-center gap-2">
+      <Pill tone={d.berjalan ? "running" : c.aktif ? "ok" : "stopped"}>{d.berjalan ? "sedang bekerja" : c.aktif ? "aktif" : "mati"}</Pill>
+      {c.aktif ? <Btn size="sm" tone="ghost" onClick={() => void ubah({ aktif: false })}>Matikan</Btn> : <Btn size="sm" tone="primary" onClick={() => void ubah({ aktif: true })}>Nyalakan</Btn>}
+      {c.aktif && !d.berjalan && <Btn size="sm" tone="ghost" onClick={() => void ubah({ jalan: true })}>Jalankan sekarang</Btn>}
     </div>
-    {m.pesan && <Muted className="mt-1">{m.pesan}</Muted>}
+    <div className="mt-2 grid grid-cols-[auto_1fr] items-center gap-x-3 gap-y-1.5 text-sm">
+      <span className="text-muted">Video per hari</span>
+      <select value={c.video_per_hari} onChange={(e) => void ubah({ video_per_hari: +e.target.value })} className="w-20 rounded-md border border-line bg-ink-950 px-2 py-1">
+        {[1, 2].map((n) => <option key={n} value={n}>{n}</option>)}</select>
+      <span className="text-muted">Jam tayang</span>
+      <select value={c.jam} onChange={(e) => void ubah({ jam: e.target.value })} className="w-fit rounded-md border border-line bg-ink-950 px-2 py-1">
+        <option value="">otomatis (jam terbaik, jauh dari Shorts)</option>
+        {["16:30", "17:30", "18:30", "19:30", "20:30", "21:30"].map((j) => <option key={j} value={j}>{j} WIB</option>)}</select>
+      <span className="text-muted">Upload otomatis</span>
+      <label className="flex items-center gap-2"><input type="checkbox" checked={c.setujui_otomatis} onChange={(e) => void ubah({ setujui_otomatis: e.target.checked })} />
+        <span>kalau QC Wulan lolos & skor ≥</span>
+        <select value={c.skor_qc_min} onChange={(e) => void ubah({ skor_qc_min: +e.target.value })} className="rounded-md border border-line bg-ink-950 px-1.5 py-0.5">
+          {[6, 7, 8, 9].map((n) => <option key={n} value={n}>{n}</option>)}</select></label>
+      <span className="text-muted">Produksi hari ini</span><span>{d.produksi_hari_ini} video{d.jeda_sampai ? ` · jeda sampai ${d.jeda_sampai.slice(11, 16)}` : ""}</span>
+    </div>
+    {d.masalah && <p className="mt-2 rounded-md border border-signal/50 bg-signal/10 px-2.5 py-1.5 text-sm text-signal">{d.masalah}</p>}
+    {d.slot.length > 0 && <ul className="mt-2 space-y-1.5">{d.slot.map((s) => (
+      <li key={s.waktu} className="rounded-lg border border-line/70 bg-ink-950/60 px-2.5 py-2 text-sm">
+        <div className="flex items-center justify-between gap-2"><b>{s.waktu.slice(5).replace(" ", " · ")} WIB</b>
+          <small className="text-faint">{s.isi ? (s.isi.status === "tayang" ? "sudah tayang" : "terjadwal (private → tayang otomatis)") : d.berjalan ? "sedang dibuat" : "belum ada video"}</small></div>
+        {s.isi && <span className="block truncate">{judul(s.isi.slug)}</span>}
+        {s.isi?.alasan && <small className="block text-faint">{s.isi.alasan}</small>}
+      </li>))}</ul>}
+    {Object.keys(d.menunggu_zona).length > 0 && <Muted className="mt-2">Menunggu kamu: {Object.keys(d.menunggu_zona).map(judul).join(", ")} (QC belum lolos; tonton lalu setujui di daftar bawah).</Muted>}
+    {d.log.length > 0 && <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap rounded-lg bg-ink-950 p-2 text-[11px] leading-snug text-muted">{d.log.join("\n")}</pre>}
+    {pesan && <Muted className="mt-2 text-leaf">{pesan}</Muted>}
+    <Muted className="mt-2">Tiap hari 1 video panjang: Bayu pilih topik baru → Citra → Gilang → Laras (footage tanpa teks) → Tio → Wulan (QC berskor). Yang lolos QC disetujui otomatis lalu Uli mengunggahnya <b>private + jadwal tayang</b>; YouTube menayangkannya sendiri. Yang tidak lolos menunggu kamu. Laptop perlu menyala ±2–4 jam per video (Shorts tetap didahulukan).</Muted>
   </>);
 }
 
@@ -904,14 +940,14 @@ export function RuangAnimasiPanel({ ctx, def }: { ctx: PanelCtx; def?: AgentDef 
   const p = d.produksi[0], jalan = p?.status === "berjalan";
   const media = (slug: string, file: string, v?: string) => `/api/panjang?slug=${slug}&file=${encodeURIComponent(file)}&v=${encodeURIComponent(v ?? "")}`;
   return (<>
-    {def ? <p>{def.about}</p> : <p>Ruang Animasi membuat video YouTube panjang 5–8 menit, full animasi gaya lukis-komik (3D dipahat + tekstur lukis, halftone, cipratan pink/cyan), dengan host orisinal <b>Yofa</b>. Tim: Bayu (riset) → Citra (naskah adegan) → Gilang (suara) → Laras (host & ilustrasi) → Tio (animasi) → Wulan (rakit & QC).</p>}
-    {d.maskot && <HostYofa m={d.maskot} aksi={aksi} />}
+    {def ? <p>{def.about}</p> : <p>Ruang Animasi membuat video YouTube panjang 5–12 menit gaya <b>dokumenter modern</b>: footage asli teknologi yang dibahas (tanpa teks di dalamnya) diselingi motion graphic di kertas abu-abu (serif, benda asli berbayang, foto hitam-putih, mockup HP). Tim: Bayu (riset) → Citra (naskah adegan) → Gilang (suara) → Laras (footage & objek asli) → Tio (motion graphic & render) → Wulan (rakit & QC).</p>}
+    <AutopilotPanjang judul={(slug) => d.videos.find((v) => v.slug === slug)?.judul || slug} />
     <H3>Buat video panjang</H3>
     <div className="flex gap-2">
       <input value={tema} onChange={(e) => setTema(e.target.value)} placeholder="Arahan tema (opsional), mis. baterai solid-state" className="min-w-0 flex-1 rounded-md border border-line bg-ink-950 px-2.5 py-2 text-sm" />
       <Btn tone="primary" disabled={d.berjalan || !ctx.state.health.claude} onClick={() => void aksi({ aksi: "buat", tema })}>Buat</Btn>
     </div>
-    <Muted className="mt-1.5">±3–6 jam per video di laptop (render 24 fps kualitas tinggi). Berjalan di latar dengan prioritas rendah; tiap adegan menunggu kalau produksi Shorts sedang jalan, jadi Shorts tetap didahulukan. Video jadi menunggu kamu tonton & setujui.</Muted>
+    <Muted className="mt-1.5">±2–4 jam per video di laptop. Berjalan di latar dengan prioritas rendah; tiap adegan menunggu kalau produksi Shorts sedang jalan, jadi Shorts tetap didahulukan. Video dari tombol ini menunggu kamu tonton & setujui.</Muted>
     {p && (<>
       <H3>Produksi terakhir</H3>
       <div className="rounded-lg border border-line/70 bg-ink-950/60 p-3 text-sm">
@@ -929,7 +965,7 @@ export function RuangAnimasiPanel({ ctx, def }: { ctx: PanelCtx; def?: AgentDef 
       <li key={v.slug} className="rounded-xl border border-line/70 bg-ink-950/50 p-3">
         <div className="flex items-start justify-between gap-2">
           <span className="min-w-0"><b className="block">{v.judul || v.judul_kerja}</b>
-            <small className="text-faint">{v.menit ? `${v.menit} menit · ` : ""}{v.adegan} adegan · {v.ilustrasi} ilustrasi · {v.dirender}/{v.adegan} adegan dirender{v.info?.uji ? " · uji" : ""}</small></span>
+            <small className="text-faint">{v.menit ? `${v.menit} menit · ` : ""}{v.adegan} adegan · {v.dirender}/{v.adegan} dirender{typeof v.qc?.skor === "number" ? ` · skor QC ${v.qc.skor}` : ""}{v.info?.uji ? " · uji" : ""}</small></span>
           <Pill tone={v.status === "draft" ? "running" : v.status === "export" || v.status === "terbit" ? "ok" : v.status === "ditolak" ? "error" : "default"}>{STATUS_PJ[v.status] ?? v.status}</Pill>
         </div>
         {v.final && <video controls preload="none" className="mt-2 w-full rounded-lg border border-line bg-black" poster={v.thumbnail ? media(v.slug, "export/thumbnail.jpg", v.info?.dibuat) : undefined} src={media(v.slug, "export/final.mp4", v.info?.dibuat)} />}

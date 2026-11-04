@@ -21,6 +21,9 @@ function hitungMundur(waktu: string, kini: number): string {
 }
 
 function Gambar({ it }: { it: JadwalItem }) {
+  if (it.slug && it.gambarUrl) {
+    return <img src={it.gambarUrl} alt="" loading="lazy" className="h-[60px] w-[34px] shrink-0 rounded-md object-cover object-[70%_50%] ring-1 ring-[#FF4FA3]/50" />;
+  }
   if (it.slug && it.gambar) {
     return <img src={`/api/media?slug=${it.slug}&file=${it.gambar}`} alt="" loading="lazy" className="h-[60px] w-[34px] shrink-0 rounded-md object-cover ring-1 ring-line/70" />;
   }
@@ -33,7 +36,8 @@ function Gambar({ it }: { it: JadwalItem }) {
 
 function Baris({ it, open }: { it: JadwalItem; open: (id: string) => void }) {
   const g = GAYA[it.status];
-  const judul = it.judul ?? (it.status === "dibuat" ? "Tim sedang membuat video untuk jam ini" : "Slot kosong · autopilot mengisi");
+  const judul = it.judul ?? (it.status === "dibuat" ? (it.jenis === "panjang" ? "Tim Ruang Animasi sedang membuat video panjang" : "Tim sedang membuat video untuk jam ini")
+    : it.jenis === "panjang" ? "Slot video panjang · autopilot mengisi" : "Slot kosong · autopilot mengisi");
   const isi = (
     <>
       <span className="w-[42px] shrink-0 pt-0.5 font-pixel text-[15px] leading-none tabular-nums">{it.jam}</span>
@@ -51,7 +55,7 @@ function Baris({ it, open }: { it: JadwalItem; open: (id: string) => void }) {
   const cls = "flex w-full items-start gap-2 rounded-xl p-1.5 text-left transition hover:bg-ink-700/70 focus-visible:outline-2 focus-visible:outline-brand";
   return it.url
     ? <a href={it.url} target="_blank" rel="noreferrer" className={cls} title="Buka di YouTube">{isi}</a>
-    : <button onClick={() => open(it.slug ? "galeri" : "agent:uli")} className={cls}>{isi}</button>;
+    : <button onClick={() => open(it.jenis === "panjang" ? "animasi" : it.slug ? "galeri" : "agent:uli")} className={cls}>{isi}</button>;
 }
 
 /** Isi jadwal (dipakai sidebar kanan di desktop & panel di HP). */

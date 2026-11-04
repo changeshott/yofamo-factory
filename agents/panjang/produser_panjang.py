@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-"""Produser Ruang Animasi: satu klik → video YouTube panjang (5–8 menit) full animasi lukis-komik.
+"""Produser Ruang Animasi: satu klik → video YouTube panjang (5–12 menit) gaya dokumenter modern:
+footage asli teknologi yang dibahas (tanpa teks di dalamnya) + selingan motion graphic (kertas abu-abu, serif, benda asli).
 
     python agents/panjang/produser_panjang.py ["arahan tema"]          # Bayu pilih topik → … → video draft
     python agents/panjang/produser_panjang.py --lanjut <slug>          # lanjutkan yang terhenti (tahap yang beres dilewati)
     python agents/panjang/produser_panjang.py --uji                    # tanpa Claude & internet (naskah contoh), untuk tes
 
-Tahap: Bayu (riset & alur, Claude) → Citra (naskah adegan, Claude) → Gilang (suara) → Laras (host & ilustrasi FLUX.2 klein)
-→ Tio (animasi HyperFrames) → Wulan (rakit + QC) → status draft: Zona menonton & menyetujui di Studio (Ruang Animasi).
+Tahap: Bayu (riset & alur + cek footage, Claude) → Citra (naskah adegan dokumenter, Claude) → Gilang (suara)
+→ Laras (footage 16:9 + objek asli, dicek OCR; kurang → Citra mengganti kata kunci → cadangan pinjam shot adegan terdekat)
+→ Tio (motion graphic HyperFrames + footage berbutiran & subtitle) → Wulan (rakit + QC berskor) → status draft:
+Zona menonton & menyetujui di Studio (Ruang Animasi), atau autopilot video panjang menyetujui otomatis kalau QC lolos.
+Video lama format kartun (naskah tanpa "format": "dokumenter") tetap dilanjutkan dengan jalur lama (ilustrasi.py + animasi.py).
 Tidak mengganggu Shorts: seluruh proses berjalan dengan prioritas CPU rendah, dan render tiap adegan menunggu dulu
 kalau produksi Shorts sedang berjalan (produksi/produser.lock). Satu video panjang pada satu waktu (produksi/panjang.lock).
 Kemajuan: produksi/panjang/<id>.json, log di logs/.
@@ -35,8 +39,8 @@ PY = sys.executable
 PROD = ROOT / "produksi" / "panjang"
 CONTOH = Path(__file__).with_name("contoh")
 TAHAP = [("bayu", "p_ide", "Bayu meriset topik & alur"), ("citra", "p_naskah", "Citra menulis naskah adegan"),
-         ("gilang", "p_suara", "Gilang mengisi suara"), ("laras", "p_ilustrasi", "Laras menggambar ilustrasi"),
-         ("tio", "p_animasi", "Tio menganimasikan adegan"), ("wulan", "p_rakit", "Wulan merakit & memeriksa")]
+         ("gilang", "p_suara", "Gilang mengisi suara"), ("laras", "p_ilustrasi", "Laras mencari footage & objek asli"),
+         ("tio", "p_animasi", "Tio membuat motion graphic & merender"), ("wulan", "p_rakit", "Wulan merakit & memeriksa")]
 
 
 class Catatan:
@@ -89,6 +93,30 @@ def slug_baru(sebelum: set[str]) -> str | None:
     return sorted(baru, key=lambda s: (st_panjang.BASE / s / "ide.json").stat().st_mtime)[-1] if baru else None
 
 
+def kurang_footage(vdir: Path) -> list[int]:
+    """Nomor adegan (1-based) yang butuh footage tapi belum punya shot."""
+    try:
+        n = json.loads((vdir / "naskah.json").read_text(encoding="utf-8-sig"))
+        man = json.loads((vdir / "footage" / "manifest.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    return [i + 1 for i, ad in enumerate(n.get("adegan") or []) if ad.get("jenis") in ("footage", "pembuka", "hp", "tv") and not man.get(str(i))]
+
+
+def rakit(cat: Catatan, slug: str, vdir: Path, naskah: dict, uji: bool) -> None:
+    cat.tahap("wulan", "jalan")
+    if jalan([PY, "agents/panjang/rakit_panjang.py", slug, *(["--uji"] if uji else [])], 3 * 3600) != 0:
+        cat.tahap("wulan", "gagal", "Rakit gagal. Cek log.")
+        return cat.akhir("gagal", "Berhenti di tahap rakit.")
+    jalan([PY, "agents/panjang/periksa_panjang.py", slug], 30 * 60)
+    q = json.loads((vdir / "export" / "qc.json").read_text(encoding="utf-8")) if (vdir / "export" / "qc.json").exists() else {}
+    info = json.loads((vdir / "export" / "info.json").read_text(encoding="utf-8"))
+    cat.tahap("wulan", "ok", f"{info['durasi'] / 60:.1f} menit, {len(info.get('bab', []))} bab, skor QC {q.get('skor', '-')}"
+              + (f", {len(q.get('masalah', []))} masalah" if q.get("masalah") else ", lolos QC"))
+    cat.akhir("selesai", "Video panjang jadi. Tonton lalu setujui di Studio (Ruang Animasi)"
+              + (" — atau autopilot menyetujui & menjadwalkannya otomatis." if cat.d.get("id", "").startswith("autopilot") else "."))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Produser video panjang")
     ap.add_argument("permintaan", nargs="?", default="")
@@ -123,7 +151,8 @@ def main() -> None:
                 st_panjang.set_status(slug, "ide", "mode uji")
             else:
                 sebelum = {d.name for d in st_panjang.BASE.glob("*")} if st_panjang.BASE.is_dir() else set()
-                pr.claude(f"/panjang-ide {teks}".strip(), pr.tools("agents/panjang/status.py", "agents/ide/radar.py", "agents/ide/cek_topik.py", web=True),
+                pr.claude(f"/panjang-ide {teks}".strip(), pr.tools("agents/panjang/status.py", "agents/ide/radar.py", "agents/ide/cek_topik.py",
+                                                                    "agents/ide/cek_visual.py", web=True),
                           60 * 60, turns=50)
                 slug = slug_baru(sebelum)
             if not slug:
@@ -138,15 +167,18 @@ def main() -> None:
         cat.tahap("citra", "jalan")
         if not st_panjang.sudah(slug, "naskah"):
             if a.uji:
-                n = json.loads((CONTOH / "naskah.json").read_text(encoding="utf-8"))
+                n = json.loads((CONTOH / "naskah-dokumenter.json").read_text(encoding="utf-8"))
                 (vdir / "naskah.json").write_text(json.dumps(n, ensure_ascii=False, indent=1), encoding="utf-8")
                 st_panjang.set_status(slug, "naskah", "mode uji")
             else:
-                pr.claude(f"/panjang-naskah {slug}", pr.tools("agents/panjang/status.py", "agents/panjang/cek_naskah_panjang.py"), 60 * 60, turns=60)
+                pr.claude(f"/panjang-naskah {slug}", pr.tools("agents/panjang/status.py", "agents/panjang/cek_naskah_panjang.py", "agents/ide/cek_visual.py"),
+                          60 * 60, turns=60)
         if not st_panjang.sudah(slug, "naskah"):
             cat.tahap("citra", "gagal", "Naskah belum lolos cek_naskah_panjang.py.")
             return cat.akhir("gagal", "Berhenti di tahap naskah.")
         naskah = json.loads((vdir / "naskah.json").read_text(encoding="utf-8-sig"))
+        dok = naskah.get("format") == "dokumenter"
+        cat.d["format"] = "dokumenter" if dok else "kartun"
         cat.tahap("citra", "ok", f"{naskah.get('judul', '')} · {len(naskah.get('adegan', []))} adegan")
 
         # 3. Gilang: suara
@@ -157,7 +189,33 @@ def main() -> None:
         w = json.loads((vdir / "suara" / "waktu.json").read_text(encoding="utf-8"))
         cat.tahap("gilang", "ok", f"{sum(x['durasi'] for x in w.values()) / 60:.1f} menit")
 
-        # 4. Laras: ilustrasi
+        # 4. Laras: footage & objek asli (dokumenter) — atau ilustrasi (kartun lama)
+        if dok:
+            cat.tahap("laras", "jalan", "mencari footage 16:9 tanpa teks & memotong objek asli…")
+            if not st_panjang.sudah(slug, "ilustrasi"):
+                kode = jalan([PY, "agents/panjang/footage_panjang.py", slug, *(["--uji"] if a.uji else [])], 3 * 3600)
+                if kode == 2 and not a.uji:
+                    # footage bersih kurang: Citra mengganti kata kunci visual adegan itu, lalu Laras mencari ulang
+                    kurang = kurang_footage(vdir)
+                    cat.tahap("laras", "jalan", f"footage kurang di adegan {kurang}; Citra mengganti kata kunci…")
+                    pr.claude(f"/panjang-naskah {slug} --visual {','.join(map(str, kurang))}",
+                              pr.tools("agents/panjang/status.py", "agents/panjang/cek_naskah_panjang.py", "agents/ide/cek_visual.py"), 30 * 60, turns=30)
+                    kode = jalan([PY, "agents/panjang/footage_panjang.py", slug, "--ulang", *map(str, kurang)], 2 * 3600)
+                if kode == 2:
+                    cat.tahap("laras", "jalan", f"masih kurang di adegan {kurang_footage(vdir)}; meminjam shot adegan terdekat…")
+                    kode = jalan([PY, "agents/panjang/footage_panjang.py", slug, "--cadangan", *(["--uji"] if a.uji else [])], 3600)
+                if kode != 0:
+                    cat.tahap("laras", "gagal", "Footage tidak cukup (cek log). Ubah kata kunci visual di naskah lalu Lanjutkan.")
+                    return cat.akhir("gagal", "Berhenti di tahap footage.")
+            man = json.loads((vdir / "footage" / "manifest.json").read_text(encoding="utf-8")) if (vdir / "footage" / "manifest.json").exists() else {}
+            n_media = len(list((vdir / "media").glob("*.png"))) if (vdir / "media").is_dir() else 0
+            cat.tahap("laras", "ok", f"{sum(len(v) for v in man.values())} shot footage, {n_media} objek asli")
+            cat.tahap("tio", "jalan", "motion graphic & footage (Shorts tetap didahulukan)…")
+            if jalan([PY, "agents/panjang/dokumenter.py", slug, *(["--uji"] if a.uji else [])], 12 * 3600) != 0:
+                cat.tahap("tio", "gagal", "Render adegan gagal. Cek log, lalu Lanjutkan (adegan yang sudah jadi tidak dirender ulang).")
+                return cat.akhir("gagal", "Berhenti di tahap render.")
+            cat.tahap("tio", "ok", f"{len(naskah['adegan'])} adegan")
+            return rakit(cat, slug, vdir, naskah, a.uji)
         cat.tahap("laras", "jalan")
         if not a.uji and not (ROOT / "bible" / "maskot" / "pose" / "bicara.png").exists():
             # host Yofa belum pernah digambar: buat otomatis (kandidat 1). Zona bisa ganti kapan saja di Studio → Gaya & host.
@@ -180,15 +238,7 @@ def main() -> None:
             cat.tahap("tio", "gagal", "Render adegan gagal. Cek log, lalu Lanjutkan (adegan yang sudah jadi tidak dirender ulang).")
             return cat.akhir("gagal", "Berhenti di tahap animasi.")
         cat.tahap("tio", "ok", f"{len(naskah['adegan'])} adegan")
-        cat.tahap("wulan", "jalan")
-        if jalan([PY, "agents/panjang/rakit_panjang.py", slug, *(["--uji"] if a.uji else [])], 3 * 3600) != 0:
-            cat.tahap("wulan", "gagal", "Rakit gagal. Cek log.")
-            return cat.akhir("gagal", "Berhenti di tahap rakit.")
-        jalan([PY, "agents/panjang/periksa_panjang.py", slug], 30 * 60)
-        q = json.loads((vdir / "export" / "qc.json").read_text(encoding="utf-8")) if (vdir / "export" / "qc.json").exists() else {}
-        info = json.loads((vdir / "export" / "info.json").read_text(encoding="utf-8"))
-        cat.tahap("wulan", "ok", f"{info['durasi'] / 60:.1f} menit, {len(info.get('bab', []))} bab" + (f", {len(q.get('masalah', []))} masalah" if q.get("masalah") else ", lolos QC"))
-        cat.akhir("selesai", "Video panjang jadi. Tonton lalu setujui di Studio (Ruang Animasi).")
+        return rakit(cat, slug, vdir, naskah, a.uji)
     except Exception as err:
         for t in cat.d["tahap"]:
             if t["status"] == "jalan":

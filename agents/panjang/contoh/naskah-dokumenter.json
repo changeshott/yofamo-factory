@@ -1,0 +1,23 @@
+{
+ "format": "dokumenter",
+ "judul": "Kulit Robot Ini Bisa Merasakan Sentuhan (Contoh Uji)",
+ "judul_alternatif": ["Robot Kini Punya Kulit Sungguhan?", "240 Sensor dalam Satu Senti Kulit Robot"],
+ "deskripsi": "Naskah contoh untuk tes pabrik: kulit elektronik yang membuat robot bisa merasakan sentuhan. #teknologi #robot #sains",
+ "tag": ["kulit elektronik", "robot", "teknologi"],
+ "suasana": "misterius",
+ "thumbnail": {"teks": "Robot Bisa Merasa", "objek": "robotic hand"},
+ "komentar_pin": "Kalau robot bisa merasakan sentuhan, kamu mau robot itu bantu apa?",
+ "adegan": [
+  {"jenis": "pembuka", "teks_layar": "Robot bisa merasa.", "kata_kunci_visual": ["robotic hand touching"], "narasi": "Tau nggak, sekarang ada robot yang bisa merasakan sentuhan lewat kulit buatan."},
+  {"jenis": "judul_bab", "judul": "Apa itu kulit elektronik", "narasi": ""},
+  {"jenis": "footage", "kata_kunci_visual": ["robot hand laboratory", "soft robotic gripper"], "narasi": "Kulitnya tipis dan lentur, ditempel di tangan robot seperti sarung tangan."},
+  {"jenis": "angka", "angka": "240", "akhiran": "+", "label": "sensor per cm²", "ket": "lebih rapat dari ujung jarimu", "narasi": "Di dalamnya ada sekitar dua ratus empat puluh sensor tekanan per sentimeter persegi."},
+  {"jenis": "judul_bab", "judul": "Cara kerjanya", "narasi": ""},
+  {"jenis": "cara_kerja", "judul": "Dari sentuhan ke sinyal", "langkah": [{"teks": "Sensor merasakan tekanan", "objek": "robotic hand"}, {"teks": "Diubah jadi pulsa listrik"}, {"teks": "Dibaca seperti sinyal saraf"}], "narasi": "Sensor merasakan tekanan. Tekanan itu diubah jadi pulsa listrik. Lalu dibaca komputer seperti sinyal saraf."},
+  {"jenis": "footage", "kata_kunci_visual": ["robot arm picking object"], "narasi": "Hasilnya robot bisa memegang benda rapuh tanpa meremukkannya."},
+  {"jenis": "judul_bab", "judul": "Dampaknya", "narasi": ""},
+  {"jenis": "objek", "objek": "robotic hand", "label": "Tangan palsu masa depan", "ket": "bisa merasakan lagi", "narasi": "Teknologi yang sama bisa membuat tangan palsu terasa hidup lagi."},
+  {"jenis": "kata", "teks_layar": "Merasa, bukan cuma bergerak.", "narasi": "Robot tidak cuma bergerak, tapi juga merasa."},
+  {"jenis": "penutup", "teks_layar": "Robot ini bantu apa?", "narasi": "Kalau robot bisa merasakan sentuhan, kamu mau robot itu bantu apa? Tulis di komentar."}
+ ]
+}

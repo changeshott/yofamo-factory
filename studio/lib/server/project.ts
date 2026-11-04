@@ -325,7 +325,7 @@ export function produksi(running: boolean): Produksi[] {
 }
 
 export const activity = () => pabrik<Activity[]>(["history", "--limit", "40", "--json"]);
-export const week = () => pabrik<{ since: string; published: number }>(["week", "--json"]);
+export const week = () => pabrik<{ since: string; published: number; slugs?: string[] }>(["week", "--json"]);
 
 export function readText(file: string, tail = 0): string {
   const text = fs.readFileSync(file, "utf8").replace(/^﻿/, "");

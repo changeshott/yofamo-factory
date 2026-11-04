@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Uli untuk video panjang: unggah video yang SUDAH disetujui Zona (status export) — private + jadwal tayang,
-dengan chapter (bab), deskripsi tanpa link, hashtag, dan thumbnail kartun.
+"""Uli untuk video panjang: unggah video berstatus export (disetujui Zona, atau autopilot video panjang yang lolos QC)
+— private + jadwal tayang, dengan chapter (bab), deskripsi tanpa link, hashtag, kredit footage singkat, dan thumbnail.
 
     python agents/panjang/unggah_panjang.py pratinjau <slug>                     # lihat judul & deskripsi
     python agents/panjang/unggah_panjang.py unggah <slug> --jadwal 2026-11-03T19:00
@@ -63,7 +63,13 @@ def metadata(slug: str) -> dict:
         bagian.append(f"💬 {uli.tanpa_link(s['komentar_pin'])}")
     if gaya.get("ajakan"):
         bagian.append(f"🔔 {gaya['ajakan']}")
-    bagian.append("🎨 Animasi orisinal Yofamo Technology (ilustrasi dibantu AI).")
+    if s.get("format") == "dokumenter":
+        kredit = [x.strip() for x in ((vdir / "footage" / "kredit_deskripsi.txt").read_text(encoding="utf-8").splitlines()
+                                      if (vdir / "footage" / "kredit_deskripsi.txt").exists() else []) if x.strip()]
+        if kredit:
+            bagian.append("🎬 Footage & foto:\n" + "\n".join(uli.tanpa_link(k) for k in kredit[:25]))
+    else:
+        bagian.append("🎨 Animasi orisinal Yofamo Technology (ilustrasi dibantu AI).")
     if info.get("musik"):
         kredit = Path(ROOT / "musik").rglob(Path(info["musik"]).stem + ".txt")
         k = next(kredit, None)
@@ -76,7 +82,7 @@ def metadata(slug: str) -> dict:
         if t and n + len(t) + 1 <= 480:
             tag_api.append(t)
             n += len(t) + 1
-    return {"judul": judul, "deskripsi": desk, "tag": tag_api}
+    return {"judul": judul, "deskripsi": desk, "tag": tag_api, "sintetis": s.get("format") != "dokumenter"}
 
 
 def jadwal_bawaan() -> str:
@@ -106,7 +112,7 @@ def unggah(slug: str, jadwal: str | None) -> None:
     body = {"snippet": {"title": m["judul"], "description": m["deskripsi"], "tags": m["tag"], "categoryId": "28",
                         "defaultLanguage": "id", "defaultAudioLanguage": "id"},
             "status": {"privacyStatus": "private", "publishAt": t.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
-                       "selfDeclaredMadeForKids": False, "containsSyntheticMedia": True, "embeddable": True}}
+                       "selfDeclaredMadeForKids": False, "containsSyntheticMedia": m["sintetis"], "embeddable": True}}
     yt = uli.youtube(uli.creds())
     log(f"mengunggah video panjang ke '{uli.channel_name(yt)}': {m['judul']} (tayang {jadwal} WIB)")
     media = MediaFileUpload(str(exp / "final.mp4"), mimetype="video/mp4", chunksize=16 * 1024 * 1024, resumable=True)

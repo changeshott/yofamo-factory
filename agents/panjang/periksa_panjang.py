@@ -3,8 +3,10 @@
 
     python agents/panjang/periksa_panjang.py <slug>
 
-Cek: resolusi 1920x1080, durasi sesuai target (5–8 menit), layar hitam lama, kerasnya suara (-14 LUFS), chapter ≥ 3,
-thumbnail ada, adegan yang tidak dapat ilustrasi. Membuat lembar frame tengah tiap adegan (export/lembar.jpg) → export/qc.json.
+Cek: resolusi 1920x1080, durasi sesuai target (dokumenter 5–12 menit, kartun 6–10), layar hitam lama, kerasnya suara (-14 LUFS),
+chapter ≥ 3, thumbnail ada, adegan tanpa ilustrasi (kartun) / adegan yang meminjam footage adegan lain (dokumenter).
+Membuat lembar frame tengah tiap adegan (export/lembar.jpg) → export/qc.json dengan skor 0–10
+(dipakai autopilot video panjang untuk menyetujui otomatis: lolos + skor ≥ skor_qc_min).
 """
 from __future__ import annotations
 
@@ -37,7 +39,11 @@ def main() -> None:
     if not final.exists():
         sys.exit("[wulan] export/final.mp4 belum ada")
     naskah = json.loads((vdir / "naskah.json").read_text(encoding="utf-8-sig"))
-    g = json.loads((ROOT / "bible" / "gaya-animasi.json").read_text(encoding="utf-8"))
+    dok = naskah.get("format") == "dokumenter"
+    gf = ROOT / "bible" / ("gaya-dokumenter.json" if dok else "gaya-animasi.json")
+    g = json.loads(gf.read_text(encoding="utf-8")) if gf.exists() else {}
+    if dok:
+        g.setdefault("durasi_menit", [5, 12])
     masalah, catatan = [], []
     r = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height", "-of", "csv=p=0", str(final)], capture_output=True, text=True)
     if r.stdout.strip() != "1920,1080":
@@ -62,6 +68,17 @@ def main() -> None:
     tanpa = [i + 1 for i, a in enumerate(naskah["adegan"]) if a.get("jenis") == "ilustrasi" and not (vdir / "ilustrasi" / f"{i + 1:02}.jpg").exists()]
     if tanpa:
         catatan.append(f"adegan tanpa ilustrasi (memakai kartu teks): {tanpa[:10]}")
+    if dok:
+        try:
+            man = json.loads((vdir / "footage" / "manifest.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            man = {}
+        pinjam = sorted(int(k) + 1 for k, v in man.items() if v and all(x.get("cadangan") for x in v))
+        maks = int((g.get("qc") or {}).get("maks_adegan_cadangan", 3))
+        if len(pinjam) > maks:
+            masalah.append(f"{len(pinjam)} adegan memakai footage pinjaman adegan lain: {pinjam[:10]}")
+        elif pinjam:
+            catatan.append(f"adegan memakai footage pinjaman adegan lain: {pinjam}")
     # lembar frame: tengah tiap adegan, 6 kolom
     mulai, t = [], 0.0
     for i in range(len(naskah["adegan"])):
@@ -75,10 +92,11 @@ def main() -> None:
         ff("-i", str(final), "-vf", f"select='{pilih}',scale=320:180,tile={cols}x{rows}", "-frames:v", "1", "-fps_mode", "vfr", str(exp / "lembar.jpg"))
     except RuntimeError as err:
         catatan.append(f"lembar frame gagal: {str(err)[:100]}")
+    skor = max(0.0, round(10 - 2.5 * len(masalah) - 0.5 * len(catatan), 1))
     hasil = {"slug": slug, "dibuat": datetime.now().isoformat(timespec="seconds"), "durasi": round(d, 1), "lufs": l,
-             "lolos": not masalah, "masalah": masalah, "catatan": catatan, "lembar": "export/lembar.jpg"}
+             "lolos": not masalah, "skor": skor, "masalah": masalah, "catatan": catatan, "lembar": "export/lembar.jpg"}
     (exp / "qc.json").write_text(json.dumps(hasil, ensure_ascii=False, indent=2), encoding="utf-8")
-    log(f"{d / 60:.1f} menit · {l} LUFS · {'LOLOS' if not masalah else 'MASALAH: ' + '; '.join(masalah)}")
+    log(f"{d / 60:.1f} menit · {l} LUFS · skor {skor:g} · {'LOLOS' if not masalah else 'MASALAH: ' + '; '.join(masalah)}")
     for c in catatan:
         log(f"catatan: {c}")
 
