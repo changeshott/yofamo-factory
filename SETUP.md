@@ -161,18 +161,3 @@ Kantor kedua di Studio (sebelah kanan kantor Shorts). Tidak perlu pemasangan bar
 2. Tim bekerja di latar (±3–6 jam per video 5–8 menit: render 24 fps kualitas tinggi memang lama, demi hasil bagus). Shorts tetap didahulukan: render video panjang menunggu kalau produksi Shorts sedang jalan.
 3. Video jadi → tonton di panel → **Setujui** → pilih jadwal (kosong = jam terbaik besok) → **Unggah**. Thumbnail khusus butuh channel yang sudah verifikasi nomor HP; kalau belum, pasang `export/thumbnail.jpg` manual di YouTube Studio.
 4. Terputus di tengah (atau kuota gambar habis)? Klik **Lanjutkan**: gambar & adegan yang sudah jadi tidak diulang.
-
-## Ruang Trading: analisa memecoin (FOMO) & gold
-
-Tidak perlu pemasangan atau API key: data dari DexScreener, GeckoTerminal, RugCheck, dan Hyperliquid (gratis, hanya dibaca).
-FOMO tidak punya API, jadi **kamu sendiri yang membeli & menjual di aplikasi FOMO**. Tim tidak pernah meminta private key / seed phrase.
-
-1. Studio → **Ruang Trading** (atau layar candlestick di kantor paling kanan) → **Pindai memecoin** / **Pindai gold**, atau **Pantau otomatis**.
-2. Mulai di **mode latihan**: setiap sinyal yang lolos dicatat sebagai trade uang pura-pura dan dinilai otomatis (setelah biaya).
-3. Setelah ≥ 30 trade latihan dengan hasil bersih positif, kalau mau: Aturan → ketik `SAYA PAHAM RISIKONYA` → mode nyata.
-   Salin alamat kontrak dari kartu sinyal → cari di FOMO dengan alamat itu → beli sesuai dolar di kartu → tekan **Saya beli di FOMO**.
-   Saat ada peringatan stop/target, jual di FOMO lalu tekan **Saya sudah jual**.
-4. **Notifikasi HP** (disarankan): Ruang Trading → Notifikasi HP → Sambungkan → pasang aplikasi **ntfy** (gratis) di HP → + → Subscribe → tempel topik → Kirim tes.
-   Sinyal (alamat kontrak, dolar, stop, target) dan peringatan stop/target masuk ke HP; kamu tinggal tap beli/jual di FOMO.
-5. Aturan bawaan (`bible/trading.json`): modal $20, rugi maks $1/trade, berhenti kalau rugi $2/hari, maks 3 trade/hari, target $2/hari (sinyal berhenti setelah tercapai). Pantau otomatis menyala sendiri saat Studio dibuka; tombol "Matikan pantau otomatis" mematikannya.
-   Target $3/hari dari $20 = 15% per hari — jauh di atas yang realistis; nilai sebenarnya dilihat dari hasil latihan. Bukan nasihat keuangan.

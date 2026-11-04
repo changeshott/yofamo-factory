@@ -5,17 +5,17 @@ import type { StudioState, VideoStatus } from "@/lib/types";
 import { api, daysSince, fmt, kerjaShorts, kerjaShortsSemua, tugasAgent } from "@/lib/format";
 import Office from "./office/Office";
 import { drawAvatar } from "./office/sprites";
-import { FOUNDER, RUANG, TEAM, TEAM2, TEAM3, type Ruang } from "./office/world";
+import { FOUNDER, RUANG, TEAM, TEAM2, type Ruang } from "./office/world";
 import { Btn } from "./ui";
 import {
-  ActivityPanel, AgentPanel, AnalyticsPanel, BiblePanel, RuangAnimasiPanel, RuangTradingPanel, FounderPanel, FuturePanel, GaleriPanel, HealthPanel, KelolaPanel, ProduksiPanel, QueuePanel, ReportsPanel, agentById, type PanelCtx,
+  ActivityPanel, AgentPanel, AnalyticsPanel, BiblePanel, RuangAnimasiPanel, FounderPanel, FuturePanel, GaleriPanel, HealthPanel, KelolaPanel, ProduksiPanel, QueuePanel, ReportsPanel, agentById, type PanelCtx,
 } from "./panels";
 
 const TITLES: Record<string, string> = {
   founder: "Meja Zona", queue: "Papan antrean video", analytics: "Analitik Shorts", reports: "Laporan Steve",
-  bible: "Channel bible", activity: "Log kantor", health: "Cek sistem", server: "Server agent", produksi: "Buat video", galeri: "Galeri video", kelola: "Kelola hasil", animasi: "Ruang Animasi · video panjang", trading: "Ruang Trading · memecoin & gold",
+  bible: "Channel bible", activity: "Log kantor", health: "Cek sistem", server: "Server agent", produksi: "Buat video", galeri: "Galeri video", kelola: "Kelola hasil", animasi: "Ruang Animasi · video panjang",
 };
-const FOKUS = /^(agent:|founder$|queue$|analytics$|bible$|server$|animasi$|trading$)/;
+const FOKUS = /^(agent:|founder$|queue$|analytics$|bible$|server$|animasi$)/;
 const JOB_TXT: Record<string, string> = { steve: "Steve menganalisis", fetch: "Steve mengambil data", check: "Cek koneksi YouTube", ide: "Nova mencari ide", penulis: "Raka menulis naskah", suara: "Dara membuat suara", aset: "Bima mencari klip", editor: "Kai merakit video", produksi: "Produksi video", qc: "Rara memeriksa video", data: "Steve mengumpulkan data", upload: "Uli mengunggah", login: "Menghubungkan YouTube" };
 
 interface Toast { id: number; text: string; tone: "ok" | "err" | "info" }
@@ -230,7 +230,6 @@ export default function Studio() {
             : panel.startsWith("future:") ? <FuturePanel k={panel.slice(7)} />
             : panel === "founder" ? <FounderPanel ctx={ctx} />
             : panel === "animasi" ? <RuangAnimasiPanel ctx={ctx} />
-            : panel === "trading" ? <RuangTradingPanel ctx={ctx} />
             : panel === "queue" ? <QueuePanel ctx={ctx} />
             : panel === "produksi" ? <ProduksiPanel ctx={ctx} />
             : panel === "galeri" ? <GaleriPanel ctx={ctx} />
@@ -288,9 +287,9 @@ function Dock({ state, open, inbox, kerja, problems, onPalette, ruang }: { state
     return () => { window.removeEventListener("pointerdown", f); window.removeEventListener("keydown", k); };
   }, [menu]);
   const go = (id: string) => { setMenu(null); open(id); };
-  const timRuang = ruang === "animasi" ? TEAM2 : ruang === "trading" ? TEAM3 : ruang === "shorts" ? TEAM : [...TEAM, ...TEAM2, ...TEAM3];
-  const sibuk = timRuang.filter((t) => (t.ruang === "animasi" ? !!state?.panjang?.tahap && !!t.busy[state.panjang.tahap] : t.ruang === "trading" ? !!state?.trading?.tahap && !!t.busy[state.trading.tahap] : !!tugasAgent(t.busy, kerja)));
-  const utama = ruang === "animasi" ? { id: "animasi", teks: "Video panjang" } : ruang === "trading" ? { id: "trading", teks: "Sinyal trading" } : { id: "produksi", teks: "Buat video" };
+  const timRuang = ruang === "animasi" ? TEAM2 : ruang === "shorts" ? TEAM : [...TEAM, ...TEAM2];
+  const sibuk = timRuang.filter((t) => (t.ruang === "animasi" ? !!state?.panjang?.tahap && !!t.busy[state.panjang.tahap] : !!tugasAgent(t.busy, kerja)));
+  const utama = ruang === "animasi" ? { id: "animasi", teks: "Video panjang" } : { id: "produksi", teks: "Buat video" };
   const ideas = state?.videos.filter((v) => v.status === "ide").length ?? 0;
   const drafts = state?.videos.filter((v) => v.status === "draft").length ?? 0;
   const toggle = (m: "tim" | "video" | "data") => setMenu((x) => (x === m ? null : m));
@@ -298,7 +297,7 @@ function Dock({ state, open, inbox, kerja, problems, onPalette, ruang }: { state
     <nav aria-label="Navigasi kantor" className="absolute inset-x-0 bottom-3 z-10 flex justify-center px-3">
       <div ref={ref} className="relative flex items-center gap-1 rounded-2xl border border-line/70 bg-ink-800/80 p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.45)] backdrop-blur-xl">
         <button onClick={() => go(utama.id)} className="flex items-center gap-2 rounded-xl bg-gradient-to-b from-brand-2 to-brand px-3.5 py-2.5 font-pixel text-sm leading-none font-bold text-[#06132B] shadow-[0_6px_20px_rgba(61,155,255,.35)] hover:brightness-110 max-md:flex-col max-md:gap-1 max-md:px-3 max-md:py-2">
-          <span className="text-base leading-none">{ruang === "trading" ? "↗" : "+"}</span><span className="max-md:text-[10px]">{utama.teks}</span>
+          <span className="text-base leading-none">+</span><span className="max-md:text-[10px]">{utama.teks}</span>
         </button>
         <span className="mx-1 h-7 w-px bg-line/70" aria-hidden />
         <DockIcon label="Tim" className="lg:hidden" active={menu === "tim"} onClick={() => toggle("tim")} expanded={menu === "tim"}>
@@ -379,7 +378,7 @@ function AgentAvatar({ id }: { id: string }) {
 
 /* ---------------------------------------------------------------- pemilih ruang */
 function RuangTabs({ state, ruang, setRuang }: { state: StudioState; ruang: Ruang; setRuang: (r: Ruang) => void }) {
-  const sibuk: Record<Ruang, boolean> = { semua: false, shorts: !!kerjaShorts(state), animasi: !!state.panjang, trading: !!state.trading };
+  const sibuk: Record<Ruang, boolean> = { semua: false, shorts: !!kerjaShorts(state), animasi: !!state.panjang };
   const badge: Partial<Record<Ruang, number>> = { shorts: state.videos.filter((v) => v.status === "ide" || v.status === "draft").length || 0 };
   return (
     <div role="tablist" aria-label="Pilih ruang kantor" className="pointer-events-auto flex shrink-0 items-center gap-1 rounded-2xl border border-line/70 bg-ink-800/85 p-1 shadow-xl backdrop-blur-xl max-xl:w-full">
@@ -432,8 +431,6 @@ function CommandPalette({ ctx, onClose }: { ctx: PanelCtx; onClose: () => void }
     ...TEAM.map((a) => ({ grup: "Tim", t: `${a.name} · ${a.role}`, d: "Buka meja", run: () => ctx.open(`agent:${a.id}`) })),
     ...TEAM2.map((a) => ({ grup: "Animasi", t: `${a.name} · ${a.role}`, d: "Ruang Animasi", run: () => ctx.open(`agent:${a.id}`) })),
     { grup: "Animasi", t: "Ruang Animasi · video panjang", d: "Buat & tonton video panjang", run: () => ctx.open("animasi") },
-    ...TEAM3.map((a) => ({ grup: "Trading", t: `${a.name} · ${a.role}`, d: "Ruang Trading", run: () => ctx.open(`agent:${a.id}`) })),
-    { grup: "Trading", t: "Ruang Trading · sinyal memecoin & gold", d: "Pindai, sinyal, posisi, jurnal", run: () => ctx.open("trading") },
     ...([["founder", "Meja Zona"], ["galeri", "Galeri video"], ["queue", "Papan antrean"], ["kelola", "Kelola hasil"], ["analytics", "Analitik"], ["reports", "Laporan Steve"], ["bible", "Channel bible"], ["activity", "Log kantor"], ["health", "Cek sistem"]] as const)
       .map(([id, t]) => ({ grup: "Buka", t, d: "", run: () => ctx.open(id) })),
     ...ctx.state.videos.slice(0, 30).map((v) => ({ grup: "Video", t: v.judul_kerja, d: v.label, run: () => ctx.open("queue") })),
@@ -535,30 +532,6 @@ function TimSidebar({ state, open, panel, kerja, inbox, lipat, setLipat, ruang }
                   <span className="min-w-0 flex-1">
                     <b className="block font-pixel text-[14px] leading-tight" style={{ color: t.color }}>{t.name}</b>
                     <span className={`block truncate text-[12px] leading-tight ${on ? "text-[#FFC2E2]" : "text-muted"}`}>{sub}</span>
-                  </span>
-                )}
-              </button>
-            </li>);
-        })}
-        {tampil("trading") && !lipat && <li className={`px-1.5 pb-1 ${ruang === "semua" ? "pt-3" : ""}`}><button onClick={() => open("trading")} className="flex w-full items-center justify-between rounded-lg px-1 py-1 font-pixel text-[12px] tracking-wide text-muted uppercase hover:bg-ink-700/60 hover:text-ink-50">
-          <span>Ruang Trading ›</span>{state.trading && <span className="rounded bg-[#39D36B]/20 px-1.5 py-0.5 text-[10px] text-[#C8FFD9]">memindai</span>}</button></li>}
-        {tampil("trading") && lipat && ruang === "semua" && <li aria-hidden className="mx-2 my-2 border-t border-line/60" />}
-        {tampil("trading") && TEAM3.map((t) => {
-          const on = state.trading?.tahap ? !!t.busy[state.trading.tahap] : false, sel = panel === `agent:${t.id}`;
-          const sub = on ? t.busy[state.trading!.tahap!] : t.role;
-          return (
-            <li key={t.id}>
-              <button onClick={() => open(`agent:${t.id}`)} title={lipat ? `${t.name} · ${sub}` : undefined}
-                className={`group relative flex w-full items-center gap-2.5 rounded-xl p-1.5 text-left transition ${sel ? "bg-ink-700 ring-1 ring-[#39D36B]/70" : "hover:bg-ink-700/70"} ${lipat ? "justify-center" : ""}`}>
-                {on && <span className="absolute inset-0 rounded-xl ring-1 ring-[#39D36B]/60 shadow-[0_0_18px_rgba(57,211,107,.35)]" aria-hidden />}
-                <span className="relative shrink-0">
-                  <AgentAvatar id={t.id} />
-                  <span className={`absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full ring-2 ring-ink-800 ${on ? "animate-pulse bg-[#39D36B] motion-reduce:animate-none" : "bg-leaf"}`} aria-hidden />
-                </span>
-                {!lipat && (
-                  <span className="min-w-0 flex-1">
-                    <b className="block font-pixel text-[14px] leading-tight" style={{ color: t.color }}>{t.name}</b>
-                    <span className={`block truncate text-[12px] leading-tight ${on ? "text-[#C8FFD9]" : "text-muted"}`}>{sub}</span>
                   </span>
                 )}
               </button>

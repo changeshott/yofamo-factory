@@ -413,35 +413,6 @@ def offline() -> None:
         except ImportError:
             print("  (lewati pratinjau animasi: playwright tidak terpasang)")
 
-        # Ruang Trading (data contoh, tanpa internet): keamanan memblokir koin berbahaya, sinyal lengkap dengan stop/target/simulasi,
-        # mode latihan mencatat otomatis, catat beli/jual nyata, tidak ada satu pun perintah order di kode
-        r = run(tmp, "agents/trading/meja.py", "pindai", "--pasar", "semua", "--uji")
-        sdir = tmp / "trading-uji" / "sinyal"
-        sinyal = [json.loads(f.read_text(encoding="utf-8")) for f in sdir.glob("*.json")] if sdir.is_dir() else []
-        papan = json.loads((tmp / "trading-uji" / "papan.json").read_text(encoding="utf-8")) if (tmp / "trading-uji" / "papan.json").exists() else {}
-        rug = next((b for b in papan.get("diblokir", []) if b["simbol"] == "UJIRUG"), None)
-        cek("Trading: koin berbahaya diblokir (mint authority, holder terpusat), koin tipis tidak lolos saringan",
-            r.returncode == 0 and rug is not None and any("mint authority" in a for a in rug["alasan"]) and not any(x["simbol"] == "UJISEPI" for x in sinyal),
-            (r.stdout + r.stderr)[-300:] if r.returncode else f"{len(papan.get('diblokir', []))} diblokir")
-        s0 = sinyal[0] if sinyal else {}
-        st0, rk0, mc0 = s0.get("setup", {}), s0.get("risiko", {}), s0.get("simulasi", {})
-        cek("Trading: sinyal punya stop < masuk < target, simulasi 10.000×, rugi maks ≤ aturan, untung bersih setelah biaya",
-            bool(s0) and st0["stop"] < st0["masuk"] < st0["target"] and mc0.get("ulang") == 10000 and rk0["rugi_di_stop_usd"] <= 1.0 + 1e-9
-            and rk0["untung_di_target_usd"] > 0 and rk0["biaya_pp_pct"] > 1, f"{s0.get('simbol')} peluang {mc0.get('target_dulu_dari_selesai_pct')}%" if s0 else "tidak ada sinyal")
-        jur = json.loads((tmp / "trading-uji" / "jurnal.json").read_text(encoding="utf-8")) if (tmp / "trading-uji" / "jurnal.json").exists() else {"posisi": []}
-        cek("Trading: mode latihan mencatat sinyal sebagai posisi pura-pura", any(p["mode"] == "latihan" for p in jur["posisi"]))
-        if s0:
-            r1 = run(tmp, "agents/trading/meja.py", "beli", s0["id"], "--harga", str(st0["masuk"] * 1.01), "--usd", "5", "--uji")
-            jur = json.loads((tmp / "trading-uji" / "jurnal.json").read_text(encoding="utf-8"))
-            nyata = next((p for p in jur["posisi"] if p["mode"] == "nyata"), None)
-            r2 = run(tmp, "agents/trading/meja.py", "jual", nyata["id"] if nyata else "x", "--harga", str(st0["target"]), "--uji")
-            jur = json.loads((tmp / "trading-uji" / "jurnal.json").read_text(encoding="utf-8"))
-            tutup = next((p for p in jur["posisi"] if p["mode"] == "nyata"), {})
-            cek("Trading: beli & jual nyata dicatat (stop/target ikut harga beli, PnL setelah biaya)", r1.returncode == 0 and r2.returncode == 0
-                and tutup.get("status") == "manual" and 0 < tutup.get("pnl_usd", 0) < 5 * (st0["target"] / st0["masuk"] - 1), (r1.stderr + r2.stderr)[-200:])
-        kode = "\n".join(f.read_text(encoding="utf-8") for f in (tmp / "agents" / "trading").glob("*.py")).lower()
-        cek("Trading: tidak ada kode order/transfer/private key", not any(k in kode for k in ("private_key", "privatekey", "sendtransaction", "/swap", "seed phrase =")))
-
         # Kontrol Zona: hapus video
         r = run(tmp, "agents/pabrik.py", "hapus", slug, "--ya")
         rows = json.loads(run(tmp, "agents/pabrik.py", "list", "--json").stdout or "[]")

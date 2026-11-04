@@ -4,7 +4,6 @@ import { jobState, readQueue, startJob } from "@/lib/server/jobs";
 import { json } from "@/lib/server/guard";
 import { autopilotOtomatis, statusKantorAutopilot } from "@/lib/server/autopilot";
 import { statusKantorPanjang } from "@/lib/server/panjang";
-import { statusKantorTrading, tradingOtomatis } from "@/lib/server/trading";
 import { P, activity, envHas, hasModule, latestSnapshot, listFiles, localIso, produksi, steveInsight, pythonCmd, videos, week, which } from "@/lib/server/project";
 import type { StudioState } from "@/lib/types";
 
@@ -28,7 +27,6 @@ export async function GET() {
   const py = pythonCmd();
   await dataHarian(py);
   autopilotOtomatis();
-  tradingOtomatis();
   let vids: StudioState["videos"] = [], act: StudioState["activity"] = [], wk = { since: "", published: 0 };
   if (py) {
     try { [vids, act, wk] = await Promise.all([videos(), activity(), week()]); } catch { /* state.db belum ada / python error */ }
@@ -46,7 +44,6 @@ export async function GET() {
     steve: steveInsight(),
     produksi: produksi(jobState().status === "running" && jobState().job === "produksi"),
     panjang: statusKantorPanjang(),
-    trading: statusKantorTrading(),
     autopilot: statusKantorAutopilot(),
     health: { env: fs.existsSync(P.env), claude: which("claude") !== null, python: py !== null, pythonCmd: py ? path.basename(py) : "", edgeTts: py ? await hasModule("edge_tts") : false,
       stockKey: envHas("PIXABAY_API_KEY", "PEXELS_API_KEY", "YOUTUBE_API_KEY"), ffmpeg: which("ffmpeg") !== null,
