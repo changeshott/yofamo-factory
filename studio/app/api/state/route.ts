@@ -4,7 +4,7 @@ import { jobState, readQueue, startJob } from "@/lib/server/jobs";
 import { json } from "@/lib/server/guard";
 import { autopilotOtomatis } from "@/lib/server/autopilot";
 import { statusKantorPanjang } from "@/lib/server/panjang";
-import { statusKantorTrading } from "@/lib/server/trading";
+import { statusKantorTrading, tradingOtomatis } from "@/lib/server/trading";
 import { P, activity, envHas, hasModule, latestSnapshot, listFiles, localIso, produksi, steveInsight, pythonCmd, videos, week, which } from "@/lib/server/project";
 import type { StudioState } from "@/lib/types";
 
@@ -28,6 +28,7 @@ export async function GET() {
   const py = pythonCmd();
   await dataHarian(py);
   autopilotOtomatis();
+  tradingOtomatis();
   let vids: StudioState["videos"] = [], act: StudioState["activity"] = [], wk = { since: "", published: 0 };
   if (py) {
     try { [vids, act, wk] = await Promise.all([videos(), activity(), week()]); } catch { /* state.db belum ada / python error */ }

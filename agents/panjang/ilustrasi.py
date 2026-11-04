@@ -28,6 +28,17 @@ import gambar_ai  # noqa: E402
 
 GAYA = ROOT / "bible" / "gaya-animasi.json"
 ACUAN_GAYA = ROOT / "bible" / "maskot" / "acuan-gaya.jpg"
+TANPA_ORANG = "no people, no person, no human face, no character, no host, empty of humans (an anonymous gloved hand is allowed only if the scene needs it)"
+
+
+def acuan_aman() -> list[bytes] | None:
+    """Acuan gaya hanya dipakai kalau dibuat tanpa orang (versi lama memuat host → wajahnya tersalin ke semua ilustrasi)."""
+    meta = ACUAN_GAYA.with_suffix(".json")
+    try:
+        ok = json.loads(meta.read_text(encoding="utf-8")).get("tanpa_host")
+    except (OSError, ValueError):
+        ok = False
+    return [ACUAN_GAYA.read_bytes()] if ok and ACUAN_GAYA.exists() else None
 SUDUT = ["dynamic three-quarter view, dramatic perspective", "dramatic low angle hero shot", "close-up detail shot, shallow depth",
          "wide cinematic establishing shot"]
 
@@ -57,7 +68,7 @@ def prompt_untuk(ad: dict, g: dict, jenis: str, varian: int = 0, acuan: bool = F
         bagian_akhir = ["eye-catching hero object, huge scale, dramatic rim light, high contrast, centered composition", "hot pink and cyan accents"]
     else:
         bagian_akhir = [SUDUT[varian % len(SUDUT)], "foreground, midground and background depth, atmospheric painted light"]
-    teks = ", ".join(x for x in [il.get("gaya", ""), isi, *bagian_akhir, il.get("larangan", "")] if x)
+    teks = ", ".join(x for x in [il.get("gaya", ""), isi, *bagian_akhir, TANPA_ORANG, il.get("larangan", "")] if x)
     if acuan:
         teks += ". " + il.get("acuan_gaya", "")
     return teks
@@ -79,7 +90,9 @@ def main() -> None:
         acc, tok = gambar_ai.load_env()
         if not acc or not tok:
             sys.exit("[laras] CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN belum diisi di .env")
-    acuan = [ACUAN_GAYA.read_bytes()] if ACUAN_GAYA.exists() else None
+    acuan = acuan_aman()
+    if ACUAN_GAYA.exists() and not acuan:
+        log("acuan gaya lama memuat host → tidak dipakai (gambar ulang: maskot.py acuan-gaya)")
     catatan = json.loads((idir / "prompt.json").read_text(encoding="utf-8")) if (idir / "prompt.json").exists() else {}
     adegan = list(naskah["adegan"])
     if naskah.get("thumbnail", {}).get("prompt"):

@@ -163,6 +163,10 @@ def main() -> None:
             # host Yofa belum pernah digambar: buat otomatis (kandidat 1). Zona bisa ganti kapan saja di Studio → Gaya & host.
             cat.tahap("laras", "jalan", "menggambar host Yofa pertama kali…")
             jalan([PY, "agents/panjang/maskot.py", "otomatis"], 30 * 60)
+        acuan_meta = ROOT / "bible" / "maskot" / "acuan-gaya.json"
+        if not a.uji and (ROOT / "bible" / "maskot" / "pose" / "bicara.png").exists() and not acuan_meta.exists():
+            cat.tahap("laras", "jalan", "menggambar ulang acuan gaya tanpa orang…")
+            jalan([PY, "agents/panjang/maskot.py", "acuan-gaya"], 10 * 60)
         if not st_panjang.sudah(slug, "ilustrasi"):
             if jalan([PY, "agents/panjang/ilustrasi.py", slug, *(["--uji"] if a.uji else [])], 60 * 60) == 5:
                 cat.tahap("laras", "gagal", "Kuota gambar gratis Cloudflare hari ini habis. Lanjutkan setelah 07:00 WIB.")

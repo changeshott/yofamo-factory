@@ -772,7 +772,7 @@ interface SlotAP { jam: string; eksplorasi: boolean; alasan: string; isi: { slug
 interface DataAP {
   config: { aktif?: boolean; video_per_hari?: number; isi_hari?: number; setujui_otomatis?: boolean; skor_qc_min?: number; jalan_saat_studio_dibuka?: boolean };
   slot: { tanggal: string; slot: SlotAP[] }[]; catatan: string[]; produksi_hari_ini: number; putaran_terakhir: string | null;
-  jeda_sampai: string | null; menunggu_zona: Record<string, string>; berjalan: boolean; tugas: boolean | null; log: string[]; selesai: string | null;
+  jeda_sampai: string | null; masalah?: string | null; menunggu_zona: Record<string, string>; berjalan: boolean; tugas: boolean | null; log: string[]; selesai: string | null;
 }
 export function AutopilotPanel({ ctx }: { ctx: PanelCtx }) {
   const [d, setD] = useState<DataAP | null>(null);
@@ -806,8 +806,9 @@ export function AutopilotPanel({ ctx }: { ctx: PanelCtx }) {
         <span>kalau skor Rara ≥</span>
         <select value={c.skor_qc_min ?? 7} onChange={(e) => void ubah({ skor_qc_min: +e.target.value })} className="rounded-md border border-line bg-ink-950 px-1.5 py-0.5">
           {[6, 7, 8, 9].map((n) => <option key={n} value={n}>{n}</option>)}</select></label>
-      <span className="text-muted">Produksi hari ini</span><span>{d.produksi_hari_ini} video{d.jeda_sampai ? ` · jeda (kuota Claude) sampai ${d.jeda_sampai.slice(11, 16)}` : ""}</span>
+      <span className="text-muted">Produksi hari ini</span><span>{d.produksi_hari_ini} video{d.jeda_sampai ? ` · jeda sampai ${d.jeda_sampai.slice(11, 16)}` : ""}</span>
     </div>
+    {d.masalah && <p className="mt-2 rounded-md border border-signal/50 bg-signal/10 px-2.5 py-1.5 text-sm text-signal">{d.masalah}</p>}
     {d.selesai && !c.aktif && !d.berjalan && <Muted className="mt-2 text-leaf">Selesai {d.selesai.slice(0, 16).replace("T", " ")}: semua jam tayang dalam stok sudah punya video. Autopilot jalan lagi saat Studio dibuka berikutnya.</Muted>}
     {d.slot.map((h) => (
       <div key={h.tanggal} className="mt-3">
@@ -857,6 +858,7 @@ function HostYofa({ m, aksi }: { m: MaskotPJ; aksi: (b: Record<string, string>) 
     </>)}
     <div className="mt-2 flex items-center gap-2">
       <Btn size="sm" tone={siap ? "ghost" : "primary"} disabled={m.berjalan} onClick={() => void aksi({ aksi: "host-kandidat" })}>{m.kandidat.length ? "Gambar 4 kandidat baru" : "Gambar 4 kandidat host"}</Btn>
+      {siap && <Btn size="sm" tone="ghost" disabled={m.berjalan} onClick={() => void aksi({ aksi: "host-acuan" })}>Gambar ulang acuan gaya</Btn>}
       {m.status && <Pill tone={m.berjalan ? "running" : m.status === "gagal" ? "error" : m.status === "selesai" ? "ok" : "stopped"}>{m.berjalan ? "menggambar…" : m.status}</Pill>}
     </div>
     {m.pesan && <Muted className="mt-1">{m.pesan}</Muted>}

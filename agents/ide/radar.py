@@ -158,7 +158,7 @@ def main() -> None:
     if not a.segar and not a.uji and OUT_JSON.exists():
         lama = json.loads(OUT_JSON.read_text(encoding="utf-8"))
         umur = datetime.now() - datetime.fromisoformat(lama.get("dibuat", "2000-01-01T00:00"))
-        if umur < timedelta(hours=12):
+        if umur < timedelta(hours=12) and lama.get("kandidat"):          # hasil kosong (mis. internet mati) tidak dipakai ulang
             print(f"[radar] pakai cache ({umur.seconds // 3600} jam): {len(lama.get('kandidat', []))} kandidat → insights/radar.md")
             return
     semua, gagal = [], []

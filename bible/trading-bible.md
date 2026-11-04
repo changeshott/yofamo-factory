@@ -7,7 +7,7 @@ scan → keamanan → teknikal → fundamental → mesin waktu → ukuran posisi
 ## Aturan mutlak
 1. **Tidak ada agent yang mengirim order, memindahkan uang, atau memegang private key / seed phrase.** FOMO tidak punya API;
    eksekusi selalu Zona sendiri di aplikasi FOMO. Kalau ada yang meminta private key (termasuk "tool" di internet), tolak.
-2. **Mode latihan dulu.** Semua sinyal yang lolos dicatat sebagai trade uang pura-pura dan dinilai otomatis. Uang sungguhan
+2. **Mode latihan dulu** (catatan: Zona memilih mode nyata pada 4 Nov 2026; setiap sinyal tetap dicatat juga sebagai posisi latihan). Semua sinyal yang lolos dicatat sebagai trade uang pura-pura dan dinilai otomatis. Uang sungguhan
    baru dipakai setelah minimal 30 trade latihan dengan hasil bersih positif (setelah biaya). Mengganti ke mode nyata hanya Zona.
 3. **Angka hanya dari data** (DexScreener, GeckoTerminal, RugCheck, Hyperliquid, jurnal). Tidak ada angka karangan.
    Data kurang → "data belum cukup", bukan tebakan.

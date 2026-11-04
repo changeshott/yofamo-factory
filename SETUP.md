@@ -172,5 +172,7 @@ FOMO tidak punya API, jadi **kamu sendiri yang membeli & menjual di aplikasi FOM
 3. Setelah ≥ 30 trade latihan dengan hasil bersih positif, kalau mau: Aturan → ketik `SAYA PAHAM RISIKONYA` → mode nyata.
    Salin alamat kontrak dari kartu sinyal → cari di FOMO dengan alamat itu → beli sesuai dolar di kartu → tekan **Saya beli di FOMO**.
    Saat ada peringatan stop/target, jual di FOMO lalu tekan **Saya sudah jual**.
-4. Aturan bawaan (`bible/trading.json`): modal $20, rugi maks $1/trade, berhenti kalau rugi $2/hari, maks 3 trade/hari.
+4. **Notifikasi HP** (disarankan): Ruang Trading → Notifikasi HP → Sambungkan → pasang aplikasi **ntfy** (gratis) di HP → + → Subscribe → tempel topik → Kirim tes.
+   Sinyal (alamat kontrak, dolar, stop, target) dan peringatan stop/target masuk ke HP; kamu tinggal tap beli/jual di FOMO.
+5. Aturan bawaan (`bible/trading.json`): modal $20, rugi maks $1/trade, berhenti kalau rugi $2/hari, maks 3 trade/hari, target $2/hari (sinyal berhenti setelah tercapai). Pantau otomatis menyala sendiri saat Studio dibuka; tombol "Matikan pantau otomatis" mematikannya.
    Target $3/hari dari $20 = 15% per hari — jauh di atas yang realistis; nilai sebenarnya dilihat dari hasil latihan. Bukan nasihat keuangan.

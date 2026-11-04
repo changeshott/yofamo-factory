@@ -1,5 +1,5 @@
 import { guard, json } from "@/lib/server/guard";
-import { analisaDalam, bacaAnalisa, beli, jual, lewati, loop, pindai, simpanAturan, statusTrading } from "@/lib/server/trading";
+import { analisaDalam, bacaAnalisa, beli, jual, lewati, loop, notifikasi, pindai, simpanAturan, statusTrading } from "@/lib/server/trading";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +24,7 @@ export async function POST(req: Request) {
       case "lewati": return json(lewati(String(b.sinyal ?? "")));
       case "analisa": return json(analisaDalam(String(b.id ?? "")));
       case "aturan": return json(simpanAturan((b.aturan ?? {}) as Record<string, unknown>));
+      case "notif": return json(notifikasi((["buat", "hapus", "tes"].includes(String(b.jenis)) ? b.jenis : "tes") as "buat" | "hapus" | "tes"));
       default: return json({ ok: false, message: "Aksi tidak dikenal." }, 400);
     }
   } catch (e) {

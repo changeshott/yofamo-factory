@@ -5,7 +5,7 @@ import type { StudioState, VideoStatus } from "@/lib/types";
 import { activeStage, api, daysSince, fmt } from "@/lib/format";
 import Office from "./office/Office";
 import { drawAvatar } from "./office/sprites";
-import { FOUNDER, TEAM, TEAM2, TEAM3 } from "./office/world";
+import { FOUNDER, RUANG, TEAM, TEAM2, TEAM3, type Ruang } from "./office/world";
 import { Btn } from "./ui";
 import {
   ActivityPanel, AgentPanel, AnalyticsPanel, BiblePanel, RuangAnimasiPanel, RuangTradingPanel, FounderPanel, FuturePanel, GaleriPanel, HealthPanel, KelolaPanel, ProduksiPanel, QueuePanel, ReportsPanel, agentById, type PanelCtx,
@@ -35,6 +35,14 @@ export default function Studio() {
   const [lebar, setLebar] = useState(1600);
   useEffect(() => { const f = () => setLebar(window.innerWidth); f(); window.addEventListener("resize", f); return () => window.removeEventListener("resize", f); }, []);
   const sidebarW = lebar < 1024 ? 0 : lipat ? 64 : 252;
+  const [ruang, setRuangState] = useState<Ruang>("semua");
+  useEffect(() => {
+    let r: Ruang | null = null;
+    try { r = localStorage.getItem("yofamo.ruang") as Ruang | null; } catch { /* abaikan */ }
+    setRuangState(r && RUANG.some((x) => x.id === r) ? r : window.innerWidth < 768 ? "shorts" : "semua");
+  }, []);
+  const setRuang = (r: Ruang) => { setRuangState(r); try { localStorage.setItem("yofamo.ruang", r); } catch { /* abaikan */ } };
+  const hp = lebar < 768, tabAtas = lebar >= 1200;
   const prevJob = useRef<string>("");
   const avatar = useRef<HTMLCanvasElement>(null);
   const closeBtn = useRef<HTMLButtonElement>(null);
@@ -124,14 +132,15 @@ export default function Studio() {
 
   return (
     <main className="fixed inset-0 overflow-hidden bg-ink-900">
-      <Office state={state} onOpen={open} fokus={panel && FOKUS.test(panel) ? panel : null} kiri={sidebarW + 24} kanan={panel ? 540 : 0} />
+      <Office state={state} onOpen={open} fokus={panel && FOKUS.test(panel) ? panel : null} kiri={sidebarW + 24} kanan={panel ? 540 : 0} ruang={ruang}
+        atas={tabAtas ? 64 : lebar >= 1024 ? 150 : hp ? 186 : 176} />
 
       {/* HUD kiri atas */}
       <div className="pointer-events-none absolute top-3 bottom-[88px] left-3 z-[25] flex max-w-[min(560px,calc(100vw-24px))] flex-col gap-3">
       <header>
         <div className="pointer-events-auto rounded-xl border border-line/80 bg-ink-800/85 px-4 py-3 shadow-xl backdrop-blur-md">
-          <h1 className="font-pixel text-[22px] leading-none font-bold tracking-wide">Studio <span className="text-brand">Yofamo</span></h1>
-          <p className="mt-1.5 text-sm text-muted" aria-live="polite">
+          <h1 className="font-pixel text-[22px] leading-none font-bold tracking-wide max-md:text-[18px]">Studio <span className="text-brand">Yofamo</span></h1>
+          <p className="mt-1.5 text-sm text-muted max-md:line-clamp-2 max-md:text-[13px]" aria-live="polite">
             {offline ? "Server Studio tidak menjawab. Pastikan jendela start_studio masih terbuka." : state ? `${sapa}, Zona. ${todo ? todo + "." : "Tidak ada yang menunggu keputusanmu."}` : "Memuat kantor…"}
           </p>
           {state?.job.status === "running" && (
@@ -144,14 +153,20 @@ export default function Studio() {
           {problems.length > 0 && (
             <button onClick={() => open("health")} className="mt-2 block text-left text-sm text-signal hover:underline">Perlu disiapkan: {problems.join(", ")}. Buka cek sistem</button>
           )}
+          {state?.snapshot && (
+            <p className="mt-1.5 hidden font-pixel text-[12px] text-muted max-lg:block">
+              {fmt(state.snapshot.channel.subscribers)} subscriber · {fmt(Math.round(state.snapshot.summary.median_views))} median{gap != null ? ` · ${gap} hari sejak upload` : ""}
+            </p>
+          )}
         </div>
       </header>
-      {state && <TimSidebar state={state} open={open} panel={panel} busyKey={busyKey} inbox={inbox} lipat={lipat} setLipat={setLipatSimpan} />}
+      {state && !tabAtas && <RuangTabs state={state} ruang={ruang} setRuang={setRuang} />}
+      {state && <TimSidebar state={state} open={open} panel={panel} busyKey={busyKey} inbox={inbox} lipat={lipat} setLipat={setLipatSimpan} ruang={ruang} />}
       </div>
 
       {/* statistik kanan atas */}
       {state && (
-        <div className="pointer-events-none absolute top-3 right-3 z-10 flex max-w-[50vw] flex-wrap justify-end gap-2 max-md:top-auto max-md:right-auto max-md:bottom-[84px] max-md:left-3 max-md:max-w-[calc(100vw-24px)] max-md:justify-start">
+        <div className="pointer-events-none absolute top-3 right-3 z-10 flex max-w-[34vw] flex-wrap justify-end gap-2 max-xl:max-w-[28vw] max-lg:hidden">
           {state.snapshot && (<>
             <Stat value={fmt(state.snapshot.channel.subscribers)} label="subscriber" />
             <Stat value={fmt(Math.round(state.snapshot.summary.median_views))} label="median views" />
@@ -161,11 +176,12 @@ export default function Studio() {
         </div>
       )}
 
-      {/* pipeline produksi langsung (atas tengah) */}
+      {/* pemilih ruang (atas tengah) + pipeline produksi langsung */}
+      {state && tabAtas && <div className="absolute top-3 left-1/2 z-10 -translate-x-1/2"><RuangTabs state={state} ruang={ruang} setRuang={setRuang} /></div>}
       {state && <PipelineStrip state={state} onOpen={() => open("produksi")} />}
 
       {/* dok bawah: ringkas, dikelompokkan */}
-      <Dock state={state} open={open} inbox={inbox} busyKey={busyKey} problems={problems.length} onPalette={() => setPalette(true)} />
+      <Dock state={state} open={open} inbox={inbox} busyKey={busyKey} problems={problems.length} onPalette={() => setPalette(true)} ruang={ruang} />
 
       {palette && ctx && <CommandPalette ctx={ctx} onClose={() => setPalette(false)} />}
 
@@ -190,9 +206,9 @@ export default function Studio() {
       </div>
 
       {/* panel kanan */}
-      <div className={`absolute inset-0 z-20 bg-[#050a12]/20 transition-opacity ${panel ? "opacity-100" : "pointer-events-none opacity-0"}`} onClick={close} aria-hidden />
+      <div className={`absolute inset-0 z-[28] bg-[#050a12]/20 transition-opacity ${panel ? "opacity-100" : "pointer-events-none opacity-0"}`} onClick={close} aria-hidden />
       <aside aria-labelledby="panel-title" aria-hidden={!panel} inert={!panel}
-        className={`absolute top-0 right-0 bottom-0 z-20 flex w-[min(540px,100vw)] flex-col border-l-2 border-ink-950 bg-ink-800 shadow-2xl transition-transform duration-200 ${panel ? "translate-x-0" : "translate-x-full"}`}>
+        className={`absolute top-0 right-0 bottom-0 z-[28] flex w-[min(540px,100vw)] flex-col border-l-2 border-ink-950 bg-ink-800 shadow-2xl transition-transform duration-200 ${panel ? "translate-x-0" : "translate-x-full"}`}>
         <div className="flex items-center gap-3 border-b border-line px-4 py-3.5">
           <canvas ref={avatar} width={16} height={16} className={`size-12 rounded-lg border border-line bg-ink-700 [image-rendering:pixelated] ${look ? "" : "hidden"}`} aria-hidden />
           <h2 id="panel-title" className="flex-1 font-pixel text-xl font-bold">{title}</h2>
@@ -251,7 +267,7 @@ const ICON = {
 };
 const Ico = ({ d, className = "size-[18px]" }: { d: string; className?: string }) => <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden><path d={d} /></svg>;
 
-function Dock({ state, open, inbox, busyKey, problems, onPalette }: { state: StudioState | null; open: (id: string) => void; inbox: number; busyKey: string; problems: number; onPalette: () => void }) {
+function Dock({ state, open, inbox, busyKey, problems, onPalette, ruang }: { state: StudioState | null; open: (id: string) => void; inbox: number; busyKey: string; problems: number; onPalette: () => void; ruang: Ruang }) {
   const [menu, setMenu] = useState<null | "tim" | "video" | "data">(null);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -263,19 +279,21 @@ function Dock({ state, open, inbox, busyKey, problems, onPalette }: { state: Stu
   }, [menu]);
   const go = (id: string) => { setMenu(null); open(id); };
   const running = state?.job.status === "running";
-  const sibuk = TEAM.filter((t) => running && !!t.busy[busyKey]);
+  const timRuang = ruang === "animasi" ? TEAM2 : ruang === "trading" ? TEAM3 : ruang === "shorts" ? TEAM : [...TEAM, ...TEAM2, ...TEAM3];
+  const sibuk = timRuang.filter((t) => (t.ruang === "animasi" ? !!state?.panjang?.tahap && !!t.busy[state.panjang.tahap] : t.ruang === "trading" ? !!state?.trading?.tahap && !!t.busy[state.trading.tahap] : running && !!t.busy[busyKey]));
+  const utama = ruang === "animasi" ? { id: "animasi", teks: "Video panjang" } : ruang === "trading" ? { id: "trading", teks: "Sinyal trading" } : { id: "produksi", teks: "Buat video" };
   const ideas = state?.videos.filter((v) => v.status === "ide").length ?? 0;
   const drafts = state?.videos.filter((v) => v.status === "draft").length ?? 0;
   const toggle = (m: "tim" | "video" | "data") => setMenu((x) => (x === m ? null : m));
   return (
     <nav aria-label="Navigasi kantor" className="absolute inset-x-0 bottom-3 z-10 flex justify-center px-3">
       <div ref={ref} className="relative flex items-center gap-1 rounded-2xl border border-line/70 bg-ink-800/80 p-1.5 shadow-[0_18px_50px_rgba(0,0,0,.45)] backdrop-blur-xl">
-        <button onClick={() => go("produksi")} className="flex items-center gap-2 rounded-xl bg-gradient-to-b from-brand-2 to-brand px-3.5 py-2.5 font-pixel text-sm leading-none font-bold text-[#06132B] shadow-[0_6px_20px_rgba(61,155,255,.35)] hover:brightness-110">
-          <span className="text-base leading-none">+</span><span className="max-sm:hidden">Buat video</span>
+        <button onClick={() => go(utama.id)} className="flex items-center gap-2 rounded-xl bg-gradient-to-b from-brand-2 to-brand px-3.5 py-2.5 font-pixel text-sm leading-none font-bold text-[#06132B] shadow-[0_6px_20px_rgba(61,155,255,.35)] hover:brightness-110 max-md:flex-col max-md:gap-1 max-md:px-3 max-md:py-2">
+          <span className="text-base leading-none">{ruang === "trading" ? "↗" : "+"}</span><span className="max-md:text-[10px]">{utama.teks}</span>
         </button>
         <span className="mx-1 h-7 w-px bg-line/70" aria-hidden />
         <DockIcon label="Tim" className="lg:hidden" active={menu === "tim"} onClick={() => toggle("tim")} expanded={menu === "tim"}>
-          <span className="flex -space-x-1.5">{TEAM.slice(0, 4).map((t) => <i key={t.id} className="block size-2.5 rounded-full ring-2 ring-ink-800" style={{ background: t.color }} />)}</span>
+          <span className="flex -space-x-1.5">{timRuang.slice(0, 4).map((t) => <i key={t.id} className="block size-2.5 rounded-full ring-2 ring-ink-800" style={{ background: t.color }} />)}</span>
           {sibuk.length > 0 && <span className="absolute -top-1 -right-1 size-2.5 animate-pulse rounded-full bg-brand ring-2 ring-ink-800 motion-reduce:animate-none" aria-label="ada yang bekerja" />}
         </DockIcon>
         <DockIcon label="Meja Zona" onClick={() => go("founder")} count={inbox}><Ico d={ICON.zona} /></DockIcon>
@@ -291,8 +309,8 @@ function Dock({ state, open, inbox, busyKey, problems, onPalette }: { state: Stu
           <div className="dock-pop absolute bottom-[calc(100%+10px)] left-1/2 w-[min(560px,calc(100vw-24px))] -translate-x-1/2 rounded-2xl border border-line/70 bg-ink-800/95 p-3 shadow-[0_24px_70px_rgba(0,0,0,.55)] backdrop-blur-xl">
             {menu === "tim" && (<>
               <div className="mb-2 flex items-baseline justify-between px-1"><h3 className="font-pixel text-sm text-muted">Tim agent</h3><span className="text-xs text-faint">{sibuk.length ? `${sibuk.map((t) => t.name).join(", ")} sedang bekerja` : "semua siap"}</span></div>
-              <div className="grid grid-cols-4 gap-2 max-sm:grid-cols-2">
-                {TEAM.map((t) => {
+              <div className="grid max-h-[55vh] grid-cols-4 gap-2 overflow-y-auto max-sm:grid-cols-2">
+                {timRuang.map((t) => {
                   const on = sibuk.includes(t);
                   return (
                     <button key={t.id} onClick={() => go(`agent:${t.id}`)} className={`group flex flex-col items-start gap-1 rounded-xl border p-2.5 text-left transition hover:-translate-y-0.5 hover:border-brand/60 ${on ? "border-brand/50 bg-brand/10" : "border-line/60 bg-ink-900/60"}`}>
@@ -301,7 +319,7 @@ function Dock({ state, open, inbox, busyKey, problems, onPalette }: { state: Stu
                         <span className={`ml-auto size-2 rounded-full ${on ? "animate-pulse bg-brand motion-reduce:animate-none" : "bg-leaf/70"}`} aria-hidden />
                       </span>
                       <b className="font-pixel text-sm leading-none" style={{ color: t.color }}>{t.name}</b>
-                      <span className="text-[12px] leading-tight text-muted">{on ? t.busy[busyKey] : t.role}</span>
+                      <span className="text-[12px] leading-tight text-muted">{on ? "sedang bekerja…" : t.role}</span>
                     </button>);
                 })}
               </div>
@@ -334,12 +352,11 @@ function MenuGrid({ items, go }: { items: [string, string, string][]; go: (id: s
 
 function DockIcon({ children, label, onClick, count, dot, active, expanded, className = "" }: { children: React.ReactNode; label: string; onClick: () => void; count?: number; dot?: string; active?: boolean; expanded?: boolean; className?: string }) {
   return (
-    <button onClick={onClick} aria-expanded={expanded} className={`${className} group relative flex items-center gap-2 rounded-xl px-3 py-2.5 font-pixel text-sm leading-none transition ${active ? "bg-ink-700 text-ink-50" : "text-muted hover:bg-ink-700 hover:text-ink-50"}`}>
+    <button onClick={onClick} aria-expanded={expanded} className={`${className} group relative flex items-center gap-2 rounded-xl px-3 py-2.5 font-pixel text-sm leading-none transition max-md:flex-col max-md:gap-1 max-md:px-2.5 max-md:py-2 ${active ? "bg-ink-700 text-ink-50" : "text-muted hover:bg-ink-700 hover:text-ink-50"}`}>
       <span className="relative grid place-items-center">{children}</span>
-      <span className="max-md:hidden">{label}</span>
+      <span className="max-md:text-[10px]">{label}</span>
       {dot && <span className="size-2 rounded-full" style={{ background: dot }} aria-hidden />}
       {!!count && <span className="rounded-full bg-bad px-1.5 py-0.5 text-[11px] text-white" aria-label={`${count} perlu perhatian`}>{count}</span>}
-      <span className="pointer-events-none absolute -top-8 left-1/2 hidden -translate-x-1/2 rounded-md border border-line bg-ink-800 px-2 py-1 text-xs whitespace-nowrap text-ink-50 max-md:group-hover:block">{label}</span>
     </button>
   );
 }
@@ -351,6 +368,27 @@ function AgentAvatar({ id }: { id: string }) {
   return <canvas ref={c} width={16} height={16} className="size-9 rounded-lg border border-line/60 bg-ink-700 [image-rendering:pixelated]" aria-hidden />;
 }
 
+/* ---------------------------------------------------------------- pemilih ruang */
+function RuangTabs({ state, ruang, setRuang }: { state: StudioState; ruang: Ruang; setRuang: (r: Ruang) => void }) {
+  const sibuk: Record<Ruang, boolean> = { semua: false, shorts: state.job.status === "running", animasi: !!state.panjang, trading: !!state.trading };
+  const badge: Partial<Record<Ruang, number>> = { shorts: state.videos.filter((v) => v.status === "ide" || v.status === "draft").length || 0 };
+  return (
+    <div role="tablist" aria-label="Pilih ruang kantor" className="pointer-events-auto flex shrink-0 items-center gap-1 rounded-2xl border border-line/70 bg-ink-800/85 p-1 shadow-xl backdrop-blur-xl max-xl:w-full">
+      {RUANG.map((r) => {
+        const aktif = r.id === ruang;
+        return (
+          <button key={r.id} role="tab" aria-selected={aktif} onClick={() => setRuang(r.id)}
+            className={`relative flex items-center justify-center gap-1.5 rounded-xl px-3.5 py-2 font-pixel text-[13px] leading-none transition max-xl:flex-1 max-md:px-1.5 ${aktif ? "bg-ink-600 text-ink-50 shadow-inner" : "text-muted hover:bg-ink-700 hover:text-ink-50"}`}>
+            {r.id !== "semua" && <span className={`size-2 rounded-full ${sibuk[r.id] ? "animate-pulse motion-reduce:animate-none" : "opacity-70"}`} style={{ background: r.warna }} aria-hidden />}
+            {r.nama}
+            {!!badge[r.id] && <span className="rounded-full bg-bad px-1.5 py-0.5 text-[10px] text-white" aria-label={`${badge[r.id]} menunggu`}>{badge[r.id]}</span>}
+            {sibuk[r.id] && <span className="sr-only">(sedang bekerja)</span>}
+          </button>);
+      })}
+    </div>
+  );
+}
+
 /* ---------------------------------------------------------------- pipeline produksi langsung */
 function PipelineStrip({ state, onOpen }: { state: StudioState; onOpen: () => void }) {
   const p = state.produksi[0];
@@ -358,7 +396,7 @@ function PipelineStrip({ state, onOpen }: { state: StudioState; onOpen: () => vo
   const done = p.tahap.filter((t) => t.status === "ok").length, cur = p.tahap.find((t) => t.status === "jalan");
   const warna: Record<string, string> = { steve: "#47B5FF", nova: "#6FD29A", setuju: "#F4F1E8", raka: "#FF9A4D", dara: "#C792EA", bima: "#4FD1C5", kai: "#F2C94C", rara: "#F07178" };
   return (
-    <button onClick={onOpen} className="absolute top-3 left-1/2 z-10 -translate-x-1/2 rounded-2xl border border-line/70 bg-ink-800/85 px-4 py-2.5 text-left shadow-xl backdrop-blur-xl hover:border-brand/60 max-lg:top-auto max-lg:bottom-[86px]">
+    <button onClick={onOpen} className="absolute top-[62px] left-1/2 z-10 -translate-x-1/2 rounded-2xl border border-line/70 bg-ink-800/85 px-4 py-2.5 text-left shadow-xl backdrop-blur-xl hover:border-brand/60 max-lg:top-auto max-lg:bottom-[86px] max-md:bottom-[92px]">
       <div className="flex items-center gap-1.5" aria-hidden>
         {p.tahap.map((t) => (
           <span key={t.kunci} title={t.nama} className={`h-2 rounded-full transition-all ${t.status === "jalan" ? "w-8 animate-pulse motion-reduce:animate-none" : "w-4"} ${t.status === "menunggu" ? "opacity-25" : t.status === "gagal" ? "!bg-bad" : ""}`}
@@ -421,7 +459,8 @@ function CommandPalette({ ctx, onClose }: { ctx: PanelCtx; onClose: () => void }
 }
 
 /* ---------------------------------------------------------------- sidebar tim (kiri) */
-function TimSidebar({ state, open, panel, busyKey, inbox, lipat, setLipat }: { state: StudioState; open: (id: string) => void; panel: string | null; busyKey: string; inbox: number; lipat: boolean; setLipat: (v: boolean) => void }) {
+function TimSidebar({ state, open, panel, busyKey, inbox, lipat, setLipat, ruang }: { state: StudioState; open: (id: string) => void; panel: string | null; busyKey: string; inbox: number; lipat: boolean; setLipat: (v: boolean) => void; ruang: Ruang }) {
+  const tampil = (r: Ruang) => ruang === "semua" || ruang === r;
   const running = state.job.status === "running";
   const urut = ["steve", "nova", "raka", "dara", "bima", "kai", "rara", "uli"];
   const tahap = state.produksi[0]?.status === "berjalan" ? state.produksi[0].tahap : [];
@@ -429,13 +468,14 @@ function TimSidebar({ state, open, panel, busyKey, inbox, lipat, setLipat }: { s
   return (
     <aside aria-label="Tim agent" className={`pointer-events-auto flex min-h-0 flex-col overflow-hidden rounded-2xl border border-line/70 bg-ink-800/75 shadow-[0_18px_50px_rgba(0,0,0,.4)] backdrop-blur-xl transition-[width] duration-300 max-lg:hidden ${lipat ? "w-[64px]" : "w-[252px]"}`}>
       <div className={`flex items-center border-b border-line/60 px-3 py-2.5 ${lipat ? "justify-center" : "justify-between"}`}>
-        {!lipat && <h2 className="font-pixel text-sm tracking-wide text-muted">Tim · {running ? "bekerja" : "siap"}</h2>}
+        {!lipat && <h2 className="font-pixel text-sm tracking-wide text-muted">{ruang === "semua" ? `Tim · ${running ? "bekerja" : "siap"}` : `Tim ${RUANG.find((r) => r.id === ruang)?.nama}`}</h2>}
         <button onClick={() => setLipat(!lipat)} aria-label={lipat ? "Lebarkan sidebar" : "Ciutkan sidebar"} className="grid size-7 place-items-center rounded-lg text-muted hover:bg-ink-700 hover:text-ink-50">
           <svg viewBox="0 0 24 24" className={`size-4 transition-transform ${lipat ? "rotate-180" : ""}`} fill="currentColor" aria-hidden><path d="M15.4 7.4 14 6l-6 6 6 6 1.4-1.4L10.8 12z" /></svg>
         </button>
       </div>
       <ul className="tanpa-scroll min-h-0 flex-1 space-y-1 overflow-y-auto p-2">
-        {urut.map((id) => {
+        {tampil("shorts") && ruang !== "semua" && !lipat && <li className="px-1.5 pb-1"><button onClick={() => open("produksi")} className="w-full rounded-lg border border-brand/40 bg-brand/10 px-2 py-1.5 text-left text-[12.5px] hover:border-brand">+ Buat video Shorts</button></li>}
+        {tampil("shorts") && urut.map((id) => {
           const t = agentById(id)!;
           const on = running && !!t.busy[busyKey];
           const st = statusTahap(id), sel = panel === `agent:${id}`;
@@ -459,10 +499,10 @@ function TimSidebar({ state, open, panel, busyKey, inbox, lipat, setLipat }: { s
               </button>
             </li>);
         })}
-        {!lipat && <li className="px-1.5 pt-3 pb-1"><button onClick={() => open("animasi")} className="flex w-full items-center justify-between font-pixel text-[12px] tracking-wide text-muted uppercase hover:text-ink-50">
-          <span>Ruang Animasi</span>{state.panjang && <span className="rounded bg-[#FF4FA3]/20 px-1.5 py-0.5 text-[10px] text-[#FFC2E2]">bekerja</span>}</button></li>}
-        {lipat && <li aria-hidden className="mx-2 my-2 border-t border-line/60" />}
-        {TEAM2.map((t) => {
+        {tampil("animasi") && !lipat && <li className={`px-1.5 pb-1 ${ruang === "semua" ? "pt-3" : ""}`}><button onClick={() => open("animasi")} className="flex w-full items-center justify-between rounded-lg px-1 py-1 font-pixel text-[12px] tracking-wide text-muted uppercase hover:bg-ink-700/60 hover:text-ink-50">
+          <span>Ruang Animasi ›</span>{state.panjang && <span className="rounded bg-[#FF4FA3]/20 px-1.5 py-0.5 text-[10px] text-[#FFC2E2]">bekerja</span>}</button></li>}
+        {tampil("animasi") && lipat && ruang === "semua" && <li aria-hidden className="mx-2 my-2 border-t border-line/60" />}
+        {tampil("animasi") && TEAM2.map((t) => {
           const on = state.panjang?.tahap ? !!t.busy[state.panjang.tahap] : false, sel = panel === `agent:${t.id}`;
           const sub = on ? t.busy[state.panjang!.tahap!] : t.role;
           return (
@@ -483,10 +523,10 @@ function TimSidebar({ state, open, panel, busyKey, inbox, lipat, setLipat }: { s
               </button>
             </li>);
         })}
-        {!lipat && <li className="px-1.5 pt-3 pb-1"><button onClick={() => open("trading")} className="flex w-full items-center justify-between font-pixel text-[12px] tracking-wide text-muted uppercase hover:text-ink-50">
-          <span>Ruang Trading</span>{state.trading && <span className="rounded bg-[#39D36B]/20 px-1.5 py-0.5 text-[10px] text-[#C8FFD9]">memindai</span>}</button></li>}
-        {lipat && <li aria-hidden className="mx-2 my-2 border-t border-line/60" />}
-        {TEAM3.map((t) => {
+        {tampil("trading") && !lipat && <li className={`px-1.5 pb-1 ${ruang === "semua" ? "pt-3" : ""}`}><button onClick={() => open("trading")} className="flex w-full items-center justify-between rounded-lg px-1 py-1 font-pixel text-[12px] tracking-wide text-muted uppercase hover:bg-ink-700/60 hover:text-ink-50">
+          <span>Ruang Trading ›</span>{state.trading && <span className="rounded bg-[#39D36B]/20 px-1.5 py-0.5 text-[10px] text-[#C8FFD9]">memindai</span>}</button></li>}
+        {tampil("trading") && lipat && ruang === "semua" && <li aria-hidden className="mx-2 my-2 border-t border-line/60" />}
+        {tampil("trading") && TEAM3.map((t) => {
           const on = state.trading?.tahap ? !!t.busy[state.trading.tahap] : false, sel = panel === `agent:${t.id}`;
           const sub = on ? t.busy[state.trading!.tahap!] : t.role;
           return (

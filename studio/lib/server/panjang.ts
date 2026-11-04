@@ -101,9 +101,9 @@ export function statusMaskot(): StatusMaskot {
     berjalan, status: berjalan ? "berjalan" : st.status === "berjalan" ? "terhenti" : st.status ?? "", pesan: st.pesan ?? "" };
 }
 
-export function jalankanMaskot(perintah: "kandidat" | "pakai", nomor = 1): { ok: boolean; message: string } {
+export function jalankanMaskot(perintah: "kandidat" | "pakai" | "acuan-gaya", nomor = 1): { ok: boolean; message: string } {
   if (kunciAktif("maskot.lock")) return { ok: false, message: "Host sedang digambar. Tunggu selesai." };
   const args = ["agents/panjang/maskot.py", perintah, ...(perintah === "pakai" ? [String(Math.max(1, Math.min(4, nomor)))] : [])];
   const r = jalankan(args, `maskot-${stamp()}.txt`);
-  return r.ok ? { ok: true, message: perintah === "kandidat" ? "Laras menggambar 4 kandidat host (±1–2 menit)." : "Laras menggambar 7 pose host + acuan gaya (±3 menit)." } : r;
+  return r.ok ? { ok: true, message: perintah === "kandidat" ? "Laras menggambar 4 kandidat host (±1–2 menit)." : perintah === "acuan-gaya" ? "Laras menggambar ulang acuan gaya tanpa orang (±30 detik)." : "Laras menggambar 7 pose host + acuan gaya (±3 menit)." } : r;
 }

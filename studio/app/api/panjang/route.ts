@@ -41,6 +41,7 @@ export async function POST(req: Request) {
     if (b.aksi === "buat") return json(buatPanjang(String(b.tema ?? "")));
     if (b.aksi === "host-kandidat") return json(jalankanMaskot("kandidat"));
     if (b.aksi === "host-pakai") return json(jalankanMaskot("pakai", Number(b.nomor) || 1));
+    if (b.aksi === "host-acuan") return json(jalankanMaskot("acuan-gaya"));
     if (!SLUG.test(slug) || !fs.existsSync(path.join(PJ, slug))) return json({ ok: false, message: "Video tidak ditemukan." }, 404);
     const v = daftarPanjang().find((x) => x.slug === slug);
     if (b.aksi === "lanjut") return json(buatPanjang("", slug));

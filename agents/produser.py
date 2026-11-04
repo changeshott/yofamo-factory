@@ -134,10 +134,31 @@ def pabrik(*args: str) -> None:
 API_SEMENTARA = re.compile(r"API Error: ?(5\d\d|529)|overloaded|Internal server error|api_error|ECONNRESET|ETIMEDOUT|socket hang up|fetch failed", re.I)
 API_LIMIT = re.compile(r"usage limit|limit reached|rate.?limit|credit balance|hit your [\w -]*limit|\d+-hour limit|weekly limit", re.I)
 RESET = re.compile(r"resets? (?:at )?(\d{1,2})(?::(\d\d))?\s*(am|pm)?", re.I)
+OFFLINE = re.compile(r"ENOTFOUND|Can't reach the API server|getaddrinfo failed|EAI_AGAIN|ENETUNREACH|network is unreachable|Failed to resolve", re.I)
+LOGIN = re.compile(r"Failed to authenticate|OAuth access token has expired|Invalid API key|Please run /login|not logged in|authentication_error|API Error: 401", re.I)
 
 
 class KuotaClaude(Exception):
     """Kuota Claude (batas 5 jam / mingguan) habis: produksi dihentikan, bukan dilanjutkan dengan cadangan."""
+
+
+class Offline(Exception):
+    """Internet laptop mati / DNS gagal: produksi berhenti rapi (bukan "topik tidak ditemukan")."""
+
+
+class LoginClaude(Exception):
+    """Login Claude Code kedaluwarsa: Zona perlu menjalankan `claude` lalu /login sekali."""
+
+
+def internet_ok() -> bool:
+    import socket
+    for host in ("api.anthropic.com", "www.googleapis.com"):
+        try:
+            socket.create_connection((host, 443), timeout=6).close()
+            return True
+        except OSError:
+            continue
+    return False
 
 
 def jalan_tangkap(args: list[str], timeout: int) -> tuple[int, str]:
@@ -172,6 +193,12 @@ def claude(prompt: str, allowed: list[str], timeout: int, turns: int = 60) -> in
             jam = f"{m.group(1)}:{m.group(2) or '00'}{(m.group(3) or '').lower()}" if m else ""
             print(f"[produser] Kuota Claude habis{' (pulih ' + jam + ')' if jam else ''}. Produksi dihentikan; lanjutkan setelah kuota pulih.", flush=True)
             raise KuotaClaude(f"Kuota Claude habis{', pulih ' + jam if jam else ''}")
+        if kode != 0 and LOGIN.search(ekor[-1500:]):
+            print("[produser] Login Claude kedaluwarsa. Buka terminal, ketik: claude  lalu /login (sekali saja).", flush=True)
+            raise LoginClaude("Login Claude kedaluwarsa — jalankan `claude` lalu /login")
+        if kode != 0 and OFFLINE.search(ekor[-1500:]):
+            print("[produser] Internet laptop sedang mati (server Claude tidak terjangkau).", flush=True)
+            raise Offline("Internet laptop mati")
         if kode == 0:
             return 0
         if API_SEMENTARA.search(ekor) and coba < 2:
@@ -210,6 +237,8 @@ def main() -> None:
         print(f"[produser] Masih ada produksi lain yang berjalan ({lain}). Dibatalkan.", flush=True)
         sys.exit(3)
     try:
+        if not a.uji and not internet_ok():
+            raise Offline("Internet laptop mati")
         if a.uji:
             sys.path.insert(0, str(ROOT / "agents"))
             import tes_pabrik as fx
@@ -410,13 +439,15 @@ def main() -> None:
             info.append(f"{len(q['masalah'])} catatan")
         cat.tahap("rara", "ok", ", ".join(info) or "lolos pemeriksaan otomatis")
         cat.akhir("selesai", "Video jadi dan sudah diperiksa Rara. Tonton lalu setujui di Studio.")
-    except KuotaClaude as err:
+    except (KuotaClaude, Offline, LoginClaude) as err:
         for t in cat.d["tahap"]:
             if t["status"] == "jalan":
                 t["status"] = "gagal"
                 t["catatan"] = str(err)
-        cat.akhir("gagal", f"{err}. Klik Lanjutkan setelah kuota pulih (tahap yang sudah beres tidak diulang).")
-        sys.exit(4)
+        saran = {KuotaClaude: "Klik Lanjutkan setelah kuota pulih", Offline: "Klik Lanjutkan setelah internet kembali",
+                 LoginClaude: "Buka terminal, ketik claude lalu /login, kemudian klik Lanjutkan"}[type(err)]
+        cat.akhir("gagal", f"{err}. {saran} (tahap yang sudah beres tidak diulang).")
+        sys.exit({KuotaClaude: 4, Offline: 5, LoginClaude: 6}[type(err)])
     except Exception as err:  # jangan sampai catatan tertinggal 'berjalan'
         for t in cat.d["tahap"]:
             if t["status"] == "jalan":

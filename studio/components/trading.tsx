@@ -22,7 +22,7 @@ interface Sinyal {
 interface Posisi { id: string; simbol: string; token: string; pasar: string; arah: string; mode: "latihan" | "nyata"; dibuka: string; masuk: number; stop: number; target: number; posisi_usd: number; status: string; harga_kini?: number; pnl_kini_usd?: number; keluar?: number; ditutup?: string; pnl_usd?: number; R?: number }
 interface Stat { trade: number; menang: number; kalah: number; winrate: number | null; rataR: number | null; pnl: number; hariIni: number; perHari: number | null; hariAktif: number; terbuka: number }
 interface Papan { waktu: string; pasar: string; mode: string; detik: number; sinyal: string[]; diblokir: { simbol: string; token: string; alasan: string[]; setup?: string }[]; dipantau: { simbol: string; token: string; skor_teknikal: number; skor_fundamental: number; skor_keamanan: number | null; catatan: string[]; harga?: number }[] }
-interface Cfg { mode: "latihan" | "nyata"; modal_usd: number; risiko_per_trade_usd: number; batas_rugi_harian_usd: number; maks_trade_harian: number; maks_porsi_modal: number; target_harian_usd: number; min_peluang_target_pct: number; pantau_menit: number; biaya_fomo_per_sisi_pct: number }
+interface Cfg { notifikasi?: { ntfy_topik?: string }; otomatis_saat_studio_dibuka?: boolean; berhenti_saat_target?: boolean; mode: "latihan" | "nyata"; modal_usd: number; risiko_per_trade_usd: number; batas_rugi_harian_usd: number; maks_trade_harian: number; maks_porsi_modal: number; target_harian_usd: number; min_peluang_target_pct: number; pantau_menit: number; biaya_fomo_per_sisi_pct: number }
 interface Data { cfg: Cfg | null; papan: Papan | null; sinyal: Sinyal[]; analisa: string[]; posisi: Posisi[]; peringatan: { waktu: string; posisi: string; jenis: string; teks: string }[]; statistik: { latihan: Stat; nyata: Stat }; pindai: boolean; loop: boolean }
 
 /* ---------------------------------------------------------------- format */
@@ -146,7 +146,7 @@ function BarisPosisi({ p, aksi }: { p: Posisi; aksi: (b: Record<string, unknown>
 
 function Aturan({ cfg, aksi }: { cfg: Cfg; aksi: (b: Record<string, unknown>) => Promise<void> }) {
   const kunci: [keyof Cfg, string][] = [["modal_usd", "Modal ($)"], ["risiko_per_trade_usd", "Rugi maks per trade ($)"], ["batas_rugi_harian_usd", "Batas rugi harian ($)"],
-    ["maks_trade_harian", "Maks trade per hari"], ["maks_porsi_modal", "Posisi maks (porsi modal, 0–1)"], ["min_peluang_target_pct", "Peluang target minimal (%)"],
+    ["maks_trade_harian", "Maks trade per hari"], ["target_harian_usd", "Target untung harian ($)"], ["maks_porsi_modal", "Posisi maks (porsi modal, 0–1)"], ["min_peluang_target_pct", "Peluang target minimal (%)"],
     ["pantau_menit", "Pindai otomatis tiap (menit)"], ["biaya_fomo_per_sisi_pct", "Biaya FOMO per transaksi (%)"]];
   const [v, setV] = useState<Record<string, string>>(() => Object.fromEntries(kunci.map(([k]) => [k, String(cfg[k])])));
   const [konf, setKonf] = useState("");
@@ -167,6 +167,23 @@ function Aturan({ cfg, aksi }: { cfg: Cfg; aksi: (b: Record<string, unknown>) =>
           : <Btn size="sm" className="mt-1.5" onClick={() => void aksi({ aksi: "aturan", aturan: { mode: "latihan" } })}>Kembali ke mode latihan</Btn>}
       </div>
     </details>
+  );
+}
+
+function Notifikasi({ c, aksi }: { c: Cfg; aksi: (b: Record<string, unknown>) => Promise<void> }) {
+  const t = c.notifikasi?.ntfy_topik ?? "";
+  return (
+    <div className={`mt-3 rounded-lg border p-2.5 text-sm ${t ? "border-leaf/50 bg-leaf/5" : "border-signal/50 bg-signal/10"}`}>
+      <b>Notifikasi HP</b> — {t ? "aktif" : "belum disambungkan"}
+      {t ? (<>
+        <div className="mt-1 flex items-center gap-2 rounded border border-line bg-ink-950 px-2 py-1"><code className="min-w-0 flex-1 truncate">{t}</code><CopyBtn text={t} label="Salin topik" /></div>
+        <Muted className="mt-1">Di HP: aplikasi <b>ntfy</b> → tombol + → Subscribe to topic → tempel topik ini (server bawaan ntfy.sh). Jangan bagikan topiknya ke orang lain.</Muted>
+        <div className="mt-1.5 flex gap-2"><Btn size="sm" onClick={() => void aksi({ aksi: "notif", jenis: "tes" })}>Kirim tes</Btn><Btn size="sm" tone="ghost" onClick={() => void aksi({ aksi: "notif", jenis: "hapus" })}>Matikan</Btn></div>
+      </>) : (<>
+        <Muted className="mt-1">Supaya sinyal & peringatan stop/target langsung masuk HP (tempat kamu membuka FOMO). Gratis, tanpa akun: pasang aplikasi <b>ntfy</b> (Play Store / App Store).</Muted>
+        <Btn size="sm" tone="primary" className="mt-1.5" onClick={() => void aksi({ aksi: "notif", jenis: "buat" })}>Sambungkan notifikasi HP</Btn>
+      </>)}
+    </div>
   );
 }
 
@@ -199,8 +216,11 @@ export function RuangTradingPanel({ ctx, def }: { ctx: PanelCtx; def?: AgentDef 
       <Btn disabled={d.pindai} onClick={() => void aksi({ aksi: "pindai", pasar: "gold" })}>Pindai gold</Btn>
       <Btn tone={d.loop ? "danger" : "ghost"} onClick={() => void aksi({ aksi: "loop", nyala: !d.loop })}>{d.loop ? "Matikan pantau otomatis" : "Pantau otomatis"}</Btn>
     </div>
-    <Muted className="mt-1.5">{d.loop ? `Pantau otomatis menyala: pindai memecoin & gold tiap ${c.pantau_menit} menit dan cek posisi tiap menit (selama laptop & Studio hidup).` : "Pantau otomatis: tim memindai sendiri tiap beberapa menit dan memantau posisi selama laptop hidup."}</Muted>
+    <Muted className="mt-1.5">{d.loop ? `Pantau otomatis menyala: pindai memecoin & gold tiap ${c.pantau_menit} menit dan cek posisi tiap menit selama laptop hidup${c.otomatis_saat_studio_dibuka ? "; menyala sendiri tiap Studio dibuka" : ""}.` : c.otomatis_saat_studio_dibuka ? "Pantau otomatis akan menyala sendiri dalam beberapa detik." : "Pantau otomatis mati. Tekan untuk menyalakan (juga menyala sendiri tiap Studio dibuka)."}</Muted>
+    {c.mode === "nyata" && <Muted className="mt-1">Mode nyata: sinyal yang lolos muncul di sini{c.notifikasi?.ntfy_topik ? " dan di HP" : ""}; kamu beli/jual sendiri di FOMO. Setiap sinyal juga dicatat sebagai posisi latihan supaya kinerja tim terukur jujur.{c.berhenti_saat_target ? ` Sinyal berhenti setelah untung bersih hari ini ≥ ${usd(c.target_harian_usd)}.` : ""}</Muted>}
     {pesan && <Muted className="mt-1 text-leaf">{pesan}</Muted>}
+
+    <Notifikasi c={c} aksi={aksi} />
 
     {d.peringatan.length > 0 && (<>
       <H3>Peringatan posisi nyata</H3>

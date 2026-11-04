@@ -37,16 +37,20 @@ def simpan(j: dict) -> None:
 def hari_ini(j: dict, mode: str) -> dict:
     """Rugi terealisasi + risiko posisi terbuka & jumlah trade hari ini (WIB) untuk satu mode."""
     tgl = datetime.now(WIB).strftime("%Y-%m-%d")
-    rugi = trade = 0.0
+    rugi = trade = bersih = 0.0
     for p in j["posisi"]:
-        if p["mode"] != mode or not p["dibuka"].startswith(tgl):
+        if p["mode"] != mode:
+            continue
+        if (p.get("ditutup") or "").startswith(tgl):
+            bersih += p.get("pnl_usd", 0)
+        if not p["dibuka"].startswith(tgl):
             continue
         trade += 1
         if p["status"] == "terbuka":
             rugi += p.get("rugi_di_stop_usd", 0)
         elif p.get("pnl_usd", 0) < 0:
             rugi += -p["pnl_usd"]
-    return {"rugi_usd": round(rugi, 2), "trade": int(trade)}
+    return {"rugi_usd": round(rugi, 2), "trade": int(trade), "pnl_usd": round(bersih, 2)}
 
 
 def token_terbuka(j: dict, mode: str) -> list[str]:
@@ -140,6 +144,10 @@ def pantau() -> list[str]:
                 j.setdefault("peringatan", []).append({"waktu": sekarang(), "posisi": p["id"], "jenis": kunci, "teks": teks})
                 j["peringatan"] = j["peringatan"][-50:]
                 pesan.append("[NYATA] " + teks)
+                import notif
+                notif.kirim({"stop": "STOP: jual sekarang", "target": "TARGET: ambil untung", "waktu": "Waktu habis"}[kunci] + f" — {p['simbol']}",
+                            teks + f"\nHarga kini {harga:.6g} · PnL kira-kira {p['pnl_kini_usd']:+.2f} USD", 5 if kunci == "stop" else 4,
+                            {"stop": "rotating_light", "target": "moneybag", "waktu": "hourglass"}[kunci])
     simpan(j)
     return pesan
 

@@ -50,6 +50,8 @@ def ukur(setup: dict, sim: dict, cfg: dict, pasar: str, likuiditas_usd: float, h
     # aturan
     if risk_usd <= 0:
         blokir.append(f"batas rugi harian ${cfg['batas_rugi_harian_usd']} sudah tercapai — berhenti hari ini")
+    if cfg.get("berhenti_saat_target") and hari.get("pnl_usd", 0) >= cfg.get("target_harian_usd", 1e9):
+        blokir.append(f"target harian ${cfg['target_harian_usd']} sudah tercapai — kunci untung, lanjut besok")
     if hari.get("trade", 0) >= cfg["maks_trade_harian"]:
         blokir.append(f"sudah {hari['trade']} trade hari ini (maks {cfg['maks_trade_harian']})")
     if token in terbuka:

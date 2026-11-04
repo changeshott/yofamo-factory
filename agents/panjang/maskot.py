@@ -101,16 +101,18 @@ def pose(uji: bool) -> None:
 
 
 def acuan_gaya(uji: bool) -> None:
+    """Adegan contoh TANPA orang: dipakai Laras sebagai acuan gaya semua ilustrasi. Kalau acuannya memuat host, FLUX ikut
+    menyalin wajah Yofa ke setiap ilustrasi (host jadi muncul dobel), jadi host sengaja tidak dipakai sebagai acuan di sini."""
     g = gaya()
     out = DIR / "acuan-gaya.jpg"
-    prompt = (f"{g['ilustrasi']['gaya']}, a futuristic technology laboratory with a glowing robotic arm and holographic screens, "
-              f"wide cinematic view, {g['ilustrasi']['larangan']}")
+    prompt = (f"{g['ilustrasi']['gaya']}, an empty futuristic technology laboratory with a glowing robotic arm, holographic screens and "
+              f"floating glass vials, wide cinematic view, no people, no person, no face, no character, {g['ilustrasi']['larangan']}")
     if uji:
         gambar_ai.contoh_uji(out, "acuan gaya", 3)
     else:
-        acuan = [(DIR / "utama.jpg").read_bytes()] if (DIR / "utama.jpg").exists() else None
-        out.write_bytes(gambar_ai.gambar(prompt + (". " + g["ilustrasi"]["acuan_gaya"] if acuan else ""), 1536, 864, acuan=acuan, seed=SEED))
-    log(f"acuan gaya → {out.relative_to(ROOT).as_posix()}")
+        out.write_bytes(gambar_ai.gambar(prompt, 1536, 864, seed=SEED + 7))
+    (DIR / "acuan-gaya.json").write_text(json.dumps({"tanpa_host": True, "versi": 2}), encoding="utf-8")
+    log(f"acuan gaya (tanpa orang) → {out.relative_to(ROOT).as_posix()}")
 
 
 def main() -> None:

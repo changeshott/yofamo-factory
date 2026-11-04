@@ -314,6 +314,7 @@ def produksi(state: dict, c: dict, lanjut: str = "") -> str | None:
     slug, status = cat.get("slug"), cat.get("status")
     teks = lf.read_text(encoding="utf-8", errors="replace")[-6000:]
     if status == "selesai" and slug:
+        state.pop("masalah", None)
         state.setdefault("dibuat", []).append(slug)
         skor, _ = skor_qc(slug)
         log(f"video jadi: {slug} (skor QC {skor if skor is not None else '-'})")
@@ -321,7 +322,19 @@ def produksi(state: dict, c: dict, lanjut: str = "") -> str | None:
     if API_LIMIT.search(teks):
         pulih = jam_pulih(teks[-3000:])
         state["jeda_sampai"] = pulih.isoformat(timespec="minutes")
+        state["masalah"] = f"Kuota Claude habis, pulih ±{pulih.strftime('%H:%M')}."
         log(f"kuota Claude habis → autopilot berhenti produksi sampai {pulih.strftime('%H:%M')} (video ini dilanjutkan setelahnya)")
+    elif "Login Claude kedaluwarsa" in teks:
+        state["jeda_sampai"] = (now() + timedelta(hours=2)).isoformat(timespec="minutes")
+        state["masalah"] = "Login Claude kedaluwarsa: buka terminal, ketik claude lalu /login (sekali saja)."
+        log("login Claude kedaluwarsa → produksi berhenti; Zona perlu menjalankan `claude` lalu /login")
+    elif "Internet laptop mati" in teks or "Internet laptop sedang mati" in teks:
+        state["jeda_sampai"] = (now() + timedelta(minutes=15)).isoformat(timespec="minutes")
+        state["masalah"] = "Internet laptop mati saat produksi; dicoba lagi otomatis."
+        if state.get("produksi", {}).get(hari, 0) > 0:
+            state["produksi"][hari] -= 1          # tidak dihitung kuota harian
+        log("internet laptop mati → autopilot mencoba lagi 15 menit lagi (tidak dihitung kuota harian)")
+        return None
     elif "Masih ada produksi lain" in teks:
         log("produksi lain sedang berjalan (tombol Studio); dicoba lagi nanti")
         return None
@@ -362,7 +375,7 @@ def putaran(paksa: bool = False) -> None:
                 log("autopilot dimatikan Zona → berhenti setelah video terakhir")
                 break
             if state.get("jeda_sampai") and now() < datetime.fromisoformat(state["jeda_sampai"]).replace(tzinfo=WIB):
-                log(f"jeda produksi sampai {state['jeda_sampai']} (kuota Claude)")
+                log(f"jeda produksi sampai {state['jeda_sampai']} ({state.get('masalah') or 'kuota Claude / gagal beruntun'})")
                 break
             if state.get("produksi", {}).get(hari, 0) >= c["maks_produksi"]:
                 log(f"batas {c['maks_produksi']} produksi hari ini tercapai; slot yang kosong menunggu besok")
@@ -374,7 +387,7 @@ def putaran(paksa: bool = False) -> None:
             hasil = produksi(state, c, terhenti[0] if terhenti else "")
             if hasil is None and state.get("jeda_sampai") and now() < datetime.fromisoformat(state["jeda_sampai"]).replace(tzinfo=WIB):
                 wj(STATE, state)
-                break                                  # kuota Claude habis: tunggu sampai pulih
+                break                                  # kuota Claude habis / internet mati / perlu login: tunggu
             if hasil is None:
                 gagal_beruntun += 1
                 if time.time() - t0 < 300 and state.get("produksi", {}).get(hari, 0) > 0:
@@ -446,6 +459,7 @@ def main() -> None:
         # (produksi yang mati di awal, mis. jendelanya ditutup, tidak dihitung)
         st0 = rj(STATE)
         st0.pop("jeda_sampai", None)
+        st0.pop("masalah", None)
         hari = now().strftime("%Y%m%d")
         nyata = 0
         for f in (ROOT / "produksi").glob(f"autopilot-{hari}-*.json"):

@@ -39,7 +39,7 @@ export async function GET(req: Request) {
   try { log = fs.readFileSync(path.join(P.logs, `autopilot-${hari}.txt`), "utf-8").trim().split("\n").slice(-14); } catch { /* belum ada putaran hari ini */ }
   return json({
     config: cfg, slot, catatan: jd.catatan ?? [], jadwal_dibuat: jd.dibuat ?? null,
-    produksi_hari_ini: (st.produksi ?? {})[hari] ?? 0, putaran_terakhir: st.putaran_terakhir ?? null, jeda_sampai: st.jeda_sampai ?? null,
+    produksi_hari_ini: (st.produksi ?? {})[hari] ?? 0, putaran_terakhir: st.putaran_terakhir ?? null, jeda_sampai: st.jeda_sampai ?? null, masalah: st.masalah ?? null,
     menunggu_zona: st.menunggu_zona ?? {}, berjalan: berjalan(), tugas: tugasTerpasang(), log, selesai: st.selesai ?? null,
   });
 }

@@ -45,6 +45,8 @@ Tim analisa untuk Zona yang trading memecoin Solana lewat aplikasi **FOMO** (tid
 | Bagas | Mesin waktu 10.000× dari candle koin itu sendiri + uji ulang riwayat setup, ukuran posisi dari rugi maks, biaya FOMO + slippage, PASS/BLOKIR | `simulasi.py`, `risiko.py` | aktif |
 | Yudi | Jurnal: posisi latihan ditutup otomatis di stop/target/waktu, posisi nyata diberi peringatan (Zona yang menjual), statistik & evaluasi jujur | `jurnal.py`, `/trading-evaluasi` | aktif |
 
+Mode sekarang **nyata** (permintaan Zona, target $2/hari): pantau otomatis menyala sendiri saat Studio dibuka (`otomatis_saat_studio_dibuka`), sinyal dikirim ke Studio + **notifikasi HP** lewat ntfy.sh (`notifikasi.ntfy_topik`, `agents/trading/notif.py`), setiap sinyal juga dicatat sebagai posisi latihan (kinerja sistem terukur jujur), sinyal berhenti setelah batas rugi harian atau target harian tercapai (`berhenti_saat_target`).
+
 Alur: Studio → **Ruang Trading** → Pindai memecoin / gold (atau Pantau otomatis tiap `pantau_menit`) → kartu sinyal (alamat kontrak, masuk/stop/target, dolar rugi & untung bersih, peluang vs impas, alasan) → **mode latihan**: dicatat otomatis sebagai trade pura-pura · **mode nyata**: Zona beli sendiri di FOMO lalu menekan "Saya beli" dan "Saya sudah jual". **Tidak ada agent yang mengirim order, memindahkan dana, atau memegang private key/seed phrase**; FOMO dipakai manual. Mode nyata hanya diaktifkan Zona (konfirmasi tertulis). Bukan nasihat keuangan.
 
 Setiap agent adalah satu skill Claude Code di `.claude/skills/`. Kalau diminta "panggil Steve/Nova/Raka/Dara/Bima/Kai/Rara/Uli", jalankan skill-nya.

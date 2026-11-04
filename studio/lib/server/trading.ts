@@ -70,8 +70,27 @@ export function pindai(pasar: string) {
   return r.ok ? { ok: true, message: p === "gold" ? "Tim memindai gold…" : "Tim memindai memecoin… (±1–2 menit)" } : r;
 }
 
+function ubahCfg(f: (c: Record<string, unknown>) => void) {
+  const c = baca<Record<string, unknown>>(CFG);
+  if (!c) return;
+  f(c);
+  fs.writeFileSync(CFG, JSON.stringify(c, null, 2), "utf-8");
+}
+
+const gt = globalThis as unknown as { __yofamoTrading?: number };
+/** Studio dibuka/terbuka → pantau otomatis menyala sendiri (kalau Zona tidak mematikannya). Dicoba paling sering tiap 5 menit. */
+export function tradingOtomatis(): void {
+  const c = baca<{ otomatis_saat_studio_dibuka?: boolean }>(CFG);
+  if (!c?.otomatis_saat_studio_dibuka || loopBerjalan()) return;
+  if (gt.__yofamoTrading && Date.now() - gt.__yofamoTrading < 5 * 60_000) return;
+  gt.__yofamoTrading = Date.now();
+  try { fs.rmSync(path.join(TR, "berhenti"), { force: true }); } catch { /* tidak apa */ }
+  jalankanLatar(["agents/trading/meja.py", "loop"], `trading-loop-${stamp()}.txt`);
+}
+
 export function loop(nyala: boolean) {
-  if (!nyala) { fs.mkdirSync(TR, { recursive: true }); fs.writeFileSync(path.join(TR, "berhenti"), "1"); return { ok: true, message: "Pantau otomatis dihentikan (selesai dalam ±1 menit)." }; }
+  ubahCfg((c) => { c.otomatis_saat_studio_dibuka = nyala; });
+  if (!nyala) { fs.mkdirSync(TR, { recursive: true }); fs.writeFileSync(path.join(TR, "berhenti"), "1"); return { ok: true, message: "Pantau otomatis dimatikan (juga tidak menyala sendiri saat Studio dibuka)." }; }
   if (loopBerjalan()) return { ok: false, message: "Pantau otomatis sudah menyala." };
   const r = jalankanLatar(["agents/trading/meja.py", "loop"], `trading-loop-${stamp()}.txt`);
   return r.ok ? { ok: true, message: "Pantau otomatis menyala: pindai tiap beberapa menit & memantau posisi selama Studio/laptop hidup." } : r;
@@ -101,6 +120,20 @@ export function lewati(sinyal: string) {
   if (!ID.test(sinyal)) return { ok: false, message: "Sinyal tidak dikenal." };
   meja(["lewati", sinyal]); return { ok: true, message: "Sinyal dilewati." };
 }
+export function notifikasi(aksi: "buat" | "hapus" | "tes") {
+  if (aksi === "buat") {
+    const huruf = "abcdefghijkmnpqrstuvwxyz23456789";
+    const topik = "yofamo-" + Array.from({ length: 20 }, () => huruf[Math.floor(Math.random() * huruf.length)]).join("");
+    ubahCfg((c) => { c.notifikasi = { ...(c.notifikasi as object ?? {}), ntfy_topik: topik }; });
+    return { ok: true, message: `Topik dibuat: ${topik}. Pasang aplikasi ntfy di HP → + → Subscribe → isi topik ini.` };
+  }
+  if (aksi === "hapus") { ubahCfg((c) => { c.notifikasi = { ntfy_topik: "" }; }); return { ok: true, message: "Notifikasi HP dimatikan." }; }
+  const py = pythonCmd();
+  if (!py) return { ok: false, message: "Python tidak ditemukan." };
+  const r = spawnSync(py, ["agents/trading/notif.py", "tes"], { cwd: ROOT, env: agentEnv(), windowsHide: true, encoding: "utf-8", timeout: 30_000 });
+  return { ok: r.status === 0, message: r.status === 0 ? "Pesan tes terkirim. Cek HP-mu." : "Belum terkirim: cek internet & topik." };
+}
+
 export function analisaDalam(id: string) {
   if (!ID.test(id)) return { ok: false, message: "Tidak dikenal." };
   const r = jalankanLatar(["agents/trading/analisa_dalam.py", id], `trading-analisa-${stamp()}.txt`);
@@ -114,7 +147,7 @@ export function bacaAnalisa(id: string): string | null {
 /** Aturan yang boleh diubah Zona dari Studio, dengan batas aman. */
 const BATAS: Record<string, [number, number]> = {
   modal_usd: [5, 100000], risiko_per_trade_usd: [0.1, 1000], batas_rugi_harian_usd: [0.1, 5000], maks_trade_harian: [1, 20],
-  maks_porsi_modal: [0.05, 1], min_peluang_target_pct: [20, 90], min_ev_r: [0, 2], pantau_menit: [3, 120], biaya_fomo_per_sisi_pct: [0, 5],
+  maks_porsi_modal: [0.05, 1], min_peluang_target_pct: [20, 90], target_harian_usd: [0.1, 10000], min_ev_r: [0, 2], pantau_menit: [3, 120], biaya_fomo_per_sisi_pct: [0, 5],
 };
 export function simpanAturan(ubah: Record<string, unknown>) {
   const c = baca<Record<string, unknown>>(CFG);

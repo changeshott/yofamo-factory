@@ -1,11 +1,11 @@
 {
-  "mode": "latihan",
+  "mode": "nyata",
   "modal_usd": 20,
   "risiko_per_trade_usd": 1.0,
   "batas_rugi_harian_usd": 2.0,
   "maks_trade_harian": 3,
   "maks_porsi_modal": 0.5,
-  "target_harian_usd": 3.0,
+  "target_harian_usd": 2.0,
   "biaya_fomo_per_sisi_pct": 0.5,
   "biaya_gold_per_sisi_pct": 0.1,
   "slippage_min_pct": 0.4,
@@ -34,5 +34,10 @@
     "leverage_maks": 5,
     "tahan_maks_jam": 12
   },
-  "_catatan": "Diubah Zona lewat Studio → Ruang Trading → Aturan. mode: latihan (uang pura-pura, semua sinyal yang lolos dicatat otomatis) atau nyata (sinyal dikirim ke kamu, kamu yang tap beli/jual di FOMO lalu mencatatnya). Tidak ada agent yang pernah mengirim order atau memegang private key."
+  "_catatan": "Diubah Zona lewat Studio → Ruang Trading → Aturan. mode nyata (permintaan Zona 4 Nov 2026): sinyal dikirim ke Zona (Studio + notifikasi HP), Zona yang membeli & menjual sendiri di FOMO lalu mencatatnya; setiap sinyal juga dicatat sebagai posisi latihan supaya kinerja sistem terukur. otomatis_saat_studio_dibuka: pantau otomatis menyala saat Studio dibuka. berhenti_saat_target: sinyal berhenti setelah untung bersih hari ini ≥ target. Tidak ada agent yang pernah mengirim order atau memegang private key.",
+  "berhenti_saat_target": true,
+  "otomatis_saat_studio_dibuka": true,
+  "notifikasi": {
+    "ntfy_topik": ""
+  }
 }

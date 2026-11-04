@@ -8,6 +8,21 @@ export const R2X = 22.6, PINTU: [number, number] = [6.6, 8.8];
 export const R3X = 36.6, TW = 48;
 export const BW = 1072, BH = 660, OX = 256, OY = 132;
 
+/** Tiga ruang kantor + tampilan semua. Batas x (tile) tiap ruang, dipakai kamera untuk membingkai satu ruang. */
+export type Ruang = "semua" | "shorts" | "animasi" | "trading";
+export const RUANG: { id: Ruang; nama: string; x: [number, number]; warna: string }[] = [
+  { id: "semua", nama: "Semua", x: [0, 48], warna: "#9DB4CD" },
+  { id: "shorts", nama: "Shorts", x: [0, 22], warna: "#47B5FF" },
+  { id: "animasi", nama: "Animasi", x: [22, 36], warna: "#FF4FA3" },
+  { id: "trading", nama: "Trading", x: [36, 48], warna: "#39D36B" },
+];
+/** Kotak (koordinat buffer) yang memuat satu ruang lengkap dengan dinding & label di atasnya. */
+export function kotakRuang(id: Ruang): [number, number, number, number] {
+  const [x0, x1] = (RUANG.find((r) => r.id === id) ?? RUANG[0]).x;
+  const px = (x: number, y: number) => OX + (x - y) * T, py = (x: number, y: number, z = 0) => OY + ((x + y) * T) / 2 - z;
+  return [px(x0, RD) - 8, py(x0, 0, WALL) - 12, px(x1, 0) + 8, py(x1, RD) + 10];
+}
+
 export type AgentId = "steve" | "nova" | "raka" | "dara" | "bima" | "kai" | "rara" | "uli" | "bayu" | "citra" | "gilang" | "laras" | "tio" | "wulan"
   | "arga" | "sinta" | "dimas" | "nadia" | "bagas" | "yudi";
 export interface AgentDef {

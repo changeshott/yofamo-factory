@@ -245,14 +245,32 @@ def pindai(pasar: str) -> dict:
         if dobel:
             log("meja", f"{s['simbol']}: sinyal serupa sudah ada < 1 jam lalu, dilewati")
             continue
+        # setiap sinyal selalu juga dicatat sebagai posisi latihan → kinerja sistem terukur jujur, terpisah dari keputusanmu
+        pos = jurnal.buka(s, "latihan")
+        s["posisi"] = pos["id"]
         if c["mode"] == "latihan":
-            pos = jurnal.buka(s, "latihan")
             s["status"] = "latihan"
-            s["posisi"] = pos["id"]
             log("yudi", f"[latihan] {s['simbol']} dibuka di {pos['masuk']:.6g} (${pos['posisi_usd']})")
+        else:
+            s["status"] = "baru"
+            import notif
+            notif.sinyal(s)
+            log("meja", f"[NYATA] sinyal {s['simbol']} dikirim ke kamu (beli sendiri di FOMO, lalu tekan 'Saya beli')")
         tulis(sdir / f"{s['id']}.json", s)
         baru.append(s)
-    papan = {"waktu": jurnal.sekarang(), "pasar": pasar, "mode": c["mode"], "detik": round(time.time() - t0),
+    hari = jurnal.hari_ini(jurnal.baca(), c["mode"])
+    kunci_hari = datetime.now().strftime("%Y-%m-%d")
+    tanda = data.TRADING / "notif-harian.json"
+    sudah = json.loads(tanda.read_text(encoding="utf-8")) if tanda.exists() else {}
+    if c["mode"] == "nyata" and sudah.get("tgl") != kunci_hari:
+        import notif
+        if hari["rugi_usd"] >= c["batas_rugi_harian_usd"]:
+            notif.kirim("Batas rugi harian tercapai", f"Rugi hari ini ${hari['rugi_usd']}. Tim berhenti memberi sinyal sampai besok. Jangan menambah modal untuk mengejar kerugian.", 4, "stop_sign")
+            tulis(tanda, {"tgl": kunci_hari})
+        elif c.get("berhenti_saat_target") and hari["pnl_usd"] >= c["target_harian_usd"]:
+            notif.kirim("Target harian tercapai", f"Untung bersih hari ini ${hari['pnl_usd']}. Sinyal berhenti sampai besok — kunci untungnya.", 3, "tada")
+            tulis(tanda, {"tgl": kunci_hari})
+    papan = {"waktu": jurnal.sekarang(), "pasar": pasar, "mode": c["mode"], "detik": round(time.time() - t0), "hari_ini": hari,
              "sinyal": [s["id"] for s in baru], "diblokir": hasil_b[:30], "dipantau": sorted(hasil_p, key=lambda x: -x["skor_teknikal"])[:8]}
     tulis(data.TRADING / "papan.json", papan)
     tahap(None)

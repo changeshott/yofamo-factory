@@ -3,21 +3,21 @@
 import { useEffect, useRef, useState } from "react";
 import type { StudioState } from "@/lib/types";
 import { OfficeEngine } from "./engine";
-import { BH, BW } from "./world";
+import { BH, BW, kotakRuang, type Ruang } from "./world";
 
 interface Cam { s: number; x: number; y: number; fit: number }
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
-export default function Office({ state, onOpen, fokus = null, kiri = 0, kanan = 0 }: { state: StudioState | null; onOpen: (id: string) => void; fokus?: string | null; kiri?: number; kanan?: number }) {
+export default function Office({ state, onOpen, fokus = null, kiri = 0, kanan = 0, ruang: ruangAktif = "semua", atas = 0 }: { state: StudioState | null; onOpen: (id: string) => void; fokus?: string | null; kiri?: number; kanan?: number; ruang?: Ruang; atas?: number }) {
   const wrap = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const overlay = useRef<HTMLDivElement>(null);
   const engine = useRef<OfficeEngine | null>(null);
   const cam = useRef<Cam>({ s: 1, x: 0, y: 0, fit: 1 });
   const openRef = useRef(onOpen);
-  const ruang = useRef({ kiri, kanan });
-  ruang.current = { kiri, kanan };
+  const ruang = useRef({ kiri, kanan, nama: ruangAktif, atas });
+  ruang.current = { kiri, kanan, nama: ruangAktif, atas };
   const api = useRef<{ fokus: (id: string | null) => void } | null>(null);
   const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
   openRef.current = onOpen;
@@ -25,7 +25,7 @@ export default function Office({ state, onOpen, fokus = null, kiri = 0, kanan = 
   useEffect(() => {
     if (engine.current) engine.current.state = state;
   }, [state]);
-  useEffect(() => { const t = setTimeout(() => api.current?.fokus(fokus), 30); return () => clearTimeout(t); }, [fokus, kiri]);
+  useEffect(() => { const t = setTimeout(() => api.current?.fokus(fokus), 30); return () => clearTimeout(t); }, [fokus, kiri, ruangAktif]);
 
   useEffect(() => {
     const eng = new OfficeEngine();
@@ -35,16 +35,20 @@ export default function Office({ state, onOpen, fokus = null, kiri = 0, kanan = 
     let w = 0, h = 0, dpr = 1, userZoomed = false, anim = 0;
     const bokeh = Array.from({ length: 14 }, (_, i) => ({ x: ((i * 97) % 100) / 100, y: ((i * 61 + 17) % 100) / 100, r: 40 + ((i * 37) % 90), a: 0.03 + ((i * 13) % 5) / 100 }));
 
+    /** Skala & posisi kamera yang membingkai ruang aktif di area yang tidak tertutup sidebar, HUD atas, dan dok bawah. */
+    const bingkai = () => {
+      const L = w < 1024 ? 0 : ruang.current.kiri, T0 = ruang.current.atas, B = w < 700 ? 150 : 96;
+      const [x0, y0, x1, y1] = kotakRuang(ruang.current.nama), bw = x1 - x0, bh = y1 - y0, aw = w - L - 16, ah = Math.max(120, h - T0 - B);
+      const s = Math.min(aw / bw, ah / bh, ruang.current.nama === "semua" ? 4 : 1.9);
+      return { s, x: L + 8 + (aw - bw * s) / 2 - x0 * s, y: T0 + (ah - bh * s) / 2 - y0 * s };
+    };
     const fit = () => {
       const r = el.getBoundingClientRect();
       w = r.width; h = r.height; dpr = window.devicePixelRatio || 1;
       cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
-      const L = w < 900 ? 0 : ruang.current.kiri, aw = w - L;
-      let f = Math.min(aw / BW, (h - 70) / BH);
-      if (w < 700) f = Math.max(f, Math.min((w * 1.7) / BW, (h * 0.62) / BH)); // HP: tampilkan lebih dekat, geser untuk melihat sisanya
-      const c = cam.current;
-      if (!userZoomed && !anim) { c.s = f; c.x = L + (aw - BW * f) / 2; c.y = (h - BH * f) / 2 - 18; }
-      c.fit = f;
+      const b = bingkai(), c = cam.current;
+      if (!userZoomed && !anim) { c.s = b.s; c.x = b.x; c.y = b.y; }
+      c.fit = b.s;
     };
     const draw = () => {
       const c = cam.current;
@@ -93,8 +97,25 @@ export default function Office({ state, onOpen, fokus = null, kiri = 0, kanan = 
       return [(e.clientX - r.left - c.x) / c.s, (e.clientY - r.top - c.y) / c.s] as const;
     };
     let drag: { x: number; y: number; cx: number; cy: number; moved: boolean } | null = null;
-    const down = (e: PointerEvent) => { drag = { x: e.clientX, y: e.clientY, cx: cam.current.x, cy: cam.current.y, moved: false }; cv.setPointerCapture(e.pointerId); };
+    const jari = new Map<number, { x: number; y: number }>();
+    let cubit: { d: number; s: number; mx: number; my: number; cx: number; cy: number } | null = null;
+    const down = (e: PointerEvent) => {
+      jari.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      cv.setPointerCapture(e.pointerId);
+      if (jari.size === 2) {
+        const [a, b] = [...jari.values()], r = cv.getBoundingClientRect();
+        cubit = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, s: cam.current.s, mx: (a.x + b.x) / 2 - r.left, my: (a.y + b.y) / 2 - r.top, cx: cam.current.x, cy: cam.current.y };
+        drag = null; return;
+      }
+      drag = { x: e.clientX, y: e.clientY, cx: cam.current.x, cy: cam.current.y, moved: false };
+    };
     const move = (e: PointerEvent) => {
+      if (jari.has(e.pointerId)) jari.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (cubit && jari.size === 2) {
+        const [a, b] = [...jari.values()], c = cam.current;
+        const ns = Math.min(c.fit * 4, Math.max(c.fit * 0.5, cubit.s * (Math.hypot(a.x - b.x, a.y - b.y) / cubit.d)));
+        c.x = cubit.mx - ((cubit.mx - cubit.cx) * ns) / cubit.s; c.y = cubit.my - ((cubit.my - cubit.cy) * ns) / cubit.s; c.s = ns; userZoomed = true; draw(); return;
+      }
       if (drag) {
         const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
         if (Math.hypot(dx, dy) > 4) drag.moved = true;
@@ -107,6 +128,8 @@ export default function Office({ state, onOpen, fokus = null, kiri = 0, kanan = 
       setTip(hit ? { x: e.clientX - r.left, y: e.clientY - r.top, text: hit.label + (hit.id.startsWith("future:") ? " · belum dibuat" : "") } : null);
     };
     const up = (e: PointerEvent) => {
+      jari.delete(e.pointerId);
+      if (cubit) { if (jari.size < 2) cubit = null; drag = null; return; }
       const wasDrag = drag?.moved; drag = null; cv.style.cursor = "grab";
       if (wasDrag) return;
       const [bx, by] = toBuf(e), hit = eng.hitAt(bx, by);
@@ -115,12 +138,12 @@ export default function Office({ state, onOpen, fokus = null, kiri = 0, kanan = 
     const wheel = (e: WheelEvent) => {
       e.preventDefault();
       const c = cam.current, r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
-      const ns = Math.min(c.fit * 4, Math.max(c.fit * 0.85, c.s * (e.deltaY < 0 ? 1.12 : 1 / 1.12)));
+      const ns = Math.min(c.fit * 4, Math.max(c.fit * 0.5, c.s * (e.deltaY < 0 ? 1.12 : 1 / 1.12)));
       c.x = mx - ((mx - c.x) * ns) / c.s; c.y = my - ((my - c.y) * ns) / c.s; c.s = ns; userZoomed = true; draw();
     };
     const leave = () => { eng.hoverId = null; setTip(null); };
     const reset = () => { userZoomed = false; fit(); draw(); };
-    const zoomBy = (f: number) => { const c = cam.current, mx = w / 2, my = h / 2, ns = Math.min(c.fit * 4, Math.max(c.fit * 0.85, c.s * f)); c.x = mx - ((mx - c.x) * ns) / c.s; c.y = my - ((my - c.y) * ns) / c.s; c.s = ns; userZoomed = true; draw(); };
+    const zoomBy = (f: number) => { const c = cam.current, mx = w / 2, my = h / 2, ns = Math.min(c.fit * 4, Math.max(c.fit * 0.5, c.s * f)); c.x = mx - ((mx - c.x) * ns) / c.s; c.y = my - ((my - c.y) * ns) / c.s; c.s = ns; userZoomed = true; draw(); };
     (el as unknown as { __zoom: (f: number) => void; __reset: () => void }).__zoom = zoomBy;
     // transisi zoom halus ke objek yang dibuka (dan kembali saat ditutup)
     const terbang = (ts: number, tx: number, ty: number) => {
@@ -136,8 +159,8 @@ export default function Office({ state, onOpen, fokus = null, kiri = 0, kanan = 
     };
     api.current = {
       fokus: (id) => {
-        const c = cam.current, L = w < 900 ? 0 : ruang.current.kiri;
-        if (!id) { userZoomed = false; const aw = w - L; terbang(c.fit, L + (aw - BW * c.fit) / 2, (h - BH * c.fit) / 2 - 18); return; }
+        const c = cam.current, L = w < 1024 ? 0 : ruang.current.kiri;
+        if (!id) { userZoomed = false; const b = bingkai(); c.fit = b.s; terbang(b.s, b.x, b.y); return; }
         const p = eng.anchor(id);
         if (!p) return;
         const R = w < 700 ? 0 : Math.min(ruang.current.kanan, w * 0.6), vw = w - L - R, ts = Math.min(c.fit * 4, c.fit * (id.startsWith("agent:") || id === "founder" ? 2.3 : 1.8));
@@ -146,11 +169,11 @@ export default function Office({ state, onOpen, fokus = null, kiri = 0, kanan = 
     };
     (el as unknown as { __reset: () => void }).__reset = reset;
 
-    cv.addEventListener("pointerdown", down); cv.addEventListener("pointermove", move); cv.addEventListener("pointerup", up);
+    cv.addEventListener("pointerdown", down); cv.addEventListener("pointermove", move); cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
     cv.addEventListener("wheel", wheel, { passive: false }); cv.addEventListener("pointerleave", leave); cv.addEventListener("dblclick", reset);
     return () => {
       window.clearInterval(timer); ro.disconnect(); cancelAnimationFrame(anim);
-      cv.removeEventListener("pointerdown", down); cv.removeEventListener("pointermove", move); cv.removeEventListener("pointerup", up);
+      cv.removeEventListener("pointerdown", down); cv.removeEventListener("pointermove", move); cv.removeEventListener("pointerup", up); cv.removeEventListener("pointercancel", up);
       cv.removeEventListener("wheel", wheel); cv.removeEventListener("pointerleave", leave); cv.removeEventListener("dblclick", reset);
     };
   }, []);
@@ -160,7 +183,7 @@ export default function Office({ state, onOpen, fokus = null, kiri = 0, kanan = 
 
   return (
     <div ref={wrap} className="absolute inset-0 overflow-hidden">
-      <canvas ref={canvas} className="absolute inset-0 size-full cursor-grab [image-rendering:pixelated]" role="img"
+      <canvas ref={canvas} className="absolute inset-0 size-full cursor-grab touch-none [image-rendering:pixelated]" role="img"
         aria-label="Kantor virtual Studio Yofamo. Pakai tombol di dok bawah untuk membuka setiap meja dan papan." />
       <div ref={overlay} className="pointer-events-none absolute inset-0" aria-hidden="true" />
       {tip && (
@@ -168,7 +191,7 @@ export default function Office({ state, onOpen, fokus = null, kiri = 0, kanan = 
           {tip.text}
         </div>
       )}
-      <div className="absolute right-4 bottom-24 z-10 flex flex-col overflow-hidden rounded-lg border border-line bg-ink-800/90 shadow-lg backdrop-blur max-sm:bottom-28">
+      <div className="absolute right-3 bottom-24 z-10 flex flex-col overflow-hidden rounded-lg border border-line bg-ink-800/90 shadow-lg backdrop-blur max-md:bottom-[150px]">
         <button className="grid size-9 place-items-center font-pixel text-lg hover:bg-ink-700" onClick={() => zoom(1.25)} aria-label="Perbesar">+</button>
         <button className="grid size-9 place-items-center border-y border-line font-pixel text-lg hover:bg-ink-700" onClick={() => zoom(0.8)} aria-label="Perkecil">−</button>
         <button className="grid size-9 place-items-center font-pixel text-[11px] hover:bg-ink-700" onClick={reset} aria-label="Pas layar">FIT</button>
