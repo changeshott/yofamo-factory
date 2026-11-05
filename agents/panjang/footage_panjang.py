@@ -201,6 +201,11 @@ def main() -> None:
     for daftar in man.values():
         for s in daftar:
             dipakai.setdefault(f"{s.get('sumber')}-{s.get('id')}", []).append((float(s.get("sumber_mulai") or 0), float(s.get("sumber_mulai") or 0) + float(s.get("durasi") or 4)))
+    # adegan yang diganti (--ulang, mis. permintaan Wulan karena ada watermark): klip lamanya tidak boleh dipilih lagi
+    for no in a.ulang:
+        for s in man.get(str(no - 1)) or []:
+            if not s.get("cadangan"):
+                dipakai[f"{s.get('sumber')}-{s.get('id')}"] = [(0.0, 0.0)] * 3
     adegan = naskah.get("adegan") or []
     kurang = []
     # 1. footage

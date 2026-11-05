@@ -73,6 +73,22 @@ def log(msg: str) -> None:
             f.write(line + "\n")
 
 
+def kabar(teks: str, kunci: str | None = None, jeda_jam: float = 6.0) -> None:
+    """Notifikasi Telegram ke HP Zona (agents/notif.py); tanpa pengaturan / mode uji → dilewati."""
+    if UJI:
+        return
+    try:
+        import notif
+        notif.kirim(teks, kunci, jeda_jam)
+    except Exception:  # noqa: BLE001 — kabar tidak boleh mengganggu autopilot
+        pass
+
+
+def judul_video(slug: str) -> str:
+    sc = rj(VIDEOS / slug / "script.json")
+    return re.sub(r"\s+", " ", re.sub(r"#\S+", "", str(sc.get("judul") or ""))).strip() or slug
+
+
 def rj(p: Path, default=None):
     try:
         return json.loads(Path(p).read_text(encoding="utf-8-sig"))
@@ -215,6 +231,8 @@ def siap_tayang(state: dict, c: dict) -> list[tuple[str, str]]:
         elif not state.setdefault("menunggu_zona", {}).get(slug):
             state["menunggu_zona"][slug] = f"skor QC {skor if skor is not None else '-'} di bawah {c['skor_min']:g}; tunggu Zona"
             log(f"{slug}: skor QC {skor} di bawah batas, menunggu Zona menonton & menyetujui di Studio")
+            kabar(f"👀 Shorts menunggu kamu: {judul_video(slug)}\nSkor Rara {skor if skor is not None else '-'} (batas {c['skor_min']:g}). Tonton & setujui di Studio.",
+                  f"tunggu-{slug}", 48)
     return out
 
 
@@ -270,6 +288,7 @@ def isi_slot(state: dict, c: dict) -> int:
         state["slot"][kunci_slot(t)] = {"slug": slug, "videoId": up.get("videoId"), "url": up.get("url"), "status": "terjadwal", "alasan": alasan}
         terisi += 1
         log(f"{slug} dijadwalkan tayang {kunci_slot(t)} WIB ({alasan})")
+        kabar(f"✅ Shorts terjadwal {t.strftime('%d/%m %H:%M')} WIB\n{judul_video(slug)}\n({alasan}) {up.get('url') or ''}".strip(), f"jadwal-{slug}", 240)
     return terisi
 
 
@@ -343,10 +362,12 @@ def produksi(state: dict, c: dict, lanjut: str = "") -> str | None:
         state["jeda_sampai"] = pulih.isoformat(timespec="minutes")
         state["masalah"] = f"Kuota Claude habis, pulih ±{pulih.strftime('%H:%M')}."
         log(f"kuota Claude habis → autopilot berhenti produksi sampai {pulih.strftime('%H:%M')} (video ini dilanjutkan setelahnya)")
+        kabar(f"⏸️ Autopilot Shorts berhenti: kuota Claude habis, lanjut otomatis ±{pulih.strftime('%H:%M')}.", "kuota-claude", 6)
     elif "Login Claude kedaluwarsa" in teks:
         state["jeda_sampai"] = (now() + timedelta(hours=2)).isoformat(timespec="minutes")
         state["masalah"] = "Login Claude kedaluwarsa: buka terminal, ketik claude lalu /login (sekali saja)."
         log("login Claude kedaluwarsa → produksi berhenti; Zona perlu menjalankan `claude` lalu /login")
+        kabar("⚠️ Login Claude kedaluwarsa. Buka terminal di laptop, ketik: claude lalu /login (sekali saja).", "login-claude", 12)
     elif "Internet laptop mati" in teks or "Internet laptop sedang mati" in teks:
         state["jeda_sampai"] = (now() + timedelta(minutes=15)).isoformat(timespec="minutes")
         state["masalah"] = "Internet laptop mati saat produksi; dicoba lagi otomatis."
@@ -414,6 +435,7 @@ def putaran(paksa: bool = False) -> None:
                 if time.time() - t0 < 600 or gagal_beruntun >= 2:
                     state["jeda_sampai"] = (now() + timedelta(hours=1)).isoformat(timespec="minutes")
                     log("produksi gagal (terlalu cepat atau 2x berturut-turut) → autopilot berhenti dulu 1 jam supaya tidak mengulang terus")
+                    kabar("⚠️ Produksi Shorts gagal 2x berturut-turut; autopilot istirahat 1 jam. Cek log di Studio → Produksi.", "gagal-shorts", 6)
                     wj(STATE, state)
                     break
             else:

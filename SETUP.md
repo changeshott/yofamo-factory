@@ -152,12 +152,27 @@ Cara kerjanya tiap putaran: hitung jam tayang terbaik (`insights/jadwal.md`) →
 
 Melepas penjadwal: `pasang_autopilot.bat hapus`. Mematikan sementara: tombol **Matikan** di Studio.
 
-## Ruang Animasi: video YouTube panjang full animasi
+## Ruang Animasi: video YouTube panjang (gaya dokumenter)
 
-Kantor kedua di Studio (sebelah kanan kantor Shorts). Tidak perlu pemasangan baru: memakai HyperFrames (`npm install` di folder project, Node 22+), edge-tts, dan kunci Cloudflare yang sama dengan Shorts (`CLOUDFLARE_ACCOUNT_ID` & `CLOUDFLARE_API_TOKEN` di `.env`). Gambar gaya lukis-komik dibuat model **FLUX.2 klein-4b** (gratis, bisa memakai gambar acuan supaya host & gaya konsisten): ±70 gambar/hari dari kuota gratis 10.000 neuron, reset 07:00 WIB. Satu video ±10–20 gambar; host pertama kali ±12 gambar.
+Kantor kedua di Studio (sebelah kanan kantor Shorts). Tidak perlu pemasangan baru: memakai HyperFrames (`npm install`, Node 22+),
+edge-tts, yt-dlp, rembg, dan kunci sumber footage yang sama dengan Shorts. Video 5–12 menit: footage asli (dicek bebas tulisan/watermark)
++ motion graphic gaya "Video 1".
 
-0. Pertama kali: Studio → **Ruang Animasi** → **Gaya & host Yofa** → **Gambar 4 kandidat host** → klik **Pakai** pada yang paling kamu suka (Laras lalu menggambar 7 pose + acuan gaya). Kalau dilewati, Laras memakai kandidat pertama otomatis saat video pertama dibuat. Ganti host kapan saja dengan cara yang sama (`python agents/panjang/maskot.py kandidat` / `pakai <n>`).
-1. Buka Studio → klik **Ruang Animasi** di sidebar (atau mesin arcade di kantor) → isi arahan tema (opsional) → **Buat**.
-2. Tim bekerja di latar (±3–6 jam per video 5–8 menit: render 24 fps kualitas tinggi memang lama, demi hasil bagus). Shorts tetap didahulukan: render video panjang menunggu kalau produksi Shorts sedang jalan.
-3. Video jadi → tonton di panel → **Setujui** → pilih jadwal (kosong = jam terbaik besok) → **Unggah**. Thumbnail khusus butuh channel yang sudah verifikasi nomor HP; kalau belum, pasang `export/thumbnail.jpg` manual di YouTube Studio.
-4. Terputus di tengah (atau kuota gambar habis)? Klik **Lanjutkan**: gambar & adegan yang sudah jadi tidak diulang.
+1. **Autopilot video panjang** (bawaan aktif): Studio → **Ruang Animasi** → **Autopilot video panjang**. 1 video per hari, jam tayang
+   tetap (mis. 12:00) atau otomatis. Video yang lolos cek teknis **dan** QC visual Wulan (skor ≥ 7) diunggah private + jadwal tayang;
+   yang tidak lolos menunggu kamu. Laptop perlu menyala ±3–4 jam per video (Shorts tetap didahulukan).
+2. Manual: isi arahan tema (opsional) → **Buat** → tonton → **Setujui** → **Unggah**. Terputus? **Lanjutkan** (yang sudah jadi tidak diulang).
+3. **Subtitle otomatis**: klik **Hubungkan ulang YouTube** sekali (Ruang Animasi atau meja Uli) dan izinkan *mengelola video YouTube* —
+   Uli lalu memasang subtitle Bahasa Indonesia di tiap video panjang (video lama disusulkan otomatis, atau tombol **Pasang subtitle**).
+   Tanpa izin ini upload tetap berjalan, hanya tanpa subtitle.
+4. Retensi per bab: setiap Steve mengumpulkan data (butuh YouTube terhubung), `insights/panjang-retensi.md` diperbarui — dibaca Bayu & Citra.
+
+## Notifikasi ke HP (Telegram, gratis, opsional)
+
+1. Di Telegram cari **@BotFather** → kirim `/newbot` → beri nama (mis. *Yofamo Studio*) dan username berakhiran `bot` → salin **token**.
+2. Buka `.env` di folder project, tambahkan baris: `TELEGRAM_BOT_TOKEN=token-tadi` (jangan dibagikan ke siapa pun).
+3. Buka bot barumu di Telegram → kirim `/start`.
+4. Studio → **Sistem** → baris *Notifikasi ke HP* → **Hubungkan Telegram** (mengisi `TELEGRAM_CHAT_ID` otomatis & mengirim pesan uji).
+
+Kabar yang dikirim: Shorts/video panjang terjadwal tayang, video menunggu kamu (skor QC rendah), autopilot berhenti (kuota Claude habis,
+login Claude kedaluwarsa, produksi gagal). Kabar yang sama tidak diulang dalam beberapa jam.

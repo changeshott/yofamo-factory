@@ -37,6 +37,10 @@ TOKEN = RAHASIA / "token.json"
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload",
           "https://www.googleapis.com/auth/youtube.readonly",
           "https://www.googleapis.com/auth/yt-analytics.readonly"]
+# izin tambahan untuk mengunggah subtitle (captions.insert). Diminta saat login (Hubungkan YouTube); token lama tanpa izin ini
+# tetap dipakai apa adanya (tidak dipaksa → upload tidak pernah berhenti gara-gara izin baru).
+SCOPE_SUBTITLE = "https://www.googleapis.com/auth/youtube.force-ssl"
+IZIN = ROOT / "produksi" / "youtube-izin.json"      # penanda tanpa rahasia untuk Studio: {"subtitle": true/false}
 VIDEOS = ROOT / "videos"
 WIB = timezone(timedelta(hours=7))
 
@@ -45,20 +49,37 @@ def log(msg: str) -> None:
     print(f"[uli] {msg}", flush=True)
 
 
-def creds(interaktif: bool = False):
+def catat_izin(c) -> None:
+    try:
+        IZIN.parent.mkdir(exist_ok=True)
+        IZIN.write_text(json.dumps({"subtitle": bisa_subtitle(c)}), encoding="utf-8")
+    except OSError:
+        pass
+
+
+def bisa_subtitle(c) -> bool:
+    return SCOPE_SUBTITLE in set(getattr(c, "scopes", None) or getattr(c, "granted_scopes", None) or [])
+
+
+def creds(interaktif: bool = False, minta_subtitle: bool = False):
     try:
         from google.auth.transport.requests import Request
         from google.oauth2.credentials import Credentials
         from google_auth_oauthlib.flow import InstalledAppFlow
     except ImportError:
         sys.exit("[uli] Paket Google belum terpasang. Jalankan: python -m pip install -r requirements.txt")
-    c = Credentials.from_authorized_user_file(str(TOKEN), SCOPES) if TOKEN.exists() else None
+    c = Credentials.from_authorized_user_file(str(TOKEN)) if TOKEN.exists() else None     # izin sesuai token tersimpan
+    if c and minta_subtitle and not bisa_subtitle(c):
+        log("izin subtitle belum ada → login ulang sekali untuk menambah izin")
+        c = None
     if c and c.valid:
+        catat_izin(c)
         return c
     if c and c.expired and c.refresh_token:
         try:
             c.refresh(Request())
             TOKEN.write_text(c.to_json(), encoding="utf-8")
+            catat_izin(c)
             return c
         except Exception as err:  # token dicabut / kedaluwarsa
             log(f"token tidak bisa diperbarui ({err}); perlu login ulang")
@@ -66,11 +87,14 @@ def creds(interaktif: bool = False):
         sys.exit("[uli] Belum login YouTube. Klik 'Hubungkan YouTube' di Studio (atau: python agents/upload/unggah.py login).")
     if not CLIENT.exists():
         sys.exit("[uli] rahasia/client_secret.json belum ada. Ikuti SETUP.md bagian 'Upload otomatis'.")
-    flow = InstalledAppFlow.from_client_secrets_file(str(CLIENT), SCOPES)
+    import os
+    os.environ.setdefault("OAUTHLIB_RELAX_TOKEN_SCOPE", "1")     # Zona boleh tidak mencentang izin subtitle; login tetap berhasil
+    flow = InstalledAppFlow.from_client_secrets_file(str(CLIENT), SCOPES + [SCOPE_SUBTITLE])
     c = flow.run_local_server(port=0, open_browser=True, prompt="consent",
                               success_message="Yofamo terhubung ke YouTube. Jendela ini boleh ditutup.")
     RAHASIA.mkdir(exist_ok=True)
     TOKEN.write_text(c.to_json(), encoding="utf-8")
+    catat_izin(c)
     return c
 
 
@@ -269,8 +293,9 @@ def main() -> None:
     ap.add_argument("--jadwal", help="waktu tayang WIB, misalnya 2026-11-01T19:00")
     a = ap.parse_args()
     if a.perintah == "login":
-        yt = youtube(creds(interaktif=True))
-        log(f"terhubung ke channel: {channel_name(yt)}")
+        c = creds(interaktif=True, minta_subtitle=True)
+        yt = youtube(c)
+        log(f"terhubung ke channel: {channel_name(yt)} (subtitle otomatis: {'ya' if bisa_subtitle(c) else 'belum diizinkan'})")
     elif a.perintah == "cek":
         yt = youtube(creds())
         log(f"login OK, channel: {channel_name(yt)}")

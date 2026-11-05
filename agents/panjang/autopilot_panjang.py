@@ -138,13 +138,51 @@ def slot_terbuka(state: dict, c: dict) -> list[datetime]:
 
 
 # ------------------------------------------------------------------ video siap
-def skor_qc(slug: str) -> tuple[float | None, bool]:
-    q = rj(st_panjang.folder(slug) / "export" / "qc.json")
+def _skor(d: dict) -> float | None:
     try:
-        skor = float(q["skor"]) if q.get("skor") is not None else None
+        return float(d["skor"]) if d.get("skor") is not None else None
     except (TypeError, ValueError):
-        skor = None
-    return skor, q.get("lolos") is True
+        return None
+
+
+def skor_qc(slug: str) -> tuple[float | None, bool]:
+    """Gabungan cek teknis (qc.json) + QC visual Wulan/Claude (qc_review.json): skor terendah, lolos kalau keduanya lolos.
+    QC visual belum ada → (None, False): video belum boleh diupload otomatis (mode uji: cukup cek teknis)."""
+    exp = st_panjang.folder(slug) / "export"
+    q, rv = rj(exp / "qc.json"), rj(exp / "qc_review.json")
+    s1, s2 = _skor(q), _skor(rv)
+    if not rv:
+        return (s1, q.get("lolos") is True) if UJI else (None, False)
+    skor = min(x for x in (s1, s2) if x is not None) if (s1 is not None or s2 is not None) else None
+    return skor, q.get("lolos") is True and rv.get("lolos") is True
+
+
+def perlu_tinjau(state: dict) -> list[str]:
+    """Video autopilot yang sudah jadi & lolos cek teknis tapi QC visual Wulan belum ada (mis. kuota Claude habis saat itu)."""
+    out = []
+    for slug in state.get("dibuat", []):
+        exp = st_panjang.folder(slug) / "export"
+        if (st_panjang.status(slug) == "draft" and (exp / "final.mp4").exists() and rj(exp / "qc.json").get("lolos")
+                and not (exp / "qc_review.json").exists() and state.setdefault("ditinjau", {}).get(slug, 0) < 2):
+            out.append(slug)
+    return out
+
+
+def tinjau(state: dict, slug: str) -> None:
+    """Jalankan QC visual Wulan (Claude) untuk satu video; kuota habis → jeda seperti produksi."""
+    state.setdefault("ditinjau", {})[slug] = state["ditinjau"].get(slug, 0) + 1
+    log(f"{slug}: QC visual Wulan (lihat frame tiap adegan & thumbnail)…")
+    try:
+        import produser_panjang
+        rv = produser_panjang.tinjau_visual(slug)
+        log(f"{slug}: QC visual skor {rv.get('skor', '-')}, {'lolos' if rv.get('lolos') else 'belum lolos'}")
+    except Exception as err:  # noqa: BLE001
+        teks = str(err)
+        if API_LIMIT.search(teks):
+            pulih = jam_pulih(teks)
+            state["jeda_sampai"] = pulih.isoformat(timespec="minutes")
+            state["masalah"] = f"Kuota Claude habis, pulih ±{pulih.strftime('%H:%M')}."
+        log(f"{slug}: QC visual tertunda ({teks[:120]})")
 
 
 def siap_tayang(state: dict, c: dict) -> list[tuple[str, str]]:
@@ -165,12 +203,49 @@ def siap_tayang(state: dict, c: dict) -> list[tuple[str, str]]:
         if (vids.get(slug) != "draft" and not UJI) or vids.get(slug) in ("export", "terbit", "ditolak") or not bisa(slug) or not c["setujui"]:
             continue
         skor, lolos = skor_qc(slug)
+        exp = st_panjang.folder(slug) / "export"
         if skor is not None and skor >= c["skor_min"] and lolos:
             out.append((slug, f"lolos QC Wulan (skor {skor:g})"))
+        elif not UJI and rj(exp / "qc.json").get("lolos") and not (exp / "qc_review.json").exists() and state.get("ditinjau", {}).get(slug, 0) < 2:
+            continue                                   # QC visual belum dijalankan → ditinjau dulu (putaran ini/berikutnya)
         elif not state.setdefault("menunggu_zona", {}).get(slug):
+            rv = rj(exp / "qc_review.json")
             state["menunggu_zona"][slug] = f"skor QC {skor if skor is not None else '-'} (batas {c['skor_min']:g}) atau ada masalah; tunggu Zona"
             log(f"{slug}: QC belum lolos (skor {skor}), menunggu Zona menonton & menyetujui di Ruang Animasi")
+            kabar(f"👀 Video panjang menunggu kamu: {judul(slug)}\nSkor QC {skor if skor is not None else '-'} (batas {c['skor_min']:g})."
+                  f"{(' ' + rv['ringkas']) if rv.get('ringkas') else ''}\nTonton & setujui di Studio → Ruang Animasi.", f"tunggu-panjang-{slug}", 48)
     return out
+
+
+def judul(slug: str) -> str:
+    return str(rj(st_panjang.folder(slug) / "naskah.json").get("judul") or slug)
+
+
+def kabar(teks: str, kunci: str | None = None, jeda_jam: float = 6.0) -> None:
+    """Notifikasi Telegram (agents/notif.py); tanpa pengaturan / mode uji → dilewati."""
+    if UJI:
+        return
+    try:
+        import notif
+        notif.kirim(teks, kunci, jeda_jam)
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def susul_subtitle(state: dict) -> None:
+    """Setelah Zona memberi izin subtitle (Hubungkan YouTube ulang), pasang subtitle ke video panjang yang sudah terupload tanpa subtitle."""
+    if UJI or not rj(ROOT / "produksi" / "youtube-izin.json").get("subtitle"):
+        return
+    for f in sorted(st_panjang.BASE.glob("*/export/upload.json")):
+        up = rj(f)
+        slug = f.parents[1].name
+        if (not up.get("videoId") or up.get("subtitle") or not (f.parent / "subtitle.srt").exists()
+                or state.setdefault("subtitle_coba", {}).get(slug, 0) >= 2):
+            continue
+        state["subtitle_coba"][slug] = state["subtitle_coba"].get(slug, 0) + 1
+        r = subprocess.run([PY, str(ROOT / "agents" / "panjang" / "unggah_panjang.py"), "subtitle", slug], cwd=ROOT, capture_output=True,
+                           text=True, encoding="utf-8", errors="replace", timeout=600, env={**os.environ, "PYTHONIOENCODING": "utf-8"})
+        log(f"subtitle {slug}: {'terpasang' if r.returncode == 0 else (r.stdout + r.stderr).strip().splitlines()[-1:]}")
 
 
 def unggah(slug: str, t: datetime) -> dict | None:
@@ -207,6 +282,8 @@ def isi_slot(state: dict, c: dict) -> int:
         state.get("menunggu_zona", {}).pop(slug, None)
         n += 1
         log(f"{slug} dijadwalkan tayang {kunci_slot(t)} WIB ({alasan})")
+        kabar(f"🎬 Video panjang terjadwal {t.strftime('%d/%m %H:%M')} WIB\n{judul(slug)}\n({alasan}{', subtitle terpasang' if up.get('subtitle') else ''}) {up.get('url') or ''}".strip(),
+              f"jadwal-panjang-{slug}", 240)
     return n
 
 
@@ -290,6 +367,7 @@ def produksi(state: dict, c: dict, lanjut: str = "") -> str | None:
         state["jeda_sampai"] = pulih.isoformat(timespec="minutes")
         state["masalah"] = f"Kuota Claude habis, pulih ±{pulih.strftime('%H:%M')}."
         log(f"kuota Claude habis → produksi video panjang berhenti sampai {pulih.strftime('%H:%M')} (dilanjutkan setelahnya)")
+        kabar(f"⏸️ Video panjang berhenti: kuota Claude habis, lanjut otomatis ±{pulih.strftime('%H:%M')}.", "kuota-claude", 6)
     elif "Login Claude kedaluwarsa" in teks:
         state["jeda_sampai"] = (now() + timedelta(hours=2)).isoformat(timespec="minutes")
         state["masalah"] = "Login Claude kedaluwarsa: buka terminal, ketik claude lalu /login (sekali saja)."
@@ -302,6 +380,9 @@ def produksi(state: dict, c: dict, lanjut: str = "") -> str | None:
         state["jeda_sampai"] = (now() + timedelta(hours=1 if time.time() - t0 < 900 else 0.25)).isoformat(timespec="minutes")
         state["masalah"] = f"Produksi video panjang gagal: {cat.get('pesan') or 'cek ' + lf.name}"[:200]
     log(f"produksi video panjang berhenti: {cat.get('pesan') or 'cek ' + lf.name}")
+    if not API_LIMIT.search(teks):
+        kabar(f"⚠️ Produksi video panjang berhenti: {cat.get('pesan') or 'cek log ' + lf.name}\nDilanjutkan otomatis di putaran berikutnya (Studio terbuka).",
+              f"gagal-panjang-{slug or pid}", 6)
     return None
 
 
@@ -319,6 +400,11 @@ def putaran(paksa: bool = False) -> None:
     state.setdefault("dibuat", [])
     try:
         tandai_tayang(state)
+        susul_subtitle(state)
+        for slug in perlu_tinjau(state)[:1]:            # QC visual yang tertunda (mis. kuota Claude habis saat produksi)
+            if not (state.get("jeda_sampai") and now() < datetime.fromisoformat(state["jeda_sampai"]).replace(tzinfo=WIB)):
+                tinjau(state, slug)
+                wj(STATE, state)
         isi_slot(state, c)
         for _ in range(3):
             hari = now().date().isoformat()

@@ -16,7 +16,8 @@ export interface VideoPanjang {
   slug: string; status: string; diubah: string | null; judul: string; judul_kerja: string;
   adegan: number; menit: number | null; ilustrasi: number; dirender: number;
   final: boolean; thumbnail: boolean; lembar: boolean; info: Record<string, unknown> | null; qc: Record<string, unknown> | null;
-  upload: { url?: string; studio?: string; jadwal?: string } | null;
+  upload: { url?: string; studio?: string; jadwal?: string; subtitle?: boolean; subtitle_catatan?: string | null } | null;
+  review: { skor?: number; lolos?: boolean; ringkas?: string; masalah?: { adegan?: number; alasan: string }[]; diganti?: number[] } | null;
 }
 
 export const berjalanPanjang = () => kunciAktif("panjang.lock");
@@ -53,6 +54,7 @@ export function daftarPanjang(): VideoPanjang[] {
       ilustrasi: hitung("ilustrasi", /^\d\d\.jpg$/), dirender: hitung("adegan", /^\d\d\.mp4$/),
       final: fs.existsSync(path.join(exp, "final.mp4")), thumbnail: fs.existsSync(path.join(exp, "thumbnail.jpg")), lembar: fs.existsSync(path.join(exp, "lembar.jpg")),
       info: baca(path.join(exp, "info.json")), qc: baca(path.join(exp, "qc.json")), upload: baca(path.join(exp, "upload.json")),
+      review: baca(path.join(exp, "qc_review.json")),
     };
   }).sort((a, b) => (b.diubah ?? "").localeCompare(a.diubah ?? ""));
 }
@@ -80,6 +82,17 @@ export function unggahPanjang(slug: string, jadwal: string): { ok: boolean; mess
   const args = ["agents/panjang/unggah_panjang.py", "unggah", slug, ...(jadwal ? ["--jadwal", jadwal] : [])];
   const r = jalankan(args, `upload-panjang-${stamp()}.txt`);
   return r.ok ? { ok: true, message: "Uli mulai mengunggah video panjang (private + jadwal tayang). Lihat log di Kelola." } : r;
+}
+
+/** Login YouTube sudah memberi izin subtitle? (penanda tanpa rahasia ditulis agents/upload/unggah.py) — null = belum diketahui. */
+export function izinSubtitle(): boolean | null {
+  const x = baca<{ subtitle?: boolean }>(path.join(P.produksi, "youtube-izin.json"));
+  return typeof x?.subtitle === "boolean" ? x.subtitle : null;
+}
+
+export function pasangSubtitle(slug: string): { ok: boolean; message: string } {
+  const r = jalankan(["agents/panjang/unggah_panjang.py", "subtitle", slug], `subtitle-panjang-${stamp()}.txt`);
+  return r.ok ? { ok: true, message: "Uli memasang subtitle ke YouTube (±1 menit). Lihat hasilnya di kartu video." } : r;
 }
 
 /* ---------------- host Yofa & gaya (agents/panjang/maskot.py) ---------------- */

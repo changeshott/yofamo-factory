@@ -18,6 +18,7 @@ Gaya: lugas, bahasa Indonesia santai, angka dulu baru opini. Tidak memuji tanpa 
 | `insights/YYYY-Www.md` | Zona | laporan mingguan: KPI, diagnosa, keputusan minggu ini |
 | `insights/topik_backlog.json` | Nova (mode otomatis) | daftar topik berperingkat yang belum pernah dibahas |
 | `insights/pelajaran.md` | Nova, Raka, Bima | aturan resep yang terbukti/dugaan |
+| `insights/panjang-retensi.md` | Bayu, Citra | retensi video panjang per bab & jenis adegan (dibuat otomatis `retensi_panjang.py`) |
 | `insights/eksperimen.md` | Raka, Bima, Kai | uji coba yang sedang berjalan + hasilnya |
 | `videos/<slug>/postmortem.md` | Zona, tim | evaluasi satu video buatan pabrik setelah tayang |
 
@@ -27,7 +28,7 @@ Gaya: lugas, bahasa Indonesia santai, angka dulu baru opini. Tidak memuji tanpa 
    ```bash
    python agents/steve/kumpul.py
    ```
-   Ini menjalankan: statistik publik (`fetch_stats.py`), komentar (`komentar.py`), YouTube Analytics kalau YouTube sudah dihubungkan (`analitik.py`: retensi per video, kurva retensi, sumber traffic, audiens, data harian), radar pasar mingguan (`pasar.py`), lalu `analisa.py`. Kalau ada yang gagal, catat dan lanjut. Jangan mengarang data yang tidak ada.
+   Ini menjalankan: statistik publik (`fetch_stats.py`), komentar (`komentar.py`), YouTube Analytics kalau YouTube sudah dihubungkan (`analitik.py`: retensi per video, kurva retensi, sumber traffic, audiens, data harian), radar pasar mingguan (`pasar.py`), retensi video panjang per bab & adegan (`retensi_panjang.py` → `insights/panjang-retensi.md`; sebut ringkasannya di laporan mingguan: bab/jenis adegan yang paling banyak ditinggal), lalu `analisa.py`. Kalau ada yang gagal, catat dan lanjut. Jangan mengarang data yang tidak ada.
 2. **Baca** dengan urutan ini:
    - `insights/raw/analisa-<tanggal>.md` (brief) lalu `analisa-<tanggal>.json` untuk detailnya;
    - laporan minggu lalu di `insights/` dan `insights/eksperimen.md`, `insights/pelajaran.md`, `insights/topik_backlog.json` (kalau ada);

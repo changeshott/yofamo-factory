@@ -51,6 +51,15 @@ def ciri_produksi() -> dict[str, dict]:
             "skor_qc": rj(vdir / "export" / "qc_review.json").get("skor"),
             "eksperimen": sc.get("eksperimen"), "durasi_render": round(float(rj(vdir / "export" / "info.json").get("durasi") or 0), 1),
         }
+    # video panjang (Ruang Animasi): ciri dasar; analisis per bab & adegan dibuat agents/steve/retensi_panjang.py
+    for d in (ROOT / "panjang").glob("*/export/upload.json"):
+        vdir = d.parents[1]
+        up, info, n = rj(d), rj(vdir / "export" / "info.json"), rj(vdir / "naskah.json")
+        if up.get("videoId") and up.get("videoId") != "UJI":
+            out[up["videoId"]] = {"slug": vdir.name, "jenis": "panjang", "format": info.get("format") or n.get("format"),
+                                  "durasi": round(float(info.get("durasi") or 0), 1), "adegan": len(n.get("adegan") or []),
+                                  "bab": len(info.get("bab") or []), "suasana": n.get("suasana"),
+                                  "skor_qc": rj(vdir / "export" / "qc_review.json").get("skor") or rj(vdir / "export" / "qc.json").get("skor")}
     return out
 
 

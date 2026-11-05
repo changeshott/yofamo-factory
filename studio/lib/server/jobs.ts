@@ -93,6 +93,8 @@ async function command(job: JobName, arg: string): Promise<{ cmd: string; args: 
     return { cmd: py, args: ["agents/thumbnail/thumbnail.py", slug, ...(opsi === "ulang" ? ["--ulang", "--catatan", "diminta Zona dari Studio"] : [])] };
   }
   if (job === "login") return py ? { cmd: py, args: ["agents/upload/unggah.py", "login"] } : "Python tidak ditemukan.";
+  if (job === "notif_siapkan") return py ? { cmd: py, args: ["agents/notif.py", "siapkan"] } : "Python tidak ditemukan.";
+  if (job === "notif_tes") return py ? { cmd: py, args: ["agents/notif.py", "tes"] } : "Python tidak ditemukan.";
   if (job === "produksi") {
     if (!py) return "Python tidak ditemukan.";
     if (!which("ffmpeg")) return "ffmpeg belum terpasang. Jalankan: winget install Gyan.FFmpeg";
@@ -154,6 +156,8 @@ const LABEL: Record<JobName, string> = {
   thumbnail: "Mila mendesain thumbnail",
   pasang_rembg: "Memasang pemotong latar (Mila)",
   login: "Menghubungkan YouTube",
+  notif_siapkan: "Menghubungkan Telegram",
+  notif_tes: "Mengirim tes notifikasi",
 };
 
 export async function startJob(job: JobName, arg = ""): Promise<{ ok: boolean; message: string }> {

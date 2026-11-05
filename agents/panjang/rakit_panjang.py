@@ -176,7 +176,8 @@ def main() -> None:
         log(f"thumbnail gagal ({str(err)[:160]}); memakai frame video")
         ff("-ss", "2", "-i", str(final), "-frames:v", "1", "-vf", "scale=1280:720", "-q:v", "3", str(exp / "thumbnail.jpg"))
     info = {"dibuat": datetime.now().isoformat(timespec="seconds"), "uji": a.uji, "durasi": round(durasi(final), 2), "adegan": n,
-            "musik": musik.name if musik else None, "bab": bab, "fps": fps_k, "format": naskah.get("format", "kartun")}
+            "musik": musik.name if musik else None, "bab": bab, "fps": fps_k, "format": naskah.get("format", "kartun"),
+            "mulai_adegan": [round(m, 2) for m in mulai]}          # dipakai Steve untuk memetakan retensi ke adegan
     (exp / "info.json").write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
     shutil.rmtree(vdir / "hf" / "thumbnail", ignore_errors=True)
     if not a.uji:

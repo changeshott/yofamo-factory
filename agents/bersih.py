@@ -116,8 +116,8 @@ def bersih_video(slug: str) -> int:
 
 
 def bersih_panjang() -> int:
-    """Video panjang yang sudah diupload: hapus final.mp4, render adegan, proyek HyperFrames, suara; simpan naskah,
-    ilustrasi (kecil, bisa dipakai ulang), timing, info, bab, subtitle, thumbnail, upload."""
+    """Video panjang yang sudah diupload: hapus final.mp4, render adegan, proyek HyperFrames, suara, shot footage; simpan naskah,
+    ilustrasi/objek (kecil, bisa dipakai ulang), manifest & kredit footage, timing, info, bab, subtitle, thumbnail, upload."""
     base = ROOT / "panjang"
     n = 0
     for v in sorted(base.iterdir()) if base.is_dir() else []:
@@ -129,6 +129,8 @@ def bersih_panjang() -> int:
             m += hapus(v / d)
         m += hapus(v / "export" / "final.mp4")
         for f in (v / "suara").glob("*.mp3") if (v / "suara").is_dir() else []:
+            m += hapus(f)
+        for f in (v / "footage").glob("*.mp4") if (v / "footage").is_dir() else []:      # shot footage (manifest & kredit tetap)
             m += hapus(f)
         if m:
             log(f"panjang/{v.name}: {m / 1048576:.0f} MB {'akan ' if COBA else ''}dibebaskan (video aman di YouTube)")

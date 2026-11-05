@@ -5,6 +5,10 @@
     python agents/panjang/unggah_panjang.py pratinjau <slug>                     # lihat judul & deskripsi
     python agents/panjang/unggah_panjang.py unggah <slug> --jadwal 2026-11-03T19:00
     python agents/panjang/unggah_panjang.py unggah <slug>                        # jadwal: jam terbaik besok (insights/jadwal.json)
+    python agents/panjang/unggah_panjang.py subtitle <slug>                      # pasang subtitle ke video yang sudah diupload
+
+Subtitle (export/subtitle.srt, Bahasa Indonesia) ikut dipasang sebagai teks tertutup kalau login YouTube sudah memberi izin
+subtitle (Studio → Hubungkan YouTube sekali lagi). Tanpa izin itu upload tetap jalan, subtitle dilewati.
 """
 from __future__ import annotations
 
@@ -22,7 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import tanpa_jendela  # noqa: E402,F401
 import pakai_python  # noqa: E402
 
-if __name__ == "__main__" and len(sys.argv) > 1 and sys.argv[1] == "unggah":
+if __name__ == "__main__" and len(sys.argv) > 1 and sys.argv[1] in ("unggah", "subtitle"):
     pakai_python.pastikan("googleapiclient", "google_auth_oauthlib")
 import status as st_panjang  # noqa: E402
 import unggah as uli  # noqa: E402
@@ -92,6 +96,39 @@ def jadwal_bawaan() -> str:
     return f"{besok.isoformat()}T{int(jam):02d}:30"   # :30 supaya tidak bertabrakan dengan Shorts di jam yang sama
 
 
+def pasang_subtitle(yt, c, vid: str, srt: Path) -> str:
+    """Unggah subtitle .srt sebagai teks tertutup Bahasa Indonesia. Hasil: 'ok' | alasan tidak terpasang."""
+    from googleapiclient.errors import HttpError
+    from googleapiclient.http import MediaFileUpload
+    if not srt.exists() or srt.stat().st_size < 20:
+        return "belum ada export/subtitle.srt"
+    if not uli.bisa_subtitle(c):
+        return "perlu izin subtitle: klik Hubungkan YouTube di Studio sekali lagi"
+    try:
+        yt.captions().insert(part="snippet", body={"snippet": {"videoId": vid, "language": "id", "name": "Bahasa Indonesia", "isDraft": False}},
+                             media_body=MediaFileUpload(str(srt), mimetype="application/octet-stream", resumable=False)).execute()
+        log("subtitle Bahasa Indonesia terpasang")
+        return "ok"
+    except HttpError as err:
+        alasan = "kuota YouTube API habis, dicoba lagi nanti" if "quotaExceeded" in str(err) else f"ditolak YouTube: {str(getattr(err, 'reason', err))[:140]}"
+        log(f"subtitle tidak terpasang: {alasan}")
+        return alasan
+
+
+def subtitle_saja(slug: str) -> None:
+    exp = st_panjang.folder(slug) / "export"
+    up = rj(exp / "upload.json")
+    if not up.get("videoId"):
+        sys.exit("[uli] video ini belum diupload")
+    c = uli.creds()
+    hasil = pasang_subtitle(uli.youtube(c), c, up["videoId"], exp / "subtitle.srt")
+    up["subtitle"] = hasil == "ok"
+    up["subtitle_catatan"] = None if hasil == "ok" else hasil
+    (exp / "upload.json").write_text(json.dumps(up, ensure_ascii=False, indent=2), encoding="utf-8")
+    if hasil != "ok":
+        sys.exit(f"[uli] subtitle belum terpasang: {hasil}")
+
+
 def unggah(slug: str, jadwal: str | None) -> None:
     from googleapiclient.errors import HttpError
     from googleapiclient.http import MediaFileUpload
@@ -113,7 +150,8 @@ def unggah(slug: str, jadwal: str | None) -> None:
                         "defaultLanguage": "id", "defaultAudioLanguage": "id"},
             "status": {"privacyStatus": "private", "publishAt": t.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.000Z"),
                        "selfDeclaredMadeForKids": False, "containsSyntheticMedia": m["sintetis"], "embeddable": True}}
-    yt = uli.youtube(uli.creds())
+    c = uli.creds()
+    yt = uli.youtube(c)
     log(f"mengunggah video panjang ke '{uli.channel_name(yt)}': {m['judul']} (tayang {jadwal} WIB)")
     media = MediaFileUpload(str(exp / "final.mp4"), mimetype="video/mp4", chunksize=16 * 1024 * 1024, resumable=True)
     req = yt.videos().insert(part="snippet,status", body=body, media_body=media, notifySubscribers=True)
@@ -136,15 +174,19 @@ def unggah(slug: str, jadwal: str | None) -> None:
             info["thumbnail"] = False
             log(f"thumbnail tidak bisa dipasang otomatis ({getattr(err, 'reason', err)}). Pasang manual di YouTube Studio: export/thumbnail.jpg "
                 "(akun YouTube perlu verifikasi nomor HP untuk thumbnail khusus).")
+    sub = pasang_subtitle(yt, c, vid, exp / "subtitle.srt")
+    info["subtitle"] = sub == "ok"
+    if sub != "ok":
+        info["subtitle_catatan"] = sub
     (exp / "upload.json").write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
-    log(f"selesai: {info['url']} (private, tayang otomatis {jadwal} WIB). Subtitle siap di export/subtitle.srt.")
+    log(f"selesai: {info['url']} (private, tayang otomatis {jadwal} WIB){', subtitle terpasang' if sub == 'ok' else ''}.")
     import subprocess  # hemat ruang: file render video ini dihapus (bible/penyimpanan.json → hapus_setelah_upload)
     subprocess.run([sys.executable, str(ROOT / "agents" / "bersih.py"), "semua", "--otomatis"], cwd=ROOT)
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Uli: upload video panjang")
-    ap.add_argument("perintah", choices=["pratinjau", "unggah"])
+    ap.add_argument("perintah", choices=["pratinjau", "unggah", "subtitle"])
     ap.add_argument("slug")
     ap.add_argument("--jadwal")
     a = ap.parse_args()
@@ -152,6 +194,8 @@ def main() -> None:
         m = metadata(a.slug)
         print(f"JUDUL: {m['judul']}\n\nDESKRIPSI:\n{m['deskripsi']}\n\nTAG: {', '.join(m['tag'])}\n\nJADWAL BAWAAN: {jadwal_bawaan()} WIB")
         return
+    if a.perintah == "subtitle":
+        return subtitle_saja(a.slug)
     unggah(a.slug, a.jadwal)
 
 

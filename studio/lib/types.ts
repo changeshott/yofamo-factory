@@ -91,7 +91,7 @@ export interface AsetManifest { _error?: string; dibuat?: string; uji?: boolean;
 
 export interface Activity { slug: string; dari: string | null; ke: string; waktu: string; judul_kerja: string | null }
 
-export type JobName = "fetch" | "check" | "steve" | "ide" | "penulis" | "suara" | "aset" | "editor" | "produksi" | "qc" | "upload" | "login" | "data" | "thumbnail" | "pasang_rembg";
+export type JobName = "fetch" | "check" | "steve" | "ide" | "penulis" | "suara" | "aset" | "editor" | "produksi" | "qc" | "upload" | "login" | "data" | "thumbnail" | "pasang_rembg" | "notif_siapkan" | "notif_tes";
 export interface JobState {
   job: JobName | null;
   arg: string | null;
@@ -141,7 +141,7 @@ export interface StudioState {
   jadwal?: JadwalTayang;
   /** autopilot berjalan di latar: kerja = kunci busy agent yang sedang dipakai (mis. "upload"), slug video */
   autopilot?: { berjalan: boolean; kerja: string; slug: string | null } | null;
-  health: { env: boolean; claude: boolean; python: boolean; pythonCmd: string; edgeTts: boolean; stockKey: boolean; ffmpeg: boolean; ytdlp: boolean; rembg: boolean; aiKey: boolean; google: boolean; ytClient: boolean; ytLogin: boolean };
+  health: { env: boolean; claude: boolean; python: boolean; pythonCmd: string; edgeTts: boolean; stockKey: boolean; ffmpeg: boolean; ytdlp: boolean; rembg: boolean; aiKey: boolean; google: boolean; ytClient: boolean; ytLogin: boolean; telegramBot?: boolean; telegram?: boolean };
 }
 
 /** Upload minggu ini (Senin 00:00 WIB s/d Minggu): tayang = sudah publik (jadwal lewat / ditandai terbit),

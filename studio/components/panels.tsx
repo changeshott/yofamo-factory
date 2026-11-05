@@ -526,12 +526,21 @@ export function HealthPanel({ ctx }: { ctx: PanelCtx }) {
     { ok: h.aiKey, name: "Gambar AI gratis (Cloudflare)", fix: "Isi CLOUDFLARE_ACCOUNT_ID dan CLOUDFLARE_API_TOKEN di .env (lihat SETUP.md).", good: "Ada di .env." },
     { ok: h.google && h.ytClient && h.ytLogin, name: "Upload & analitik YouTube (Uli, Steve v2)", fix: !h.google ? "python -m pip install -r requirements.txt" : !h.ytClient ? "Buat OAuth client (Desktop) di Google Cloud, simpan sebagai rahasia/client_secret.json (lihat SETUP.md)." : "Buka meja Uli lalu klik Hubungkan YouTube.", good: "Terhubung." },
     { ok: !!ctx.state.snapshot, name: "Data channel", fix: "Buka meja Steve lalu klik Ambil data terbaru.", good: `Data per ${ctx.state.snapshot?.snapshot_date}.` },
+    { ok: !!h.telegram, name: "Notifikasi ke HP (Telegram, opsional)", key: "telegram",
+      fix: !h.telegramBot ? "1) Di Telegram, chat @BotFather → kirim /newbot → beri nama → salin token. 2) Tulis di .env: TELEGRAM_BOT_TOKEN=token-tadi. 3) Buka bot barumu, kirim /start. 4) Klik Hubungkan Telegram di bawah."
+        : "Token bot sudah ada. Buka bot-mu di Telegram, kirim /start, lalu klik Hubungkan Telegram.",
+      good: "Terhubung. Kabar: video terjadwal, video menunggu kamu, autopilot berhenti (kuota Claude, login, internet)." },
   ];
   return (<>
     <ul className="space-y-2">{rows.map((r) => (
       <li key={r.name} className="rounded-lg border border-line bg-ink-800 p-3 text-sm">
         <div className="flex items-center gap-2 font-pixel"><span className={`size-2.5 rounded-sm ${r.ok ? "bg-leaf" : "bg-bad"}`} aria-hidden />{r.name}<span className="sr-only">{r.ok ? "beres" : "bermasalah"}</span></div>
         <p className="mt-1 text-muted">{r.ok ? r.good : r.fix}</p>
+        {"key" in r && r.key === "telegram" && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {!h.telegram && <Btn size="sm" tone="primary" disabled={busy(ctx.state) || !h.telegramBot} onClick={() => ctx.run("notif_siapkan")}>Hubungkan Telegram</Btn>}
+            {h.telegram && <Btn size="sm" disabled={busy(ctx.state)} onClick={() => ctx.run("notif_tes")}>Kirim tes</Btn>}
+          </div>)}
       </li>))}</ul>
     <div className="mt-3"><Btn disabled={busy(ctx.state) || !h.env} onClick={() => ctx.run("check")}>Uji koneksi YouTube</Btn></div>
   </>);
@@ -866,7 +875,9 @@ interface ProdPJ { id: string; permintaan: string; dibuat: string; selesai: stri
 interface VidPJ {
   slug: string; status: string; diubah: string | null; judul: string; judul_kerja: string; adegan: number; menit: number | null; ilustrasi: number; dirender: number;
   final: boolean; thumbnail: boolean; lembar: boolean; info: { durasi?: number; bab?: { t: number; judul: string }[]; dibuat?: string; uji?: boolean } | null;
-  qc: { lolos?: boolean; skor?: number; masalah?: string[]; catatan?: string[] } | null; upload: { url?: string; studio?: string; jadwal?: string } | null;
+  qc: { lolos?: boolean; skor?: number; masalah?: string[]; catatan?: string[] } | null;
+  upload: { url?: string; studio?: string; jadwal?: string; subtitle?: boolean; subtitle_catatan?: string | null } | null;
+  review: { skor?: number; lolos?: boolean; ringkas?: string; masalah?: { adegan?: number; alasan: string }[]; diganti?: number[] } | null;
 }
 interface MaskotPJ { kandidat: number[]; pose: string[]; utama: boolean; acuan: boolean; versi: number; berjalan: boolean; status: string; pesan: string }
 const STATUS_PJ: Record<string, string> = { ide: "Riset", naskah: "Naskah", suara: "Suara", ilustrasi: "Footage siap", animasi: "Dirender", draft: "Siap ditonton", export: "Disetujui", terbit: "Terbit", ditolak: "Ditolak" };
@@ -927,7 +938,7 @@ function AutopilotPanjang({ judul }: { judul: (slug: string) => string }) {
 }
 
 export function RuangAnimasiPanel({ ctx, def }: { ctx: PanelCtx; def?: AgentDef }) {
-  const [d, setD] = useState<{ videos: VidPJ[]; produksi: ProdPJ[]; berjalan: boolean; maskot?: MaskotPJ } | null>(null);
+  const [d, setD] = useState<{ videos: VidPJ[]; produksi: ProdPJ[]; berjalan: boolean; maskot?: MaskotPJ; izinSubtitle?: boolean | null } | null>(null);
   const [tema, setTema] = useState("");
   const [pesan, setPesan] = useState("");
   const [jadwal, setJadwal] = useState<Record<string, string>>({});
@@ -943,6 +954,11 @@ export function RuangAnimasiPanel({ ctx, def }: { ctx: PanelCtx; def?: AgentDef 
   return (<>
     {def ? <p>{def.about}</p> : <p>Ruang Animasi membuat video YouTube panjang 5–12 menit gaya <b>dokumenter modern</b>: footage asli teknologi yang dibahas (tanpa teks di dalamnya) diselingi motion graphic di kertas abu-abu (serif, benda asli berbayang, foto hitam-putih, mockup HP). Tim: Bayu (riset) → Citra (naskah adegan) → Gilang (suara) → Laras (footage & objek asli) → Tio (motion graphic & render) → Wulan (rakit & QC).</p>}
     <AutopilotPanjang judul={(slug) => d.videos.find((v) => v.slug === slug)?.judul || slug} />
+    {ctx.state.health.ytLogin && d.izinSubtitle === false && (
+      <div className="mt-3 rounded-lg border border-signal/50 bg-signal/10 px-2.5 py-2 text-sm">
+        <b>Subtitle otomatis belum diizinkan.</b> Hubungkan YouTube sekali lagi dan centang izin <i>mengelola video</i> supaya Uli bisa memasang subtitle Bahasa Indonesia di tiap video panjang.
+        <Btn size="sm" className="mt-1.5 block" disabled={busy(ctx.state)} onClick={() => ctx.run("login")}>Hubungkan ulang YouTube</Btn>
+      </div>)}
     <H3>Buat video panjang</H3>
     <div className="flex gap-2">
       <input value={tema} onChange={(e) => setTema(e.target.value)} placeholder="Arahan tema (opsional), mis. baterai solid-state" className="min-w-0 flex-1 rounded-md border border-line bg-ink-950 px-2.5 py-2 text-sm" />
@@ -973,7 +989,11 @@ export function RuangAnimasiPanel({ ctx, def }: { ctx: PanelCtx; def?: AgentDef 
         {v.info?.bab && v.info.bab.length > 0 && <Muted className="mt-1">Bab: {v.info.bab.map((b) => `${Math.floor(b.t / 60)}:${String(Math.floor(b.t % 60)).padStart(2, "0")} ${b.judul}`).join(" · ")}</Muted>}
         {v.qc && (v.qc.masalah?.length || v.qc.catatan?.length) ? <Muted className="mt-1">{[...(v.qc.masalah ?? []), ...(v.qc.catatan ?? [])].join(" · ")}</Muted> : null}
         {v.lembar && <a href={media(v.slug, "export/lembar.jpg", v.info?.dibuat)} target="_blank" rel="noopener noreferrer"><img alt="Frame tiap adegan" loading="lazy" className="mt-2 w-full rounded-md border border-line" src={media(v.slug, "export/lembar.jpg", v.info?.dibuat)} /></a>}
-        {v.upload?.url && <Muted className="mt-1">Diunggah: <a className="underline" href={v.upload.url} target="_blank" rel="noopener noreferrer">{v.upload.url}</a>{v.upload.jadwal ? ` · tayang ${v.upload.jadwal.replace("T", " ")} WIB` : ""}</Muted>}
+        {v.review && <Muted className="mt-1">QC visual Wulan: skor {v.review.skor ?? "-"}{v.review.lolos === false ? " · belum lolos" : " · lolos"}{v.review.diganti?.length ? ` · adegan diganti: ${v.review.diganti.join(", ")}` : ""}{v.review.ringkas ? ` — ${v.review.ringkas}` : ""}
+          {v.review.masalah?.length ? <span className="block">{v.review.masalah.map((m) => `${m.adegan ? `adegan ${m.adegan}: ` : ""}${m.alasan}`).join(" · ")}</span> : null}</Muted>}
+        {v.upload?.url && <Muted className="mt-1">Diunggah: <a className="underline" href={v.upload.url} target="_blank" rel="noopener noreferrer">{v.upload.url}</a>{v.upload.jadwal ? ` · tayang ${v.upload.jadwal.replace("T", " ")} WIB` : ""}
+          {" · subtitle "}{v.upload.subtitle ? "terpasang" : `belum${v.upload.subtitle_catatan ? ` (${v.upload.subtitle_catatan})` : ""}`}</Muted>}
+        {v.upload?.url && !v.upload.subtitle && <Btn size="sm" tone="ghost" className="mt-1.5" disabled={d.izinSubtitle === false} onClick={() => void aksi({ aksi: "subtitle", slug: v.slug })}>Pasang subtitle</Btn>}
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {!["draft", "export", "terbit", "ditolak"].includes(v.status) && !d.berjalan && <Btn size="sm" tone="primary" onClick={() => void aksi({ aksi: "lanjut", slug: v.slug })}>Lanjutkan</Btn>}
           {v.status === "draft" && v.final && <Btn size="sm" tone="primary" onClick={() => void aksi({ aksi: "setujui", slug: v.slug })}>Setujui</Btn>}

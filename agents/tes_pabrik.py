@@ -467,6 +467,45 @@ def offline() -> None:
         mnt = int(jam[:2]) * 60 + int(jam[3:]) if re.fullmatch(r"\d\d:\d\d", jam) else -999
         cek("Autopilot video panjang: jam tayang :30, jauh dari jam Shorts", jam.endswith(":30") and all(abs(mnt - x) >= 90 for x in (660, 960, 1140)),
             jam or r.stderr[-200:])
+        # autopilot video panjang: upload otomatis hanya kalau cek teknis DAN QC visual Wulan lolos
+        kode = ("import sys, json; sys.path.insert(0, 'agents/panjang'); import autopilot_panjang as a; from pathlib import Path; "
+                f"e = Path('panjang/{dslug}/export'); e.mkdir(parents=True, exist_ok=True); "
+                "json.dump({'lolos': True, 'skor': 10}, open(e / 'qc.json', 'w')); r1 = a.skor_qc(" + repr(dslug) + "); "
+                "json.dump({'lolos': True, 'skor': 8}, open(e / 'qc_review.json', 'w')); r2 = a.skor_qc(" + repr(dslug) + "); "
+                "json.dump({'lolos': False, 'skor': 9, 'masalah': [{'adegan': 3, 'alasan': 'watermark'}]}, open(e / 'qc_review.json', 'w')); r3 = a.skor_qc(" + repr(dslug) + "); "
+                "print(json.dumps([r1, r2, r3]))")
+        r = run(tmp, "-c", kode)
+        try:
+            r1, r2, r3 = json.loads(r.stdout.strip().splitlines()[-1])
+        except (ValueError, IndexError):
+            r1 = r2 = r3 = None
+        cek("Autopilot video panjang: tanpa QC visual tidak diupload; skor = terendah; QC visual gagal → tidak diupload",
+            r1 == [None, False] and r2 == [8.0, True] and r3 is not None and r3[1] is False, (r.stdout + r.stderr)[-200:])
+        # notifikasi Telegram: tanpa pengaturan tidak mengirim & tidak error
+        r = run(tmp, "-c", "import sys; sys.path.insert(0, 'agents'); import notif; print(notif.siap(), notif.kirim('tes', 'x'))",
+                env_extra={"TELEGRAM_BOT_TOKEN": "", "TELEGRAM_CHAT_ID": ""})
+        cek("Notifikasi: tanpa token Telegram dilewati tanpa error", r.returncode == 0 and r.stdout.strip() == "False False", (r.stdout + r.stderr)[-200:])
+        # Steve: retensi video panjang per bab & adegan (kurva buatan dengan penurunan tajam di adegan 6)
+        rdir = tmp / "panjang" / "uji-retensi"
+        (rdir / "export").mkdir(parents=True)
+        shutil.copy(tmp / "agents" / "panjang" / "contoh" / "naskah-dokumenter.json", rdir / "naskah.json")
+        n_ad = len(json.loads((rdir / "naskah.json").read_text(encoding="utf-8"))["adegan"])
+        (rdir / "export" / "info.json").write_text(json.dumps({"durasi": 300, "bab": [{"t": 0, "judul": "Pembuka"}, {"t": 150, "judul": "Cara kerja"}],
+                                                                "mulai_adegan": [round(i * 300 / n_ad, 2) for i in range(n_ad)]}), encoding="utf-8")
+        (rdir / "export" / "upload.json").write_text(json.dumps({"videoId": "RETENSI1"}), encoding="utf-8")
+        import math
+        def yk(x: float) -> float:
+            t = x * 300
+            return math.exp(-t / 200) * (0.7 if t > 163 else (1 - 0.3 * (t - 136) / 27 if t > 136 else 1))
+        (tmp / "insights" / "raw").mkdir(parents=True, exist_ok=True)
+        (tmp / "insights" / "raw" / "analitik-2099-01-01.json").write_text(json.dumps(
+            {"videos": [{"video": "RETENSI1", "views": 500, "averageViewPercentage": 40}],
+             "retensi": {"RETENSI1": [[i / 100, round(yk(i / 100), 4), 0.5] for i in range(101)]}}), encoding="utf-8")
+        r = run(tmp, "agents/steve/retensi_panjang.py")
+        md = (tmp / "insights" / "panjang-retensi.md").read_text(encoding="utf-8") if (tmp / "insights" / "panjang-retensi.md").exists() else ""
+        cek("Steve: retensi video panjang per bab & adegan (penurunan tajam terdeteksi di adegan yang benar)",
+            r.returncode == 0 and "- adegan 6 (cara kerja" in md and "dugaan" in md, (r.stdout + r.stderr)[-200:] if r.returncode else md[:120])
+
         # pendeteksi teks: label nama kecil (2 baris) di pojok harus ditolak di mode video panjang
         try:
             sys.path.insert(0, str(tmp / "agents" / "aset"))

@@ -26,7 +26,9 @@ Wajib baca `bible/panjang-bible.md`, `bible/channel-bible.md`, dan docstring `ag
 | `penutup` | pertanyaan besar + Subscribe | `teks_layar` = pertanyaan untuk komentar (adegan terakhir) |
 
 ## Langkah
-1. Baca ide.json & bible. Target kata = target_menit × 60 × 2,45 (±10%): 5–12 menit ≈ 700–1700 kata.
+1. Baca ide.json & bible. Kalau ada, baca juga `insights/panjang-retensi.md` (Steve: bab & jenis adegan yang paling banyak ditinggal
+   penonton di video panjang sebelumnya) dan terapkan: perbanyak jenis adegan yang menahan penonton, beri kait baru di bagian yang
+   biasanya ditinggal, pembuka lebih cepat kalau penonton di detik 30 rendah. Kurang dari 5 video = dugaan: terapkan ringan, jangan ekstrem. Target kata = target_menit × 60 × 2,45 (±10%): 5–12 menit ≈ 700–1700 kata.
 2. Tulis `panjang/<slug>/naskah.json`:
    `{"format": "dokumenter", "judul" (≤ 70 karakter, jujur & bikin penasaran), "judul_alternatif": [2], "deskripsi" (TANPA link, 3–5 hashtag),
    "tag", "suasana", "thumbnail": {"teks": "2–4 KATA", "objek": "benda fisik Inggris"}, "komentar_pin", "adegan": [...]}`.

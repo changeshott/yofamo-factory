@@ -103,16 +103,37 @@ def kurang_footage(vdir: Path) -> list[int]:
     return [i + 1 for i, ad in enumerate(n.get("adegan") or []) if ad.get("jenis") in ("footage", "pembuka", "hp", "tv") and not man.get(str(i))]
 
 
+def tinjau_visual(slug: str) -> dict:
+    """Wulan (Claude) melihat lembar frame bernomor & thumbnail, mengganti adegan berat (maks 1 putaran) → export/qc_review.json.
+    Melempar KuotaClaude/LoginClaude/Offline dari produser.claude (pemanggil yang memutuskan)."""
+    rv = st_panjang.folder(slug) / "export" / "qc_review.json"
+    rv.unlink(missing_ok=True)
+    pr.claude(f"/qc-panjang {slug}", pr.tools("agents/panjang/periksa_panjang.py", "agents/panjang/footage_panjang.py", "agents/panjang/dokumenter.py",
+                                               "agents/panjang/rakit_panjang.py", "agents/panjang/status.py"), 120 * 60, turns=70)
+    try:
+        return json.loads(rv.read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError):
+        return {}
+
+
 def rakit(cat: Catatan, slug: str, vdir: Path, naskah: dict, uji: bool) -> None:
     cat.tahap("wulan", "jalan")
     if jalan([PY, "agents/panjang/rakit_panjang.py", slug, *(["--uji"] if uji else [])], 3 * 3600) != 0:
         cat.tahap("wulan", "gagal", "Rakit gagal. Cek log.")
         return cat.akhir("gagal", "Berhenti di tahap rakit.")
     jalan([PY, "agents/panjang/periksa_panjang.py", slug], 30 * 60)
+    rv = {}
+    if not uji and (vdir / "export" / "final.mp4").exists():
+        cat.tahap("wulan", "jalan", "QC visual: melihat frame tiap adegan & thumbnail…")
+        try:
+            rv = tinjau_visual(slug)
+        except Exception as err:  # noqa: BLE001 — kuota Claude habis dll: video tetap jadi, QC visual menyusul (autopilot mengulang)
+            cat.tahap("wulan", "jalan", f"QC visual tertunda: {str(err)[:120]}")
     q = json.loads((vdir / "export" / "qc.json").read_text(encoding="utf-8")) if (vdir / "export" / "qc.json").exists() else {}
     info = json.loads((vdir / "export" / "info.json").read_text(encoding="utf-8"))
-    cat.tahap("wulan", "ok", f"{info['durasi'] / 60:.1f} menit, {len(info.get('bab', []))} bab, skor QC {q.get('skor', '-')}"
-              + (f", {len(q.get('masalah', []))} masalah" if q.get("masalah") else ", lolos QC"))
+    cat.tahap("wulan", "ok", f"{info['durasi'] / 60:.1f} menit, {len(info.get('bab', []))} bab, skor teknis {q.get('skor', '-')}"
+              + (f", {len(q.get('masalah', []))} masalah" if q.get("masalah") else ", lolos cek teknis")
+              + (f" · QC visual {rv.get('skor', '-')}{'' if rv.get('lolos') else ' (belum lolos)'}" if rv else "" if uji else " · QC visual menyusul"))
     cat.akhir("selesai", "Video panjang jadi. Tonton lalu setujui di Studio (Ruang Animasi)"
               + (" — atau autopilot menyetujui & menjadwalkannya otomatis." if cat.d.get("id", "").startswith("autopilot") else "."))
 

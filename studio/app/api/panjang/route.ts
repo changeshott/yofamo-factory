@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { guard, json } from "@/lib/server/guard";
-import { FILE_MASKOT, MASKOT, PJ, berjalanPanjang, buatPanjang, daftarPanjang, jalankanMaskot, produksiPanjang, setStatus, statusMaskot, unggahPanjang } from "@/lib/server/panjang";
+import { FILE_MASKOT, MASKOT, PJ, berjalanPanjang, buatPanjang, daftarPanjang, izinSubtitle, jalankanMaskot, pasangSubtitle, produksiPanjang, setStatus, statusMaskot, unggahPanjang } from "@/lib/server/panjang";
 
 const SLUG = /^[a-z0-9-]{3,80}$/;
 const FILE: Record<string, string> = { "export/final.mp4": "video/mp4", "export/thumbnail.jpg": "image/jpeg", "export/lembar.jpg": "image/jpeg", "naskah.md": "text/markdown; charset=utf-8" };
@@ -15,7 +15,7 @@ export async function GET(req: Request) {
     if (!FILE_MASKOT.test(mk) || !fs.existsSync(f)) return new Response("tidak ditemukan", { status: 404 });
     return new Response(new Uint8Array(await fs.promises.readFile(f)), { headers: { "Content-Type": mk.endsWith(".png") ? "image/png" : "image/jpeg", "Cache-Control": "no-store" } });
   }
-  if (!file) return json({ videos: daftarPanjang(), produksi: produksiPanjang(), berjalan: !!berjalanPanjang(), maskot: statusMaskot() });
+  if (!file) return json({ videos: daftarPanjang(), produksi: produksiPanjang(), berjalan: !!berjalanPanjang(), maskot: statusMaskot(), izinSubtitle: izinSubtitle() });
   if (!SLUG.test(slug) || !FILE[file]) return new Response("tidak ditemukan", { status: 404 });
   const full = path.join(PJ, slug, file);
   if (!fs.existsSync(full)) return new Response("tidak ditemukan", { status: 404 });
@@ -32,7 +32,7 @@ export async function GET(req: Request) {
   return new Response(new Uint8Array(await fs.promises.readFile(full)), { headers: { "Content-Type": type, "Content-Length": String(size), "Cache-Control": "no-store" } });
 }
 
-/** aksi: buat {tema} · lanjut {slug} · setujui {slug} · tolak {slug} · unggah {slug, jadwal?} · host-kandidat · host-pakai {nomor} */
+/** aksi: buat {tema} · lanjut {slug} · setujui {slug} · tolak {slug} · unggah {slug, jadwal?} · subtitle {slug} · host-kandidat · host-pakai {nomor} */
 export async function POST(req: Request) {
   const denied = guard(req); if (denied) return denied;
   const b = (await req.json().catch(() => ({}))) as { aksi?: string; tema?: string; slug?: string; jadwal?: string; nomor?: string | number };
@@ -48,6 +48,10 @@ export async function POST(req: Request) {
     if (b.aksi === "setujui") {
       if (v?.status !== "draft" || !v.final) return json({ ok: false, message: "Hanya video jadi (draft) yang bisa disetujui." });
       setStatus(slug, "export", "disetujui Zona di Studio"); return json({ ok: true, message: "Disetujui. Uli bisa mengunggahnya." });
+    }
+    if (b.aksi === "subtitle") {
+      if (!v?.upload?.url) return json({ ok: false, message: "Video ini belum diupload." });
+      return json(pasangSubtitle(slug));
     }
     if (b.aksi === "tolak") { setStatus(slug, "ditolak", "ditolak Zona di Studio"); return json({ ok: true, message: "Video ditandai ditolak." }); }
     if (b.aksi === "unggah") {

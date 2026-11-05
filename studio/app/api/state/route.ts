@@ -55,7 +55,8 @@ export async function GET() {
     autopilot: statusKantorAutopilot(),
     health: { env: fs.existsSync(P.env), claude: which("claude") !== null, python: py !== null, pythonCmd: py ? path.basename(py) : "", edgeTts: py ? await hasModule("edge_tts") : false,
       stockKey: envHas("PIXABAY_API_KEY", "PEXELS_API_KEY", "YOUTUBE_API_KEY"), ffmpeg: which("ffmpeg") !== null,
-      ytdlp: py ? await hasModule("yt_dlp") : false, rembg: py ? await hasModule("rembg") : false, aiKey: envHas("CLOUDFLARE_API_TOKEN") && envHas("CLOUDFLARE_ACCOUNT_ID"),
+      ytdlp: py ? await hasModule("yt_dlp") : false, rembg: py ? await hasModule("rembg") : false, telegramBot: envHas("TELEGRAM_BOT_TOKEN"), telegram: envHas("TELEGRAM_BOT_TOKEN") && envHas("TELEGRAM_CHAT_ID"),
+      aiKey: envHas("CLOUDFLARE_API_TOKEN") && envHas("CLOUDFLARE_ACCOUNT_ID"),
       google: py ? await hasModule("googleapiclient") : false, ytClient: fs.existsSync(path.join(P.rahasia, "client_secret.json")), ytLogin: fs.existsSync(path.join(P.rahasia, "token.json")) },
   };
   try { state.jadwal = jadwalTayang(state.produksi[0]?.status === "berjalan" && state.job.status !== "running", !!state.panjang); } catch { /* jadwal belum ada */ }

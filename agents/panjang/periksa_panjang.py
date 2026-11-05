@@ -14,6 +14,7 @@ import json
 import re
 import subprocess
 import sys
+import tempfile
 from datetime import datetime
 from pathlib import Path
 
@@ -27,6 +28,43 @@ from rakit_panjang import durasi, ff, lufs  # noqa: E402
 
 def log(msg: str) -> None:
     print(f"[wulan] {msg}", flush=True)
+
+
+def lembar_qc(vdir: Path, naskah: dict, final: Path, mulai: list[float], durs: list[float]) -> list[str]:
+    """Lembar frame BERNOMOR untuk QC visual (Wulan/Claude): 12 frame per lembar (4x3, 480x270), adegan footage 2 frame
+    (awal & akhir, beda shot) → export/qc/lembar-N.jpg. Hasil: daftar path relatif."""
+    from PIL import Image, ImageDraw, ImageFont
+    out_dir = vdir / "export" / "qc"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for f in out_dir.glob("lembar-*.jpg"):
+        f.unlink()
+    titik = []
+    for i, ad in enumerate(naskah.get("adegan") or []):
+        j = ad.get("jenis", "")
+        posisi = (0.25, 0.8) if j in ("footage", "pembuka", "hp", "tv") and durs[i] > 4 else (0.6,)
+        for k, pos in enumerate(posisi):
+            titik.append((f"{i + 1:02}{'ab'[k] if len(posisi) > 1 else ''} {j}", mulai[i] + durs[i] * pos))
+    try:
+        font = ImageFont.truetype(str(ROOT / "fonts" / "Inter.ttf"), 22)
+    except OSError:
+        font = ImageFont.load_default()
+    hasil = []
+    with tempfile.TemporaryDirectory() as tmp:
+        for n0 in range(0, len(titik), 12):
+            kanvas = Image.new("RGB", (4 * 480, 3 * 300), (16, 16, 18))
+            dr = ImageDraw.Draw(kanvas)
+            for k, (label, t) in enumerate(titik[n0:n0 + 12]):
+                jpg = Path(tmp) / f"f{n0 + k}.jpg"
+                subprocess.run(["ffmpeg", "-v", "error", "-y", "-ss", f"{t:.2f}", "-i", str(final), "-frames:v", "1", "-vf", "scale=480:270", "-q:v", "3", str(jpg)],
+                               capture_output=True)
+                x, y = (k % 4) * 480, (k // 4) * 300
+                if jpg.exists():
+                    kanvas.paste(Image.open(jpg).convert("RGB"), (x, y + 30))
+                dr.text((x + 8, y + 3), label, font=font, fill=(255, 210, 63))
+            f = out_dir / f"lembar-{n0 // 12 + 1}.jpg"
+            kanvas.save(f, quality=85)
+            hasil.append(f.relative_to(vdir).as_posix())
+    return hasil
 
 
 def main() -> None:
@@ -92,9 +130,16 @@ def main() -> None:
         ff("-i", str(final), "-vf", f"select='{pilih}',scale=320:180,tile={cols}x{rows}", "-frames:v", "1", "-fps_mode", "vfr", str(exp / "lembar.jpg"))
     except RuntimeError as err:
         catatan.append(f"lembar frame gagal: {str(err)[:100]}")
+    durs = [durasi(vdir / "adegan" / f"{i + 1:02}.mp4") for i in range(len(naskah["adegan"]))]
+    mulai_a = [sum(durs[:i]) for i in range(len(durs))]
+    try:
+        lembar_besar = lembar_qc(vdir, naskah, final, mulai_a, durs)
+    except Exception as err:  # noqa: BLE001
+        lembar_besar = []
+        catatan.append(f"lembar QC visual gagal: {str(err)[:100]}")
     skor = max(0.0, round(10 - 2.5 * len(masalah) - 0.5 * len(catatan), 1))
     hasil = {"slug": slug, "dibuat": datetime.now().isoformat(timespec="seconds"), "durasi": round(d, 1), "lufs": l,
-             "lolos": not masalah, "skor": skor, "masalah": masalah, "catatan": catatan, "lembar": "export/lembar.jpg"}
+             "lolos": not masalah, "skor": skor, "masalah": masalah, "catatan": catatan, "lembar": "export/lembar.jpg", "lembar_qc": lembar_besar}
     (exp / "qc.json").write_text(json.dumps(hasil, ensure_ascii=False, indent=2), encoding="utf-8")
     log(f"{d / 60:.1f} menit · {l} LUFS · skor {skor:g} · {'LOLOS' if not masalah else 'MASALAH: ' + '; '.join(masalah)}")
     for c in catatan:

@@ -40,6 +40,8 @@ def main() -> None:
         hasil["komentar"] = jalan("komentar penonton", "agents/steve/komentar.py")
         if (ROOT / "rahasia" / "token.json").exists():
             hasil["analitik"] = jalan("YouTube Analytics (retensi, traffic, audiens)", "agents/steve/analitik.py")
+            if hasil["analitik"] and any((ROOT / "panjang").glob("*/export/upload.json")):
+                hasil["retensi_panjang"] = jalan("retensi video panjang per bab & adegan", "agents/steve/retensi_panjang.py")
         else:
             print("\n[steve] ── YouTube Analytics dilewati: YouTube belum dihubungkan (meja Uli)", flush=True)
         last = ytdata.latest("pasar")
