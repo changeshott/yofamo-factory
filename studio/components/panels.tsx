@@ -902,7 +902,8 @@ function AutopilotPanjang({ judul }: { judul: (slug: string) => string }) {
       <span className="text-muted">Jam tayang</span>
       <select value={c.jam} onChange={(e) => void ubah({ jam: e.target.value })} className="w-fit rounded-md border border-line bg-ink-950 px-2 py-1">
         <option value="">otomatis (jam terbaik, jauh dari Shorts)</option>
-        {["16:30", "17:30", "18:30", "19:30", "20:30", "21:30"].map((j) => <option key={j} value={j}>{j} WIB</option>)}</select>
+        {[...new Set(["10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:30", "17:30", "18:30", "19:30", "20:30", "21:30", ...(c.jam ? [c.jam] : [])])].sort()
+          .map((j) => <option key={j} value={j}>{j} WIB{j === "12:00" ? " · tiap hari jam 12" : ""}</option>)}</select>
       <span className="text-muted">Upload otomatis</span>
       <label className="flex items-center gap-2"><input type="checkbox" checked={c.setujui_otomatis} onChange={(e) => void ubah({ setujui_otomatis: e.target.checked })} />
         <span>kalau QC Wulan lolos & skor ≥</span>

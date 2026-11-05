@@ -231,12 +231,14 @@ def jam_pulih(teks: str) -> datetime:
 
 
 def macet(state: dict) -> str:
-    """Video autopilot (3 hari terakhir) yang terhenti di tengah jalan → dilanjutkan dulu (lebih hemat dari mulai baru)."""
+    """Video autopilot (3 hari terakhir) yang terhenti di tengah jalan → dilanjutkan dulu (lebih hemat dari mulai baru).
+    Catatan 'berjalan' tanpa proses hidup (laptop tidur/mati, jendela ditutup) juga dianggap terhenti."""
     batas = time.time() - 3 * 86400
+    ada_proses = Kunci(ROOT / "produksi" / ("panjang-uji.lock" if UJI else "panjang.lock"), maks_jam=12).sibuk()
     for f in sorted(PROD.glob("autopilot-panjang-*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
         rec = rj(f)
         slug = rec.get("slug")
-        if (f.stat().st_mtime < batas or not slug or rec.get("status") in ("berjalan", "selesai")
+        if (f.stat().st_mtime < batas or not slug or rec.get("status") == "selesai" or (rec.get("status") == "berjalan" and ada_proses)
                 or (st_panjang.folder(slug) / "export" / "final.mp4").exists() or (rec.get("opsi") or {}).get("uji") and not UJI):
             continue
         st = st_panjang.status(slug)
@@ -245,9 +247,8 @@ def macet(state: dict) -> str:
     return ""
 
 
-def produksi(state: dict, c: dict) -> str | None:
+def produksi(state: dict, c: dict, lanjut: str = "") -> str | None:
     pid = f"autopilot-panjang-{now().strftime('%Y%m%d-%H%M%S')}"
-    lanjut = macet(state)
     args = [PY, str(ROOT / "agents" / "panjang" / "produser_panjang.py"), *(["--lanjut", lanjut] if lanjut else [c["arahan"]]), "--id", pid]
     if lanjut:
         state.setdefault("dilanjutkan", {})[lanjut] = state["dilanjutkan"].get(lanjut, 0) + 1
@@ -255,7 +256,8 @@ def produksi(state: dict, c: dict) -> str | None:
         args.append("--uji")
     log(f"melanjutkan video panjang yang terhenti: {lanjut} ({pid})…" if lanjut else f"memproduksi video panjang baru ({pid})…")
     hari = now().date().isoformat()
-    state.setdefault("produksi", {})[hari] = state.get("produksi", {}).get(hari, 0) + 1
+    if not lanjut:                      # melanjutkan video yang terhenti tidak dihitung kuota produksi harian
+        state.setdefault("produksi", {})[hari] = state.get("produksi", {}).get(hari, 0) + 1
     wj(STATE, state)
     lf = ROOT / "logs" / f"{pid}.txt"
     lf.parent.mkdir(exist_ok=True)
@@ -279,7 +281,8 @@ def produksi(state: dict, c: dict) -> str | None:
         log(f"video panjang jadi: {slug} (skor QC {skor if skor is not None else '-'}{', lolos' if lolos else ', ada masalah'})")
         return slug
     if "Masih ada video panjang lain" in teks:
-        state["produksi"][hari] -= 1
+        if not lanjut:
+            state["produksi"][hari] -= 1
         log("video panjang lain sedang dibuat (tombol Studio); dicoba lagi nanti")
         return None
     if API_LIMIT.search(teks):
@@ -293,7 +296,8 @@ def produksi(state: dict, c: dict) -> str | None:
     elif "Internet laptop" in teks:
         state["jeda_sampai"] = (now() + timedelta(minutes=30)).isoformat(timespec="minutes")
         state["masalah"] = "Internet laptop mati saat produksi video panjang; dicoba lagi otomatis."
-        state["produksi"][hari] -= 1
+        if not lanjut:
+            state["produksi"][hari] -= 1
     else:
         state["jeda_sampai"] = (now() + timedelta(hours=1 if time.time() - t0 < 900 else 0.25)).isoformat(timespec="minutes")
         state["masalah"] = f"Produksi video panjang gagal: {cat.get('pesan') or 'cek ' + lf.name}"[:200]
@@ -326,11 +330,12 @@ def putaran(paksa: bool = False) -> None:
             if state.get("jeda_sampai") and now() < datetime.fromisoformat(state["jeda_sampai"]).replace(tzinfo=WIB):
                 log(f"jeda produksi sampai {state['jeda_sampai'][11:16]} ({state.get('masalah') or '-'})")
                 break
-            if state.get("produksi", {}).get(hari, 0) >= c["maks_produksi"]:
-                log(f"batas {c['maks_produksi']} produksi video panjang hari ini tercapai")
+            lanjut = macet(state)
+            if not lanjut and state.get("produksi", {}).get(hari, 0) >= c["maks_produksi"]:
+                log(f"batas {c['maks_produksi']} produksi video panjang baru hari ini tercapai")
                 break
             log(f"{perlu} slot tayang video panjang belum punya video → produksi")
-            hasil = produksi(state, c)
+            hasil = produksi(state, c, lanjut)
             wj(STATE, state)
             isi_slot(state, c)
             if hasil is None:
