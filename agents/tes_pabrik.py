@@ -481,6 +481,25 @@ def offline() -> None:
             r1 = r2 = r3 = None
         cek("Autopilot video panjang: tanpa QC visual tidak diupload; skor = terendah; QC visual gagal → tidak diupload",
             r1 == [None, False] and r2 == [8.0, True] and r3 is not None and r3[1] is False, (r.stdout + r.stderr)[-200:])
+        # laptop dimatikan di tengah produksi: video yang terhenti dilanjutkan (bukan dibuat baru), termasuk dari tombol Buat;
+        # batas percobaan hanya dihitung kalau tidak ada kemajuan
+        kode = ("import sys, json; sys.path.insert(0, 'agents/panjang'); import autopilot_panjang as a, status as s; from pathlib import Path; "
+                "a.PROD.mkdir(parents=True, exist_ok=True); "
+                "[s.set_status(x, 'suara', 'tes') for x in ('uji-mati-auto', 'uji-mati-manual')]; "
+                "json.dump({'slug': 'uji-mati-auto', 'status': 'berjalan', 'opsi': {}}, open(a.PROD / 'autopilot-panjang-20990101-000000.json', 'w')); "
+                "st = {}; r1 = a.macet(st); "
+                "[a.coba_lanjut(st, 'uji-mati-auto').__setitem__('n', 3)]; r2 = a.macet(st); "
+                "s.set_status('uji-mati-auto', 'ilustrasi', 'maju'); r3 = a.macet(st); "
+                "s.set_status('uji-mati-auto', 'draft', 'jadi'); "
+                "json.dump({'slug': 'uji-mati-manual', 'status': 'gagal', 'opsi': {}}, open(a.PROD / 'panjang-20990101-000001.json', 'w')); "
+                "r4 = a.macet({}, hanya_manual=True); print(json.dumps([r1, r2, r3, r4]))")
+        r = run(tmp, "-c", kode)
+        try:
+            h = json.loads(r.stdout.strip().splitlines()[-1])
+        except (ValueError, IndexError):
+            h = None
+        cek("Video panjang terhenti (laptop mati) dilanjutkan, bukan dibuat baru; hitungan reset saat ada kemajuan; tombol Buat ikut dilanjutkan",
+            h == [["uji-mati-auto", False], ["", False], ["uji-mati-auto", False], ["uji-mati-manual", True]], (r.stdout + r.stderr)[-300:])
         # notifikasi Telegram: tanpa pengaturan tidak mengirim & tidak error
         r = run(tmp, "-c", "import sys; sys.path.insert(0, 'agents'); import notif; print(notif.siap(), notif.kirim('tes', 'x'))",
                 env_extra={"TELEGRAM_BOT_TOKEN": "", "TELEGRAM_CHAT_ID": ""})

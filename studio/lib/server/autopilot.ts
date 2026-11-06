@@ -51,9 +51,10 @@ export function jalankanAutopilotPanjang(manual = false): { ok: boolean; message
   return { ok: true, message: "Autopilot video panjang mulai bekerja: mengisi slot tayang hari ini & besok." };
 }
 
-/** Video panjang: saat Studio dibuka & tiap ±1 jam selama terbuka, satu putaran (kalau panjang.aktif, bawaan aktif). */
-function autopilotPanjangOtomatis(cfg: { panjang?: { aktif?: boolean } }, dibuka: boolean): void {
-  if (cfg.panjang?.aktif === false || autopilotPanjangBerjalan()) return;
+/** Video panjang: saat Studio dibuka & tiap ±1 jam selama terbuka, satu putaran. Autopilot aktif → isi jadwal & lanjutkan yang terhenti;
+ *  autopilot mati → hanya melanjutkan video dari tombol Buat yang terhenti (mis. laptop dimatikan di tengah proses). */
+function autopilotPanjangOtomatis(_cfg: { panjang?: { aktif?: boolean } }, dibuka: boolean): void {
+  if (autopilotPanjangBerjalan()) return;
   if (!dibuka && g.__yofamoPanjang && Date.now() - g.__yofamoPanjang < JEDA) return;
   jalankanAutopilotPanjang();
 }

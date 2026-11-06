@@ -307,28 +307,61 @@ def jam_pulih(teks: str) -> datetime:
     return (t + timedelta(days=1) if t <= now() else t) + timedelta(minutes=5)
 
 
-def macet(state: dict) -> str:
-    """Video autopilot (3 hari terakhir) yang terhenti di tengah jalan → dilanjutkan dulu (lebih hemat dari mulai baru).
-    Catatan 'berjalan' tanpa proses hidup (laptop tidur/mati, jendela ditutup) juga dianggap terhenti."""
+MAKS_COBA_TANPA_KEMAJUAN = 3
+
+
+def coba_lanjut(state: dict, slug: str) -> dict:
+    """Catatan percobaan melanjutkan per video: {n, status}. Hitungan kembali ke 0 setiap kali video MAJU satu tahap
+    sejak percobaan terakhir — jadi laptop yang dimatikan berkali-kali tidak membuat video ditinggal & dibuat ulang dari nol."""
+    d = state.setdefault("dilanjutkan", {})
+    e = d.get(slug)
+    if not isinstance(e, dict):                       # format lama: angka
+        e = {"n": int(e or 0), "status": None}
+    st = st_panjang.status(slug)
+    if e.get("status") != st:
+        e = {"n": 0, "status": st}
+    d[slug] = e
+    return e
+
+
+def macet(state: dict, hanya_manual: bool = False) -> tuple[str, bool]:
+    """Video panjang (3 hari terakhir) yang terhenti di tengah jalan → (slug, manual). Dilanjutkan dulu, SEBELUM membuat video baru.
+    Termasuk video dari tombol Buat (manual: hasilnya tetap menunggu Zona) dan catatan 'berjalan' tanpa proses hidup
+    (laptop dimatikan/tidur, jendela ditutup). Yang sudah jadi, ditolak, atau gagal 3x tanpa kemajuan dilewati."""
     batas = time.time() - 3 * 86400
-    ada_proses = Kunci(ROOT / "produksi" / ("panjang-uji.lock" if UJI else "panjang.lock"), maks_jam=12).sibuk()
-    for f in sorted(PROD.glob("autopilot-panjang-*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+    if Kunci(ROOT / "produksi" / ("panjang-uji.lock" if UJI else "panjang.lock"), maks_jam=12).sibuk():
+        return "", False                              # ada video panjang yang sedang dibuat sekarang
+    sudah = set()
+    for f in sorted(PROD.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
         rec = rj(f)
         slug = rec.get("slug")
-        if (f.stat().st_mtime < batas or not slug or rec.get("status") == "selesai" or (rec.get("status") == "berjalan" and ada_proses)
-                or (st_panjang.folder(slug) / "export" / "final.mp4").exists() or (rec.get("opsi") or {}).get("uji") and not UJI):
+        manual = not f.name.startswith("autopilot-panjang-")
+        if not slug or slug in sudah or f.stat().st_mtime < batas or (rec.get("opsi") or {}).get("uji") and not UJI:
+            continue
+        sudah.add(slug)                               # hanya catatan TERBARU tiap video yang menentukan
+        if rec.get("status") == "selesai" or (hanya_manual and not manual) or (st_panjang.folder(slug) / "export" / "final.mp4").exists():
             continue
         st = st_panjang.status(slug)
-        if st and st not in ("draft", "export", "terbit", "ditolak") and state.setdefault("dilanjutkan", {}).get(slug, 0) < 2:
-            return slug
-    return ""
+        if not st or st in ("draft", "export", "terbit", "ditolak"):
+            continue
+        if coba_lanjut(state, slug)["n"] < MAKS_COBA_TANPA_KEMAJUAN:
+            return slug, manual
+        if not state.setdefault("menyerah", {}).get(slug):
+            state["menyerah"][slug] = now().isoformat(timespec="minutes")
+            log(f"{slug}: {MAKS_COBA_TANPA_KEMAJUAN}x dilanjutkan tanpa kemajuan (berhenti di '{st}'); menunggu Zona (Lanjutkan di Ruang Animasi)")
+            kabar(f"⚠️ Video panjang macet di tahap '{st}' setelah {MAKS_COBA_TANPA_KEMAJUAN}x dicoba: {judul(slug)}\nCek log di Ruang Animasi lalu klik Lanjutkan.",
+                  f"macet-{slug}", 24)
+    return "", False
 
 
-def produksi(state: dict, c: dict, lanjut: str = "") -> str | None:
-    pid = f"autopilot-panjang-{now().strftime('%Y%m%d-%H%M%S')}"
+def produksi(state: dict, c: dict, lanjut: str = "", manual: bool = False) -> str | None:
+    # video dari tombol Buat dilanjutkan dengan catatan "panjang-…" (bukan autopilot) supaya hasilnya tetap menunggu Zona
+    pid = f"{'panjang-lanjut' if manual else 'autopilot-panjang'}-{datetime.now(WIB).strftime('%Y%m%d-%H%M%S')}"
+    while (PROD / f"{pid}.json").exists() or (ROOT / "logs" / f"{pid}.txt").exists():     # nama unik (2 produksi dalam 1 detik/tes)
+        pid += "b"
     args = [PY, str(ROOT / "agents" / "panjang" / "produser_panjang.py"), *(["--lanjut", lanjut] if lanjut else [c["arahan"]]), "--id", pid]
     if lanjut:
-        state.setdefault("dilanjutkan", {})[lanjut] = state["dilanjutkan"].get(lanjut, 0) + 1
+        coba_lanjut(state, lanjut)["n"] += 1
     if UJI:
         args.append("--uji")
     log(f"melanjutkan video panjang yang terhenti: {lanjut} ({pid})…" if lanjut else f"memproduksi video panjang baru ({pid})…")
@@ -350,7 +383,7 @@ def produksi(state: dict, c: dict, lanjut: str = "") -> str | None:
     cat = rj(PROD / f"{pid}.json")
     slug, status = cat.get("slug"), cat.get("status")
     teks = lf.read_text(encoding="utf-8", errors="replace")[-6000:]
-    if slug and slug not in state.setdefault("dibuat", []):
+    if slug and not manual and slug not in state.setdefault("dibuat", []):
         state["dibuat"].append(slug)
     if status == "selesai" and slug:
         state.pop("masalah", None)
@@ -386,10 +419,32 @@ def produksi(state: dict, c: dict, lanjut: str = "") -> str | None:
     return None
 
 
+def lanjutkan_terhenti(state: dict, c: dict, hanya_manual: bool) -> bool:
+    """Satu video yang terhenti (laptop dimatikan dll.) dilanjutkan dari tahap terakhirnya. True kalau ada yang dilanjutkan."""
+    if state.get("jeda_sampai") and now() < datetime.fromisoformat(state["jeda_sampai"]).replace(tzinfo=WIB):
+        return False
+    slug, manual = macet(state, hanya_manual)
+    if not slug:
+        return False
+    log(f"video panjang terhenti ditemukan ({'tombol Buat' if manual else 'autopilot'}): {slug} → dilanjutkan dari tahap terakhir")
+    produksi(state, c, slug, manual)
+    wj(STATE, state)
+    return True
+
+
 def putaran(paksa: bool = False) -> None:
     c = cfg()
     if not c["aktif"] and not paksa:
-        log("autopilot video panjang nonaktif (bible/autopilot.json → panjang.aktif)")
+        # autopilot mati: tidak membuat video baru, tapi video dari tombol Buat yang terhenti (laptop dimatikan) tetap dilanjutkan
+        k0 = Kunci(ROOT / "produksi" / ("autopilot-panjang-uji.lock" if UJI else "autopilot-panjang.lock"), maks_jam=20)
+        if k0.ambil("autopilot-panjang"):
+            st0 = rj(STATE)
+            try:
+                if not lanjutkan_terhenti(st0, c, hanya_manual=True):
+                    log("autopilot video panjang nonaktif (bible/autopilot.json → panjang.aktif); tidak ada video terhenti")
+            finally:
+                wj(STATE, st0)
+                k0.lepas()
         return
     k = Kunci(ROOT / "produksi" / ("autopilot-panjang-uji.lock" if UJI else "autopilot-panjang.lock"), maks_jam=20)
     if not k.ambil("autopilot-panjang"):
@@ -406,6 +461,9 @@ def putaran(paksa: bool = False) -> None:
                 tinjau(state, slug)
                 wj(STATE, state)
         isi_slot(state, c)
+        # video yang terhenti (laptop dimatikan di tengah proses) SELALU dilanjutkan dulu — sebelum membuat video baru
+        if lanjutkan_terhenti(state, c, hanya_manual=False):
+            isi_slot(state, c)
         for _ in range(3):
             hari = now().date().isoformat()
             perlu = len(slot_terbuka(state, c)) - len(siap_tayang(state, c))
@@ -416,12 +474,12 @@ def putaran(paksa: bool = False) -> None:
             if state.get("jeda_sampai") and now() < datetime.fromisoformat(state["jeda_sampai"]).replace(tzinfo=WIB):
                 log(f"jeda produksi sampai {state['jeda_sampai'][11:16]} ({state.get('masalah') or '-'})")
                 break
-            lanjut = macet(state)
+            lanjut, manual = macet(state)
             if not lanjut and state.get("produksi", {}).get(hari, 0) >= c["maks_produksi"]:
                 log(f"batas {c['maks_produksi']} produksi video panjang baru hari ini tercapai")
                 break
             log(f"{perlu} slot tayang video panjang belum punya video → produksi")
-            hasil = produksi(state, c, lanjut)
+            hasil = produksi(state, c, lanjut, manual)
             wj(STATE, state)
             isi_slot(state, c)
             if hasil is None:
@@ -481,8 +539,8 @@ def main() -> None:
 def mulai_latar(alasan: str = "") -> bool:
     """Dipanggil autopilot Shorts: jalankan satu putaran autopilot video panjang di LATAR (proses terpisah) kalau aktif
     dan belum berjalan. Tidak menunggu — produksi video panjang bisa berjam-jam."""
-    if not cfg()["aktif"] or Kunci(ROOT / "produksi" / "autopilot-panjang.lock", maks_jam=20).sibuk():
-        return False
+    if Kunci(ROOT / "produksi" / "autopilot-panjang.lock", maks_jam=20).sibuk():
+        return False                     # (autopilot mati pun tetap dijalankan: hanya melanjutkan video tombol Buat yang terhenti)
     lf = ROOT / "logs" / f"autopilot-panjang-latar-{datetime.now(WIB).strftime('%Y-%m-%d')}.txt"
     lf.parent.mkdir(exist_ok=True)
     env = {**os.environ, "PYTHONIOENCODING": "utf-8"}

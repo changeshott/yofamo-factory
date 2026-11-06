@@ -74,9 +74,20 @@ def main() -> None:
     sdir = vdir / "suara"
     sdir.mkdir(exist_ok=True)
     waktu, total = {}, 0.0
+    # lanjut dari titik terakhir (mis. laptop dimatikan di tengah): adegan yang suaranya sudah jadi dengan narasi sama tidak diulang
+    parsial_f = sdir / "waktu.parsial.json"
+    try:
+        parsial = json.loads(parsial_f.read_text(encoding="utf-8")) if parsial_f.exists() and not a.uji else {}
+    except ValueError:
+        parsial = {}
     for i, ad in enumerate(naskah["adegan"]):
         out = sdir / f"{i + 1:02}.mp3"
         teks = str(ad.get("narasi") or "").strip()
+        lama = parsial.get(str(i))
+        if lama and lama.get("teks") == teks and out.exists() and out.stat().st_size > 0:
+            waktu[str(i)] = {k: v for k, v in lama.items() if k != "teks"}
+            total += float(lama["durasi"])
+            continue
         if not teks:
             durasi = judul_detik if ad.get("jenis") == "judul_bab" else 2.0
             senyap(out, durasi)
@@ -94,7 +105,11 @@ def main() -> None:
         waktu[str(i)] = {"durasi": durasi, "kata": kata, "kalimat": petakan_kalimat(kal, kata)}
         total += durasi
         log(f"adegan {i + 1:02} ({ad.get('jenis')}): {durasi:.1f} dtk, {len(kata)} kata")
+        if not a.uji:
+            parsial[str(i)] = {**waktu[str(i)], "teks": teks}
+            parsial_f.write_text(json.dumps(parsial, ensure_ascii=False), encoding="utf-8")
     (sdir / "waktu.json").write_text(json.dumps(waktu, ensure_ascii=False, indent=1), encoding="utf-8")
+    parsial_f.unlink(missing_ok=True)
     st_panjang.set_status(a.slug, "suara", f"{total / 60:.1f} menit")
     log(f"selesai: {len(waktu)} adegan, total {total / 60:.1f} menit → panjang/{a.slug}/suara/")
 

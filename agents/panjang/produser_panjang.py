@@ -82,10 +82,28 @@ def now() -> str:
 def jalan(args: list[str], timeout: int) -> int:
     print(f"[produser-panjang] $ {' '.join(args[1:4])}", flush=True)
     try:
-        return subprocess.run(args, cwd=ROOT, timeout=timeout).returncode
+        kode = subprocess.run(args, cwd=ROOT, timeout=timeout).returncode
     except subprocess.TimeoutExpired:
         print("[produser-panjang] waktu habis", flush=True)
         return 124
+    if kode != 0:
+        print(f"[produser-panjang] {Path(args[1]).name} berhenti dengan kode {kode}", flush=True)
+    return kode
+
+
+def jalan_ulang(args: list[str], timeout: int, coba: int = 3, kode_tetap: tuple[int, ...] = (2,)) -> int:
+    """Untuk tahap yang bisa dilanjutkan dari titik terakhir (footage, render, rakit): kalau prosesnya berhenti tiba-tiba
+    (dimatikan, kehabisan memori, jendela ditutup), langsung dicoba lagi — bagian yang sudah jadi tidak diulang.
+    Kode di `kode_tetap` (mis. 2 = footage kurang) tidak diulang di sini karena butuh penanganan lain."""
+    kode = 1
+    for n in range(coba):
+        kode = jalan(args, timeout)
+        if kode == 0 or kode in kode_tetap or kode == 124:
+            return kode
+        if n + 1 < coba:
+            print(f"[produser-panjang] dicoba lagi otomatis ({n + 2}/{coba}), melanjutkan dari bagian terakhir…", flush=True)
+            time.sleep(30)
+    return kode
 
 
 def slug_baru(sebelum: set[str]) -> str | None:
@@ -118,7 +136,7 @@ def tinjau_visual(slug: str) -> dict:
 
 def rakit(cat: Catatan, slug: str, vdir: Path, naskah: dict, uji: bool) -> None:
     cat.tahap("wulan", "jalan")
-    if jalan([PY, "agents/panjang/rakit_panjang.py", slug, *(["--uji"] if uji else [])], 3 * 3600) != 0:
+    if jalan_ulang([PY, "agents/panjang/rakit_panjang.py", slug, *(["--uji"] if uji else [])], 3 * 3600, coba=2) != 0:
         cat.tahap("wulan", "gagal", "Rakit gagal. Cek log.")
         return cat.akhir("gagal", "Berhenti di tahap rakit.")
     jalan([PY, "agents/panjang/periksa_panjang.py", slug], 30 * 60)
@@ -204,7 +222,7 @@ def main() -> None:
 
         # 3. Gilang: suara
         cat.tahap("gilang", "jalan")
-        if not st_panjang.sudah(slug, "suara") and jalan([PY, "agents/panjang/suara_panjang.py", slug, *(["--uji"] if a.uji else [])], 40 * 60) != 0:
+        if not st_panjang.sudah(slug, "suara") and jalan_ulang([PY, "agents/panjang/suara_panjang.py", slug, *(["--uji"] if a.uji else [])], 40 * 60, coba=2) != 0:
             cat.tahap("gilang", "gagal", "Suara gagal dibuat (cek internet / edge-tts).")
             return cat.akhir("gagal", "Berhenti di tahap suara.")
         w = json.loads((vdir / "suara" / "waktu.json").read_text(encoding="utf-8"))
@@ -214,7 +232,7 @@ def main() -> None:
         if dok:
             cat.tahap("laras", "jalan", "mencari footage 16:9 tanpa teks & memotong objek asli…")
             if not st_panjang.sudah(slug, "ilustrasi"):
-                kode = jalan([PY, "agents/panjang/footage_panjang.py", slug, *(["--uji"] if a.uji else [])], 3 * 3600)
+                kode = jalan_ulang([PY, "agents/panjang/footage_panjang.py", slug, *(["--uji"] if a.uji else [])], 3 * 3600)
                 if kode == 2 and not a.uji:
                     # footage bersih kurang: Citra mengganti kata kunci visual adegan itu, lalu Laras mencari ulang
                     kurang = kurang_footage(vdir)
@@ -232,7 +250,7 @@ def main() -> None:
             n_media = len(list((vdir / "media").glob("*.png"))) if (vdir / "media").is_dir() else 0
             cat.tahap("laras", "ok", f"{sum(len(v) for v in man.values())} shot footage, {n_media} objek asli")
             cat.tahap("tio", "jalan", "motion graphic & footage (Shorts tetap didahulukan)…")
-            if jalan([PY, "agents/panjang/dokumenter.py", slug, *(["--uji"] if a.uji else [])], 12 * 3600) != 0:
+            if jalan_ulang([PY, "agents/panjang/dokumenter.py", slug, *(["--uji"] if a.uji else [])], 12 * 3600) != 0:
                 cat.tahap("tio", "gagal", "Render adegan gagal. Cek log, lalu Lanjutkan (adegan yang sudah jadi tidak dirender ulang).")
                 return cat.akhir("gagal", "Berhenti di tahap render.")
             cat.tahap("tio", "ok", f"{len(naskah['adegan'])} adegan")

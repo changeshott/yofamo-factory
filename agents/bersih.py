@@ -165,7 +165,7 @@ def bersih_lain(c: dict) -> int:
             n += hapus(f)
     prod = ROOT / "produksi"
     for f in (prod.glob("*.json") if prod.is_dir() else []):
-        if f.name != "autopilot.json" and f.stat().st_mtime < batas:
+        if f.name not in ("autopilot.json", "autopilot-panjang.json", "youtube-izin.json", "notif.json") and f.stat().st_mtime < batas:
             n += hapus(f)
     for f in (prod.glob("*.tmp") if prod.is_dir() else []):
         n += hapus(f)
