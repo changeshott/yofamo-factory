@@ -31,3 +31,6 @@ insights/jadwal.json
 insights/jadwal.md
 insights/radar.json
 insights/radar.md
+
+# otak project: keadaan laptop (dibuat agents/otak.py)
+otak/data/

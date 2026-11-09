@@ -576,7 +576,20 @@ os.environ.setdefault("BASH_DEFAULT_TIMEOUT_MS", "3600000")
 os.environ.setdefault("BASH_MAX_TIMEOUT_MS", "3600000")
 os.environ.setdefault("PYTHONUTF8", "1")
 
+def perbarui_otak() -> None:
+    """Otak project (otak/data/status.md): keadaan pabrik terbaru untuk sesi Claude berikutnya. Tanpa token; gagal = diabaikan."""
+    if "--uji" in sys.argv:
+        return
+    try:
+        subprocess.run([sys.executable, str(ROOT / "agents" / "otak.py"), "perbarui", "--data"], cwd=ROOT, capture_output=True, timeout=120)
+    except Exception:  # noqa: BLE001
+        pass
+
+
 if __name__ == "__main__":
     t0 = time.time()
-    main()
+    try:
+        main()
+    finally:
+        perbarui_otak()
     print(f"[produser] total {time.time() - t0:.0f} dtk", flush=True)

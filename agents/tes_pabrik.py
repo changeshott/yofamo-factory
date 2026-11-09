@@ -553,6 +553,10 @@ def offline() -> None:
         r = run(tmp, "agents/pabrik.py", "hapus", slug, "--ya")
         rows = json.loads(run(tmp, "agents/pabrik.py", "list", "--json").stdout or "[]")
         cek("Hapus video: catatan & folder hilang", r.returncode == 0 and not vdir.exists() and not any(x["slug"] == slug for x in rows))
+
+        # Otak project: path yang disebut otak/ & AGENTS.md benar-benar ada, indeks sesuai kode (dicek di project asli, hanya membaca)
+        r = run(ROOT, "agents/otak.py", "cek")
+        cek("Otak: path benar & indeks sesuai kode", r.returncode == 0, (r.stdout + r.stderr).strip().splitlines()[0][:160] if (r.stdout + r.stderr).strip() else "")
     except Exception:
         cek("tes tanpa internet berjalan sampai selesai", False, traceback.format_exc().strip().splitlines()[-1])
     finally:
