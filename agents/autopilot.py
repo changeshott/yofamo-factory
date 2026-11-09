@@ -200,7 +200,11 @@ def skor_qc(slug: str) -> tuple[float | None, bool]:
         skor = float(skor) if skor is not None else None
     except (TypeError, ValueError):
         skor = None
-    return skor, rv.get("lolos") is not False
+    try:
+        produk_ok = rv.get("produk_terlihat") is None or float(rv["produk_terlihat"]) >= 0.5   # keputusan Zona 2026-11-09
+    except (TypeError, ValueError):
+        produk_ok = True
+    return skor, rv.get("lolos") is not False and produk_ok
 
 
 def siap_tayang(state: dict, c: dict) -> list[tuple[str, str]]:

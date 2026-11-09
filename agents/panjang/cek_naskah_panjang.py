@@ -151,6 +151,19 @@ def cek(slug: str) -> tuple[list[str], list[str], dict, dict]:
         fails.append("judul > 90 karakter")
     if re.search(r"https?://|www\.", str(s.get("deskripsi", ""))):
         fails.append("deskripsi tidak boleh memuat link")
+    # kata pencarian (agents/ide/kata_cari.py --tulis): judul memuat frasa yang benar-benar dicari orang → muncul di pencarian YouTube
+    try:
+        kc = json.loads((vdir / "kata_cari.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        kc = None
+    if kc is None:
+        warns.append("kata_cari.json belum ada: jalankan python agents/ide/kata_cari.py \"<produk>\" --tulis <slug> lalu pakai frasanya di judul")
+    elif kc.get("frasa"):
+        jl = str(s.get("judul", "")).lower()
+        top = [str(e.get("frasa", "")).lower() for e in kc["frasa"][:10]]
+        inti = [f for f in top if f and all(w in jl for w in f.split()[:3])]
+        if not inti:
+            warns.append(f"judul belum memuat frasa pencarian teratas (mis. '{top[0]}'); masukkan secara alami di awal judul")
     if s.get("format") == "dokumenter":
         info = cek_dokumenter(s, ide, fails, warns)
         if ide:

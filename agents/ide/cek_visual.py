@@ -22,6 +22,15 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "agents" / "aset"))
 import sumber  # noqa: E402
 
+
+def yt_cari(q: str, key: str) -> list[dict]:
+    """Lewat cache pencarian Bima (cache/yt-cari/): hemat kuota YouTube & Bima nanti memakai hasil yang sama tanpa kuota."""
+    try:
+        import cari_aset
+        return cari_aset.youtube_cari(q, key)
+    except ImportError:
+        return sumber.youtube_cc(q, key)
+
 # YouTube CC paling sering MEMPERLIHATKAN produknya (demo, hands-on); NASA dulu berbobot tinggi → topik antariksa selalu
 # terlihat "punya footage" dan Nova terdorong memilihnya. Sekarang NASA kecil.
 BOBOT = {"youtube": 2.0, "nasa": 0.3, "wikimedia": 0.6, "pexels": 0.6, "pixabay": 0.5}
@@ -58,7 +67,7 @@ def cek(kata: list[str], yt: bool = True) -> dict:
         if pix:
             jobs.append(("pixabay", lambda: sumber.pixabay(q, pix)))
         if yt and ytk:
-            jobs.append(("youtube", lambda: sumber.youtube_cc(q, ytk)))
+            jobs.append(("youtube", lambda: yt_cari(q, ytk)))
         for nama, fn in jobs:
             try:
                 for c in fn()[:8]:

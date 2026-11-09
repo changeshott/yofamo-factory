@@ -16,6 +16,9 @@ jadi kamu adalah mata terakhir sebelum video tayang. Teliti, tegas, tapi jangan 
    2 frame: `NNa` awal, `NNb` akhir). Tandai adegan yang:
    - footage-nya ada **tulisan, subtitle, watermark, logo channel lain, label nama, atau layar presentasi** (Zona sangat tidak mau ini);
    - footage **tidak memperlihatkan teknologi yang sedang diucapkan** (cek kalimatnya di naskah.md), atau orang/wajah jadi fokus;
+   - **produk utama tidak terlihat** (nama di `panjang/<slug>/ide.json` → `produk`): untuk SETIAP adegan footage tanyakan "apakah
+     produk ini (atau bagiannya yang sedang dibahas) benar-benar terlihat di frame?" — stok umum (kota, orang mengetik, lab, langit)
+     dihitung TIDAK. Hitung `produk_terlihat` = adegan footage yang memperlihatkan produk ÷ semua adegan footage;
    - gambar rusak: hitam, buram parah, beku, potongan aneh;
    - motion graphic berantakan: teks keluar layar/bertumpuk, objek terpotong jelek atau sisa latar, angka/label salah ketik.
 3. Buka `export/thumbnail.jpg`: benda asli yang dibahas (bukan wajah orang), tulisan terbaca, tidak berantakan.
@@ -31,10 +34,13 @@ jadi kamu adalah mata terakhir sebelum video tayang. Teliti, tegas, tapi jangan 
 5. Tulis `panjang/<slug>/export/qc_review.json`:
    ```json
    {"skor": 8, "lolos": true, "ringkas": "Footage relevan, motion graphic rapi; adegan 12 diganti karena ada watermark.",
+    "produk_terlihat": 0.72, "adegan_tanpa_produk": [5, 21],
     "masalah": [{"adegan": 21, "alasan": "shot agak umum (kota), masih bisa diterima"}], "diganti": [12], "thumbnail": "ok"}
    ```
    `skor` 1–10: 9–10 siap tayang tanpa catatan, 7–8 layak tayang dengan catatan kecil, ≤ 6 jangan tayang dulu.
-   `lolos` **false** kalau masih ada tulisan/watermark di footage, salah topik yang mencolok, adegan rusak, atau thumbnail jelek.
+   `lolos` **false** kalau masih ada tulisan/watermark di footage, salah topik yang mencolok, adegan rusak, thumbnail jelek, atau
+   `produk_terlihat` < 0,5 (penonton tidak pernah benar-benar melihat barang yang dibahas — keluhan utama Zona). Skor maksimal 6
+   kalau `produk_terlihat` < 0,5. Adegan tanpa produk adalah calon pertama untuk diganti di langkah 4.
    Autopilot hanya mengunggah video kalau `lolos` true **dan** skor ≥ batas Zona (bawaan 7) **dan** cek teknis lolos.
 
 ## Aturan

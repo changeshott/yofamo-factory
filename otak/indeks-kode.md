@@ -7,7 +7,7 @@ Pakai untuk menemukan file yang tepat tanpa menjelajah folder. Isi lengkap tetap
 
 | File | Baris | Isi |
 |---|---|---|
-| `agents/aset/cari_aset.py` | 699 | Bima — pencari aset Yofamo. Untuk setiap kalimat naskah menyiapkan 1–3 shot vertikal 1080x1920 |
+| `agents/aset/cari_aset.py` | 740 | Bima — pencari aset Yofamo. Untuk setiap kalimat naskah menyiapkan 1–3 shot vertikal 1080x1920 |
 | `agents/aset/deteksi_teks.py` | 221 | Pendeteksi teks di footage (gratis, lokal): subtitle tertempel, judul, watermark, tulisan besar. |
 | `agents/aset/gerak.py` | 181 | Alat ffmpeg Bima: menyeragamkan klip ke 1080x1920, membuat gerak Ken Burns untuk gambar AI, |
 | `agents/aset/sumber.py` | 186 | Sumber klip Bima. Semua mengembalikan kandidat dengan bentuk yang sama. |
@@ -16,7 +16,7 @@ Pakai untuk menemukan file yang tepat tanpa menjelajah folder. Isi lengkap tetap
 
 | File | Baris | Isi |
 |---|---|---|
-| `agents/autopilot.py` | 561 | Autopilot Yofamo — tim bekerja sendiri: membuat video & menjadwalkan tayang (bawaan 3 video/hari). |
+| `agents/autopilot.py` | 565 | Autopilot Yofamo — tim bekerja sendiri: membuat video & menjadwalkan tayang (bawaan 3 video/hari). |
 | `agents/bersih.py` | 203 | Bersih-bersih penyimpanan Yofamo (permintaan Zona): file besar yang sudah tidak diperlukan dihapus otomatis. |
 | `agents/kunci.py` | 66 | Kunci proses sederhana (file berisi PID) supaya dua produksi/autopilot tidak berjalan bersamaan. |
 | `agents/notif.py` | 130 | Notifikasi ke HP Zona lewat bot Telegram (gratis). Tidak wajib: tanpa pengaturan, semua kabar dilewati diam-diam. |
@@ -24,9 +24,9 @@ Pakai untuk menemukan file yang tepat tanpa menjelajah folder. Isi lengkap tetap
 | `agents/pabrik.py` | 222 | Pencatat antrean video pabrik Yofamo (SQLite: state.db). |
 | `agents/pakai_python.py` | 24 | Pastikan script agent berjalan di Python yang paketnya lengkap. |
 | `agents/pemakaian.py` | 134 | Pemakaian token Claude per video (Shorts & video panjang), dari produksi/token-log.jsonl (dicatat agents/produser.py). |
-| `agents/produser.py` | 595 | Produser Yofamo: satu permintaan Zona → satu video jadi, otomatis lewat semua agent. |
+| `agents/produser.py` | 601 | Produser Yofamo: satu permintaan Zona → satu video jadi, otomatis lewat semua agent. |
 | `agents/tanpa_jendela.py` | 46 | Windows: semua proses anak (claude, python, ffmpeg, node) berjalan TANPA jendela console. |
-| `agents/tes_pabrik.py` | 665 | Tes menyeluruh pabrik Yofamo. Aman: semua tes berjalan di folder sementara, project asli tidak disentuh. |
+| `agents/tes_pabrik.py` | 683 | Tes menyeluruh pabrik Yofamo. Aman: semua tes berjalan di folder sementara, project asli tidak disentuh. |
 
 ## agents/editor/
 
@@ -41,7 +41,8 @@ Pakai untuk menemukan file yang tepat tanpa menjelajah folder. Isi lengkap tetap
 |---|---|---|
 | `agents/ide/cek_ide.py` | 223 | Nova: validasi + skor satu ide (videos/<slug>/idea.json), seperti editor riset memeriksa pitch. |
 | `agents/ide/cek_topik.py` | 102 | Cek apakah topik sudah pernah dibahas di channel Yofamo (atau sedang dikerjakan pabrik). |
-| `agents/ide/cek_visual.py` | 111 | Nova: cek ketersediaan visual LEGAL untuk satu topik SEBELUM topik itu dipilih. |
+| `agents/ide/cek_visual.py` | 120 | Nova: cek ketersediaan visual LEGAL untuk satu topik SEBELUM topik itu dipilih. |
+| `agents/ide/kata_cari.py` | 102 | Kata pencarian YouTube (gratis, tanpa token & tanpa kuota API): apa yang benar-benar diketik orang Indonesia tentang satu produk. |
 | `agents/ide/radar.py` | 226 | Nova: radar topik GRATIS (tanpa token Claude). Mengambil berita teknologi terbaru dari RSS sumber tepercaya |
 | `agents/ide/sumber_tier.py` | 66 | Tingkat kepercayaan sumber untuk Nova (dipakai cek_ide.py dan Studio). |
 
@@ -50,18 +51,18 @@ Pakai untuk menemukan file yang tepat tanpa menjelajah folder. Isi lengkap tetap
 | File | Baris | Isi |
 |---|---|---|
 | `agents/panjang/animasi.py` | 203 | Tio — animator tim video panjang. Mengubah tiap adegan naskah menjadi animasi lukis-komik (HyperFrames: HTML + GSAP). |
-| `agents/panjang/autopilot_panjang.py` | 577 | Autopilot video panjang — tim Ruang Animasi membuat & menjadwalkan sendiri 1 video panjang per hari (bawaan). |
-| `agents/panjang/cek_naskah_panjang.py` | 269 | Validator naskah video panjang (dipakai Citra sebelum naskah diserahkan ke Gilang & Tio). |
+| `agents/panjang/autopilot_panjang.py` | 585 | Autopilot video panjang — tim Ruang Animasi membuat & menjadwalkan sendiri 1 video panjang per hari (bawaan). |
+| `agents/panjang/cek_naskah_panjang.py` | 282 | Validator naskah video panjang (dipakai Citra sebelum naskah diserahkan ke Gilang & Tio). |
 | `agents/panjang/dokumenter.py` | 319 | Tio (gaya dokumenter modern) — merender tiap adegan video panjang 16:9 (1920x1080, 30 fps). |
-| `agents/panjang/footage_panjang.py` | 318 | Bima (16:9) — footage & objek ASLI untuk video panjang gaya dokumenter. |
+| `agents/panjang/footage_panjang.py` | 325 | Bima (16:9) — footage & objek ASLI untuk video panjang gaya dokumenter. |
 | `agents/panjang/gambar_ai.py` | 148 | Mesin gambar Ruang Animasi: FLUX.2 [klein] 4B di Cloudflare Workers AI (gratis 10.000 neuron/hari). |
 | `agents/panjang/ilustrasi.py` | 139 | Laras — ilustrator video panjang. Gambar gaya lukis-komik (bible/gaya-animasi.json) untuk tiap adegan ilustrasi, |
 | `agents/panjang/maskot.py` | 169 | Host Yofa — karakter orisinal Ruang Animasi, digambar AI dengan gaya lukis-komik (bible/gaya-animasi.json). |
 | `agents/panjang/periksa_panjang.py` | 150 | Wulan (QC) — pemeriksaan otomatis video panjang sebelum ditonton Zona. |
-| `agents/panjang/produser_panjang.py` | 308 | Produser Ruang Animasi: satu klik → video YouTube panjang (5–12 menit) gaya dokumenter modern: |
+| `agents/panjang/produser_panjang.py` | 312 | Produser Ruang Animasi: satu klik → video YouTube panjang (5–12 menit) gaya dokumenter modern: |
 | `agents/panjang/rakit_panjang.py` | 190 | Wulan — editor akhir video panjang. Menyambung adegan Tio + suara Gilang + musik → export/final.mp4 (1920x1080; dokumenter 30 fps, kartun 24 fps). |
 | `agents/panjang/status.py` | 90 | Status video panjang (terpisah dari pabrik Shorts supaya autopilot Shorts tidak pernah menyentuhnya). |
-| `agents/panjang/suara_panjang.py` | 132 | Gilang — pengisi suara video panjang. Narasi tiap adegan → suara (edge-tts, gratis) + timing tiap kata & kalimat. |
+| `agents/panjang/suara_panjang.py` | 136 | Gilang — pengisi suara video panjang. Narasi tiap adegan → suara (edge-tts, gratis) + timing tiap kata & kalimat. |
 | `agents/panjang/thumbnail_panjang.py` | 105 | Mila (16:9) — thumbnail video panjang gaya dokumenter: 1280x720 < 2 MB. |
 | `agents/panjang/unggah_panjang.py` | 203 | Uli untuk video panjang: unggah video berstatus export (disetujui Zona, atau autopilot video panjang yang lolos QC) |
 
@@ -94,8 +95,9 @@ Pakai untuk menemukan file yang tepat tanpa menjelajah folder. Isi lengkap tetap
 
 | File | Baris | Isi |
 |---|---|---|
-| `agents/suara/buat_suara.py` | 318 | Dara — agent suara Yofamo. Mengubah naskah Raka menjadi voice-over (gratis, edge-tts). |
+| `agents/suara/buat_suara.py` | 328 | Dara — agent suara Yofamo. Mengubah naskah Raka menjadi voice-over (gratis, edge-tts). |
 | `agents/suara/cek_gpu.py` | 45 | Dara: cek apakah laptop siap untuk suara natural VoxCPM2 (GPU NVIDIA) dan mesin video HyperFrames (Node 22). |
+| `agents/suara/lafal.py` | 105 | Kamus pelafalan Dara & Gilang: nama produk/merek asing dibaca benar oleh suara AI berbahasa Indonesia. |
 | `agents/suara/mesin_suara.py` | 114 | Dara: mesin suara natural (VoxCPM2) yang berjalan di Python khusus suara (.venv-suara). |
 | `agents/suara/voxcpm_kerja.py` | 142 | Pekerja suara VoxCPM2 (dijalankan Dara lewat Python khusus suara di .venv-suara, BUKAN langsung). |
 
@@ -146,5 +148,6 @@ Rute API (`studio/app/api/<nama>/route.ts`): `antrean`, `autopilot`, `bible`, `h
 - `bible/gaya-edit.json`
 - `bible/gaya-suara.json`
 - `bible/gaya-upload.json`
+- `bible/lafal.json`
 - `bible/panjang-bible.md`
 - `bible/penyimpanan.json`

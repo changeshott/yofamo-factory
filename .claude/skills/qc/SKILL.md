@@ -20,6 +20,8 @@ Argumen: `<slug> --pra`, `<slug> --akhir`, atau `<slug>` saja (= pilih otomatis:
 2. Produser sudah menjalankan `python agents/qc/periksa.py pra <slug>`: shot gelap/beku/hilang sudah diganti otomatis, dan lembar shot ada di `videos/<slug>/export/qc/pra-lembar-N.jpg`. Kalau file `export/qc_pra.json` belum ada, jalankan perintah itu sendiri.
 3. Buka setiap `pra-lembar-N.jpg` dengan Read. Label oranye = shot (`3a` = kalimat 3, potongan a). Isi kalimat tiap shot ada di `export/qc_pra.json` → `shot_info`. Tolak shot yang:
    - **tidak sesuai isi kalimatnya** (misalnya kalimat tentang lensa kontak tapi gambarnya laptop);
+   - **tidak memperlihatkan produk yang dibahas** (`videos/<slug>/idea.json` → `produk`) padahal kalimatnya tentang produk itu —
+     stok umum (kota, orang mengetik, lab, langit) ditolak kalau kandidat lain memperlihatkan produknya;
    - punya **teks/huruf acak** di gambar AI, watermark, logo channel lain, atau wajah orang yang jadi fokus;
    - gelap, buram parah, rusak, atau cacat AI yang mencolok (jari aneh, benda meleleh);
    - shot hook (`1a`) yang lemah: shot pertama harus paling menarik;
@@ -51,8 +53,9 @@ Argumen: `<slug> --pra`, `<slug> --akhir`, atau `<slug>` saja (= pilih otomatis:
    Kalau perintah terputus sebelum `final.mp4` baru jadi (status masih `aset`), jalankan `python agents/editor/rakit.py <slug>` lalu `python agents/qc/periksa.py cek <slug>`. Produser juga merakit ulang otomatis kalau kamu terputus.
 4. Tulis penilaian akhir ke `videos/<slug>/export/qc_review.json`:
    ```json
-   {"skor": 8, "lolos": true, "putaran": 0, "catatan": "Shot 3b diganti sebelum rakit karena teks acak. Hook kuat.", "saran_zona": ["Kalimat 6 masih kurang visual; pertimbangkan rekaman sendiri di milik-saya/"]}
+   {"skor": 8, "lolos": true, "putaran": 0, "produk_terlihat": 0.7, "catatan": "Shot 3b diganti sebelum rakit karena teks acak. Hook kuat.", "saran_zona": ["Kalimat 6 masih kurang visual; pertimbangkan rekaman sendiri di milik-saya/"]}
    ```
+   `produk_terlihat` = shot footage yang memperlihatkan produk ÷ semua shot footage. < 0,5 → skor maksimal 6 dan `lolos` false.
    `skor` 1–10 (8+ = siap tayang; autopilot memakai skor ini). `lolos` false kalau masih ada masalah besar. Sebut juga penggantian di mode `--pra` (lihat `export/qc_pra.json`).
 5. Jawaban akhir (maksimal 8 baris): skor, shot yang diganti, sisa masalah, dan saran untuk Zona.
 

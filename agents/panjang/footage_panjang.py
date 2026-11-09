@@ -49,6 +49,8 @@ BUTUH_FOOTAGE = {"footage": None, "pembuka": 1, "hp": 1, "tv": 1}
 DETIK_SHOT = 6.0          # video panjang: ganti shot tiap ±6 detik (dulu 4,5: terlalu banyak unduhan → tahap footage sampai 3 jam)
 ANGGARAN_MENIT = 75       # batas waktu tahap footage; sisa adegan memakai shot cadangan, bukan gagal setelah 3 jam
 PRODUK_CALON: list[dict] = []   # footage produk utama (hands on/review), dicari sekali per video dan dibagi ke semua adegan
+BATAS_WAKTU = [0.0]             # time.monotonic() saat anggaran habis (diisi main); dicek juga di dalam satu adegan
+GAGAL_GLOBAL: set[str] = set()  # kandidat yang gagal diunduh/diproses: tidak dicoba lagi di shot/adegan lain
 
 
 def log(m: str) -> None:
@@ -126,7 +128,9 @@ def cari_footage(vdir: Path, i: int, a: dict, dur: float, topik: set[str], dipak
         for c in calon:
             key = f"{c['sumber']}-{c['id']}"
             segs = dipakai.setdefault(key, [])
-            if key in ditolak or len(segs) >= 3 or (c.get("lebar") and c.get("tinggi") and c["lebar"] < c["tinggi"]):
+            if BATAS_WAKTU[0] and time.monotonic() > BATAS_WAKTU[0]:
+                break
+            if key in ditolak or key in GAGAL_GLOBAL or len(segs) >= 3 or (c.get("lebar") and c.get("tinggi") and c["lebar"] < c["tinggi"]):
                 continue
             try:
                 raw, mulai = bima.raw_footage(c, per, len(segs) if c["sumber"] != "youtube" else 0, segs)
@@ -147,6 +151,8 @@ def cari_footage(vdir: Path, i: int, a: dict, dur: float, topik: set[str], dipak
                 break
             except Exception as err:  # noqa: BLE001 — satu kandidat gagal → kandidat berikutnya
                 log(f"  {i + 1:02}-{s} {c['sumber']} {str(c['id'])[:12]}: {str(err)[:90]} → berikutnya")
+                if key not in ditolak:          # gagal unduh/potong (bukan sekadar segmen habis): jangan dicoba lagi di video ini
+                    GAGAL_GLOBAL.add(key)
         else:
             log(f"  {i + 1:02}-{s}: tidak ada footage bersih yang cocok")
     return hasil
@@ -208,6 +214,7 @@ def main() -> None:
         PRODUK_CALON.extend(kandidat([f"{produk} hands on", f"{produk} review"], a.uji))
         log(f"produk utama '{produk}': {len(PRODUK_CALON)} kandidat footage produk")
     mulai_t = time.monotonic()
+    BATAS_WAKTU[0] = mulai_t + ANGGARAN_MENIT * 60
     dipakai: dict = {}
     for daftar in man.values():
         for s in daftar:

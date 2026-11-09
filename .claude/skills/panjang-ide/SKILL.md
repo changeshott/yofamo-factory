@@ -39,6 +39,9 @@ panjang sebelumnya per bab): pilih alur bab yang mirip dengan yang paling ditont
     "objek_visual": ["English: benda/adegan nyata yang bisa dicari footage-nya, e.g. 'Xiaomi SU7 Ultra on race track'"],
     "kata_kunci_visual": ["3–6 English search keywords for real footage of THIS technology"]}
    ```
+6. **Kata pencarian** (gratis, tanpa token): `python agents/ide/kata_cari.py "<produk>" --tulis <slug>` → `panjang/<slug>/kata_cari.json`
+   (saran pencarian YouTube Indonesia, urut populer). Sesuaikan `judul_kerja` & sudut dengan frasa/pertanyaan teratas — video panjang
+   ditemukan lewat PENCARIAN. Kalau produk hampir tidak dicari sama sekali, itu tanda topik lemah untuk video panjang.
 
 ## Aturan
 - Hanya teknologi nyata yang sudah dijual/dipakai (prototipe hanya kalau sudah didemokan di video). Tidak ada rumor, tidak ada riset lab.

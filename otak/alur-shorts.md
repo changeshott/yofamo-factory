@@ -14,8 +14,8 @@ Folder satu video: `videos/<slug>/`.
 | 0 | Steve | `agents/steve/fetch_stats.py` | 5 mnt | daftar video channel terbaru (cek duplikat topik) |
 | 1 | Nova | `agents/ide/radar.py` lalu `/ide-riset --otomatis` | 45 mnt, 28 turn | langkah paling boros token (±1,6 jt/video, data 9 Nov 2026) |
 | 2 | Raka | `/penulis <slug>` | 30 mnt | durasi meleset → `/penulis <slug> --pangkas` atau suara dipercepat |
-| 3 | Dara | `agents/suara/buat_suara.py` (tanpa Claude) | 10 mnt | VoxCPM2 (GPU) atau edge-tts |
-| 4 | Bima | `/aset <slug>` (mode `--visual cepat`: `cari_aset.py semua`) | 50 mnt | cadangan tanpa Claude: `cari_aset.py unduh --otomatis` / `semua` |
+| 3 | Dara | `agents/suara/buat_suara.py` (tanpa Claude) | 10 mnt | VoxCPM2 (GPU) atau edge-tts; kamus pelafalan `agents/suara/lafal.py` |
+| 4 | Bima | `cari_aset.py semua` (script dulu); `/aset <slug>` hanya kalau belum lengkap | 40 + 50 mnt | kata kunci dari Raka; penilaian visual oleh Rara pra |
 | 5 | Mila | `agents/thumbnail/thumbnail.py`; kalau gagal `/thumbnail` | 15 mnt, 20 turn | objek asli (rembg) di belakang hook |
 | 5b | Rara pra | `agents/qc/periksa.py pra` + `/qc <slug> --pra` | 30 mnt, 30 turn | shot jelek diganti sebelum dirakit |
 | 6 | Kai | `agents/editor/rakit.py` (HyperFrames, cadangan ffmpeg) | 45 mnt | gaya gerak dipilih yang paling jarang dipakai |
@@ -36,17 +36,22 @@ Hasil: status `draft`. Zona menyetujui di Studio → `export`; atau autopilot me
   bobot sumber youtube 2.0, wikimedia/pexels 0.6, pixabay 0.5, nasa 0.3. `agents/ide/cek_topik.py`: cek belum pernah dibahas.
 - **Raka** (`.claude/skills/penulis/SKILL.md`): pembuka khas "Tau nggak, …", lembar produksi per kalimat (jenis visual, kata kunci
   Inggris, teks layar, penekanan), judul + 2 alternatif; validasi `agents/penulis/cek_naskah.py --tulis`.
-- **Dara**: `bible/gaya-suara.json`; hasil `vo.mp3`, `words.json`, `captions.srt`, `transkrip.txt`.
+- **Dara**: `bible/gaya-suara.json`; hasil `vo.mp3`, `words.json`, `captions.srt`, `transkrip.txt`. Pelafalan: `bible/lafal.json`
+  + `script.json` → `lafal` (nama produk asing → ejaan baca Indonesia); `lafal.ucapkan()` sebelum TTS, `lafal.pulihkan()` sesudahnya
+  supaya `words.json`/subtitle tetap tulisan asli.
 - **Bima** (`agents/aset/cari_aset.py`): 1–3 shot per kalimat (`SHOT_MAX` 3 dtk), sumber YouTube CC BY → NASA → Wikimedia →
   Pexels/Pixabay; gambar AI maks 10% (`BATAS_AI`), hook selalu footage. Relevansi kandidat (`relevansi()`): kata yang disebut JUDUL
   kandidat (kalimat ×2, topik ×1), kata yang hanya ada di kueri ×0,5, judul menyebut produk utama +4 (`PRODUK`, diisi `atur_produk()`
   dari `idea.json` → `produk`, cadangan kata kunci visual pertama). Footage topik dicari sekali per video, diawali
-  "`<produk>` hands on". Rekaman Zona di `milik-saya/` dipakai lebih dulu kalau nama file cocok.
+  "`<produk>` hands on". Rekaman Zona di `milik-saya/` dipakai lebih dulu kalau nama file cocok. Pencarian YouTube CC lewat
+  `youtube_cari()` (cache 7 hari di `cache/yt-cari/`, berhenti setelah 403/429 kuota); unduhan > 300 MB ditolak dari header dan
+  ditandai `.terlalu-besar`.
 - **Mila** (`agents/thumbnail/thumbnail.py`): 1080x1920 < 2 MB, objek asli tanpa latar, gaya hook sama dengan video.
 - **Kai** (`agents/editor/rakit.py`, `agents/editor/komposisi.py`): palet biru `bible/gaya-edit.json`, subtitle 1 kata, musik
   ±10 dB di bawah narasi dari `musik/<suasana>/`, penutup Subscribe, `export/info.json` → `gaya_gerak`.
 - **Rara** (`agents/qc/periksa.py`, `.claude/skills/qc/SKILL.md`): cek gelap/beku/durasi/LUFS/porsi AI + lihat frame;
-  pendeteksi teks `agents/aset/deteksi_teks.py` menolak footage bertulisan.
+  pendeteksi teks `agents/aset/deteksi_teks.py` menolak footage bertulisan. Wajib menilai produk terlihat: `qc_review.json` →
+  `produk_terlihat` (< 0,5 = tidak lolos; `skor_qc()` di `agents/autopilot.py` ikut menolak upload otomatis).
 
 ## Setelah draft
 

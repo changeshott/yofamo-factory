@@ -173,6 +173,39 @@ def shots_for(span: tuple[float, float], jenis: str) -> int:
 
 
 # ------------------------------------------------------------------ cari kandidat
+YT_MATI = [False]        # kuota/limit YouTube Data API habis (403/429) → sisa proses ini tidak memanggil YouTube lagi
+YT_CACHE_HARI = 7
+
+
+def youtube_cari(query: str, key: str) -> list[dict]:
+    """YouTube CC dengan cache pencarian 7 hari (cache/yt-cari/). Satu pencarian = 100 unit dari kuota gratis 10.000/hari yang
+    dipakai bersama Shorts, video panjang & Steve; dulu kueri yang sama diulang tiap video dilanjutkan → kuota habis (429)."""
+    import hashlib
+    import time as _t
+    f = CACHE / "yt-cari" / (hashlib.sha1(query.strip().lower().encode()).hexdigest()[:16] + ".json")
+    try:
+        if _t.time() - f.stat().st_mtime < YT_CACHE_HARI * 86400:
+            return [sumber.kandidat(**c) for c in json.loads(f.read_text(encoding="utf-8"))]
+    except (OSError, ValueError, TypeError):
+        pass
+    if YT_MATI[0]:
+        return []
+    try:
+        hasil = sumber.youtube_cc(query, key)
+    except urllib.error.HTTPError as err:
+        if err.code in (403, 429):
+            YT_MATI[0] = True
+            log(f"  youtube: kuota/limit API habis ({err.code}) → YouTube dilewati sampai proses ini selesai")
+            return []
+        raise
+    try:
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text(json.dumps(hasil, ensure_ascii=False), encoding="utf-8")
+    except (OSError, TypeError):
+        pass
+    return hasil
+
+
 def search_all(query: str, english: bool) -> list[dict]:
     """Ambil dari semua sumber yang tersedia, lalu selang-seling (2 teratas tiap sumber dulu)."""
     if UJI:
@@ -184,7 +217,7 @@ def search_all(query: str, english: bool) -> list[dict]:
     else:
         per = {}
         yt, pex, pix = os.environ.get("YOUTUBE_API_KEY", ""), os.environ.get("PEXELS_API_KEY", ""), os.environ.get("PIXABAY_API_KEY", "")
-        jobs = [("youtube", lambda: sumber.youtube_cc(query, yt) if yt and english else []),
+        jobs = [("youtube", lambda: youtube_cari(query, yt) if yt and english else []),
                 ("nasa", lambda: sumber.nasa(query) if english else []),
                 ("wikimedia", lambda: sumber.wikimedia(query) if english else []),
                 ("pexels", lambda: sumber.pexels(query, pex) if pex else []),
@@ -338,14 +371,22 @@ def cache_path(name: str) -> Path:
 def http_download(url: str, dest: Path) -> Path:
     if dest.exists() and dest.stat().st_size > 0:
         return dest
+    besar = dest.with_suffix(".terlalu-besar")       # penanda: file ini pernah > 300 MB → jangan diunduh lagi (dulu diulang tiap shot, berjam-jam)
+    if besar.exists():
+        raise ValueError("file lebih dari 300 MB (tercatat)")
     part = dest.with_suffix(".part")
     size = 0
     try:
         req = urllib.request.Request(sumber.aman_url(url), headers={"User-Agent": sumber.UA})
         with urllib.request.urlopen(req, timeout=90) as r, part.open("wb") as f:
+            panjang = int(r.headers.get("Content-Length") or 0)
+            if panjang > MAX_BYTES:                     # ukuran diketahui dari header → tolak tanpa mengunduh
+                besar.touch()
+                raise ValueError(f"file {panjang >> 20} MB, lebih dari 300 MB")
             while chunk := r.read(1 << 16):
                 size += len(chunk)
                 if size > MAX_BYTES:
+                    besar.touch()
                     raise ValueError("file lebih dari 300 MB")
                 f.write(chunk)
         part.replace(dest)

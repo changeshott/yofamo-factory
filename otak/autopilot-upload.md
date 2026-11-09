@@ -9,7 +9,7 @@
   (pria/wanita), `visual` (teliti/cepat), `arahan_tema`. **File ini di laptop punya isi lokal Zona — jangan pernah di-commit.**
 - Putaran (`putaran()`): perbarui jam tayang (`agents/upload/jadwal.py` → `insights/jadwal.json`) → isi slot hari ini + besok
   (`isi_slot()`) dengan video `export`, lalu video buatan autopilot yang lolos Rara (skor ≥ `skor_qc_min`, `skor_qc()`) → Uli
-  upload private + `publishAt` → slot kosong → `produksi()` membuat video baru dari slot terdekat. Video terhenti dilanjutkan dulu
+  upload private + `publishAt` (QC `produk_terlihat` < 0,5 tidak pernah disetujui otomatis) → slot kosong → `produksi()` membuat video baru dari slot terdekat. Video terhenti dilanjutkan dulu
   (`macet()`, `--lanjut`). Slot hari ini yang terlewat dipindah ke jam lain hari ini (`pengganti()`). Stok lengkap → `aktif: false`.
 - **Upload saat produksi berjalan**: `produksi()` memakai Popen dan tiap 180 dtk memanggil `isi_slot(..., hanya_disetujui=True)`,
   jadi video yang baru disetujui Zona langsung dijadwalkan tanpa menunggu produksi selesai.

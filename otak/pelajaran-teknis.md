@@ -29,6 +29,12 @@
 - Adegan `kata` tanpa `teks_layar` dirender sebagai layar putih kosong → cadangan 5 kata narasi.
 - Balapan: Wulan merender ulang saat Uli mengunggah, lalu `bersih.py` menghapus adegan → video panjang yang sudah diupload tidak boleh
   dirender ulang (`jaga_belum_terbit`).
+- Unduhan yang ditolak setelah selesai/terlalu besar tanpa penanda akan diulang di setiap shot → selalu catat kandidat gagal
+  (`.terlalu-besar`, `GAGAL_GLOBAL`) dan cek ukuran dari header dulu.
+- YouTube Data API: 1 pencarian = 100 unit dari 10.000/hari, dipakai bersama semua agent. Error 429/403 = kuota/limit, bukan bug →
+  cache pencarian (`cache/yt-cari/`), jangan mengulang kueri yang sama.
+- Proses yang sudah berjalan memakai kode LAMA sampai selesai: perbaikan yang disinkron di tengah produksi baru berlaku di
+  produksi berikutnya (GRX-810 mulai 12:26 dengan kode lama).
 - Tes `agents/tes_pabrik.py` memakai fixture (judul kandidat tidak cocok kueri) — mengubah rumus relevansi bisa menggagalkan tes Bima;
   jalankan tes sebelum dan sesudah untuk membandingkan.
 

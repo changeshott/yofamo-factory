@@ -35,8 +35,10 @@ sedang dikatakan kalimat itu ("Xiaomi SU7 Ultra interior screen" saat narasi mem
    penonton di video panjang sebelumnya) dan terapkan: perbanyak jenis adegan yang menahan penonton, beri kait baru di bagian yang
    biasanya ditinggal, pembuka lebih cepat kalau penonton di detik 30 rendah. Kurang dari 5 video = dugaan: terapkan ringan, jangan ekstrem. Target kata = target_menit × 60 × 2,45 (±10%): 5–12 menit ≈ 700–1700 kata.
 2. Tulis `panjang/<slug>/naskah.json`:
-   `{"format": "dokumenter", "judul" (≤ 70 karakter, jujur & bikin penasaran), "judul_alternatif": [2], "deskripsi" (TANPA link, 3–5 hashtag),
-   "tag", "suasana", "thumbnail": {"teks": "2–4 KATA", "objek": "benda fisik Inggris"}, "komentar_pin", "adegan": [...]}`.
+   `{"format": "dokumenter", "judul" (≤ 70 karakter, jujur & bikin penasaran, **memuat frasa pencarian teratas dari
+   `panjang/<slug>/kata_cari.json` secara alami di awal**, mis. "Oura Ring 5: …"; pertanyaan yang dicari orang dijawab di naskah & dipakai di deskripsi/tag), "judul_alternatif": [2], "deskripsi" (TANPA link, 3–5 hashtag),
+   "tag", "suasana", "thumbnail": {"teks": "2–4 KATA", "objek": "benda fisik Inggris"}, "komentar_pin", "lafal" (opsional: nama produk asing yang belum ada di `bible/lafal.json` → ejaan baca Indonesia,
+   mis. `{"SOLIX": "so-liks"}`; Gilang membacakannya, subtitle tetap tulisan asli), "adegan": [...]}`.
    - **Footage ≥ 50% narasi.** Motion graphic hanya saat benar-benar membantu (cara kerja, angka, perbandingan, sejarah, penekanan), minimal 4,
      tidak lebih dari 2 berturut-turut.
    - Narasi per adegan pendek (footage ≤ 45 kata, motion graphic ≤ 35–60 kata). Tiap 45–60 detik ada kait baru.

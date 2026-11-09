@@ -554,6 +554,24 @@ def offline() -> None:
         rows = json.loads(run(tmp, "agents/pabrik.py", "list", "--json").stdout or "[]")
         cek("Hapus video: catatan & folder hilang", r.returncode == 0 and not vdir.exists() and not any(x["slug"] == slug for x in rows))
 
+        # Kamus pelafalan: TTS membaca ejaan kamus, subtitle/timing kembali ke tulisan asli (kata yang dipecah TTS digabung lagi)
+        sys.path.insert(0, str(ROOT / "agents" / "suara"))
+        import lafal
+        km = lafal.kamus({"SU7": "es-yu-tujuh"})
+        asli = "Xiaomi SU7 pakai AI, bukan air."
+        baca = lafal.ucapkan(asli, km)
+        pecah = [{"kata": p, "mulai": n * 0.4, "selesai": n * 0.4 + 0.3} for n, p in enumerate(x for w in lafal.TOKEN.findall(baca) for x in w.split("-"))]
+        pulih = [w["kata"] for w in lafal.pulihkan(pecah, asli, km)]
+        cek("Pelafalan: ejaan baca untuk TTS, subtitle tetap tulisan asli", "syao-mi" in baca and "ei-ai" in baca and " air" in baca
+            and pulih == lafal.TOKEN.findall(asli), f"{baca} → {pulih}")
+        # Kata pencarian: saran yang tidak menyebut produk dibuang, layanan mati → kosong + catatan (tidak dikarang)
+        sys.path.insert(0, str(ROOT / "agents" / "ide"))
+        import kata_cari
+        kc = kata_cari.kumpulkan("Oura Ring 5", ambil=lambda q: ["oura ring 5 review", "cincin emas murah"] if q == "Oura Ring 5" else [])
+        mati = kata_cari.kumpulkan("Oura Ring 5", ambil=lambda q: (_ for _ in ()).throw(OSError("offline")))
+        cek("Kata pencarian: hanya frasa produk, offline = 'data belum cukup'", [e["frasa"] for e in kc["frasa"]] == ["oura ring 5 review"]
+            and not mati["frasa"] and "belum cukup" in mati["catatan"])
+
         # Otak project: path yang disebut otak/ & AGENTS.md benar-benar ada, indeks sesuai kode (dicek di project asli, hanya membaca)
         r = run(ROOT, "agents/otak.py", "cek")
         cek("Otak: path benar & indeks sesuai kode", r.returncode == 0, (r.stdout + r.stderr).strip().splitlines()[0][:160] if (r.stdout + r.stderr).strip() else "")

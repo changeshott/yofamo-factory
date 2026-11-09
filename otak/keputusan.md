@@ -15,8 +15,12 @@ Aturan tetap (upload, lisensi, hapus, rahasia) ada di `AGENTS.md` → Aturan ker
 - **2026-11-04 — Video panjang gaya dokumenter modern** (referensi "Video 1" Zona): footage asli + motion graphic tenang, bukan kartun,
   bukan gaya kayu/kuning vintage. Kartun lama hanya untuk melanjutkan video lama.
 
+- **2026-11-09 — Pilih usulan 3, 4, 5, 7**: kata pencarian untuk judul video panjang, kamus pelafalan, QC produk terlihat
+  (aturan yang dibuat: `produk_terlihat` < 0,5 = tidak lolos/tidak diupload otomatis), script dulu–Claude belakangan (Bima Shorts).
+
 ## Produksi & jadwal
 
+- **2026-11-09 — Kosongkan video panjang yang terputus, buat baru & stabil**: GRX-810 dipindah ke `panjang/_arsip/` (bisa dikembalikan).
 - **2026-11-02 — Autopilot Shorts 3 video/hari**, isi stok hari ini + besok, upload otomatis yang lolos skor (`skor_qc_min`).
 - **2026-11-05 — Autopilot video panjang 1 video/hari, upload otomatis.** Jam tayang diatur Zona sendiri di Studio (`panjang.jam` di
   `bible/autopilot.json` laptop): Zona sempat meminta 12:00; per 2026-11-09 file laptop berisi 17:30. Nilai yang berlaku selalu dari

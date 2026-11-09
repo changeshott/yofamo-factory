@@ -154,7 +154,15 @@ def skor_qc(slug: str) -> tuple[float | None, bool]:
     if not rv:
         return (s1, q.get("lolos") is True) if UJI else (None, False)
     skor = min(x for x in (s1, s2) if x is not None) if (s1 is not None or s2 is not None) else None
-    return skor, q.get("lolos") is True and rv.get("lolos") is True
+    return skor, q.get("lolos") is True and rv.get("lolos") is True and produk_cukup(rv)
+
+
+def produk_cukup(rv: dict) -> bool:
+    """Keputusan Zona 2026-11-09: penonton harus melihat produk yang dibahas. produk_terlihat < 0,5 → tidak diupload otomatis."""
+    try:
+        return rv.get("produk_terlihat") is None or float(rv["produk_terlihat"]) >= 0.5
+    except (TypeError, ValueError):
+        return True
 
 
 def perlu_tinjau(state: dict) -> list[str]:

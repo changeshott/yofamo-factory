@@ -21,12 +21,12 @@ VIDEO PANJANG "Ruang Animasi" (16:9, 5–12 menit, gaya dokumenter) — status d
 | Steve | `/steve-analis`, `agents/steve/kumpul.py`, `agents/steve/analisa.py` | `insights/raw/*`, laporan mingguan | `otak/steve-data.md` |
 | Nova | `/ide-riset`, `agents/ide/radar.py`, `agents/ide/cek_ide.py`, `agents/ide/cek_visual.py` | `videos/<slug>/idea.json` | `otak/alur-shorts.md` |
 | Raka | `/penulis`, `agents/penulis/cek_naskah.py` | `script.json`, `naskah.md` | `otak/alur-shorts.md` |
-| Dara | `agents/suara/buat_suara.py` (`/suara`) | `vo.mp3`, `words.json`, `captions.srt` | `otak/alur-shorts.md` |
+| Dara | `agents/suara/buat_suara.py` (`/suara`), kamus `agents/suara/lafal.py` | `vo.mp3`, `words.json`, `captions.srt` | `otak/alur-shorts.md` |
 | Bima | `/aset`, `agents/aset/cari_aset.py` | `aset/NN-a.mp4`, `aset/manifest.json` | `otak/alur-shorts.md` |
 | Mila | `agents/thumbnail/thumbnail.py` (`/thumbnail`) | `export/thumbnail.jpg` | `otak/alur-shorts.md` |
 | Kai | `agents/editor/rakit.py` + `agents/editor/komposisi.py` (`/editor`) | `export/final.mp4` | `otak/alur-shorts.md` |
 | Rara | `/qc`, `agents/qc/periksa.py` | `export/qc*.json` | `otak/alur-shorts.md` |
-| Bayu | `/panjang-ide` | `panjang/<slug>/ide.json` | `otak/alur-panjang.md` |
+| Bayu | `/panjang-ide`, `agents/ide/kata_cari.py` | `panjang/<slug>/ide.json`, `kata_cari.json` | `otak/alur-panjang.md` |
 | Citra | `/panjang-naskah`, `agents/panjang/cek_naskah_panjang.py` | `naskah.json` | `otak/alur-panjang.md` |
 | Gilang | `agents/panjang/suara_panjang.py` | `suara/NN.mp3`, `suara/waktu.json` | `otak/alur-panjang.md` |
 | Laras | `agents/panjang/footage_panjang.py` | `footage/`, `media/` | `otak/alur-panjang.md` |

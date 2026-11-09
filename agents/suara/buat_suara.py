@@ -247,6 +247,14 @@ def main() -> None:
     if not narasi:
         sys.exit("[dara] naskah kosong")
     text = " ".join(n["kalimat"].strip() for n in narasi)
+    # kamus pelafalan (bible/lafal.json + script.json → lafal): TTS membaca ejaan baca, timing dipulihkan ke tulisan asli
+    sys.path.insert(0, str(Path(__file__).parent))
+    import lafal  # noqa: E402
+    kamus = lafal.kamus(script.get("lafal") if isinstance(script.get("lafal"), dict) else None)
+    baca = [{**n, "kalimat": lafal.ucapkan(n["kalimat"], kamus)} for n in narasi]
+    teks_baca = " ".join(n["kalimat"].strip() for n in baca)
+    if teks_baca != text:
+        print(f"[dara] pelafalan: {sum(1 for a, b in zip(lafal.TOKEN.findall(text), lafal.TOKEN.findall(teks_baca)) if a != b)} kata dibaca dengan ejaan kamus")
 
     print(f"[dara] {len(tokens(text))} kata, suara {args.voice}, kecepatan {args.rate}")
     if args.uji:
@@ -262,7 +270,7 @@ def main() -> None:
             if ok:
                 print(f"[dara] mesin suara natural VoxCPM2 ({ket})")
                 try:
-                    words = mesin_suara.buat([n["kalimat"].strip() for n in narasi], args.voice, args.rate, folder / "vo.mp3")
+                    words = mesin_suara.buat([n["kalimat"].strip() for n in baca], args.voice, args.rate, folder / "vo.mp3")
                     args.voice = f"voxcpm2-{'wanita' if 'gadis' in args.voice.lower() else 'pria'}"
                 except RuntimeError as err:
                     if mesin == "voxcpm":
@@ -278,13 +286,13 @@ def main() -> None:
             words = None
             if shutil.which("ffmpeg") and any(n.get("bagian") for n in narasi):
                 try:
-                    words = asyncio.run(synth_prosodi(narasi, args.voice, args.rate, tmp))
+                    words = asyncio.run(synth_prosodi(baca, args.voice, args.rate, tmp))
                     print("[dara] edge-tts berekspresi: tempo, nada & jeda mengikuti bagian naskah (hook, wow, penutup)")
                 except RuntimeError as err:
                     print(f"[dara] mode ekspresif gagal ({str(err)[:120]}), memakai rekaman satu tarikan")
                     words = None
             if words is None:
-                words = asyncio.run(synth(text, args.voice, args.rate, tmp))
+                words = asyncio.run(synth(teks_baca, args.voice, args.rate, tmp))
         except Exception as err:  # jaringan / layanan TTS
             tmp.unlink(missing_ok=True)
             sys.exit(f"[dara] Gagal membuat suara: {err}. Cek koneksi internet lalu coba lagi.")
@@ -293,6 +301,8 @@ def main() -> None:
             sys.exit("[dara] Layanan TTS tidak mengirim audio/timing kata. Coba lagi beberapa saat lagi.")
         tmp.replace(folder / "vo.mp3")
 
+    if not args.uji:
+        words = lafal.pulihkan(words, text, kamus)
     durasi = words[-1]["selesai"] + 0.3
     data = {"suara": args.voice, "kecepatan": args.rate, "uji": args.uji, "durasi": round(durasi, 2),
             "kata": words, "kalimat": align_sentences(narasi, words)}

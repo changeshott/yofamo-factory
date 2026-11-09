@@ -74,6 +74,9 @@ def main() -> None:
     sdir = vdir / "suara"
     sdir.mkdir(exist_ok=True)
     waktu, total = {}, 0.0
+    sys.path.insert(0, str(ROOT / "agents" / "suara"))
+    import lafal  # noqa: E402  kamus pelafalan: bible/lafal.json + naskah.json → lafal
+    kamus = lafal.kamus(naskah.get("lafal") if isinstance(naskah.get("lafal"), dict) else None)
     # lanjut dari titik terakhir (mis. laptop dimatikan di tengah): adegan yang suaranya sudah jadi dengan narasi sama tidak diulang
     parsial_f = sdir / "waktu.parsial.json"
     try:
@@ -100,7 +103,8 @@ def main() -> None:
             senyap(out, (kata[-1]["selesai"] if kata else 1.0) + 0.1)
         else:
             tempo, nada = PROSODI.get(ad.get("jenis", "host"), (0, 0))
-            kata = asyncio.run(_synth(teks, voice, f"{dasar + tempo:+d}%", f"{nada:+d}Hz", out))
+            kata = asyncio.run(_synth(lafal.ucapkan(teks, kamus), voice, f"{dasar + tempo:+d}%", f"{nada:+d}Hz", out))
+            kata = lafal.pulihkan(kata, teks, kamus)
         durasi = round(max(dara.durasi_audio(out), kata[-1]["selesai"] if kata else 0) + pad, 3)
         waktu[str(i)] = {"durasi": durasi, "kata": kata, "kalimat": petakan_kalimat(kal, kata)}
         total += durasi

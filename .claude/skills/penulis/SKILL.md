@@ -69,7 +69,7 @@ Tulis juga `thumbnail_objek`: **satu benda fisik** yang dibahas, bahasa Inggris,
 Untuk setiap kalimat di `narasi`:
 - `visual`: deskripsi konkret dalam bahasa Indonesia (benda, aksi, close-up).
 - `jenis_visual`: `footage` (default, hampir semua kalimat — termasuk kalimat konsep/masa depan: tunjukkan teknologinya yang sudah ada), `ai` (maksimal 1 kalimat per video, hanya kalau benar-benar tidak ada rekaman apa pun tentang teknologinya), atau `grafis` (kalimat yang menyebut angka kunci, maksimal 2 per video). Bima tetap mencari footage relevan dulu dan membatasi gambar AI ≤ 10% shot.
-- `kata_kunci_visual`: 1–3 kata kunci **bahasa Inggris** untuk mencari footage (ambil/kembangkan dari `kata_kunci_visual` Nova). Wajib untuk footage/ai. Kata kunci pertama harus **menyebut teknologi yang dibahas secara spesifik** (misalnya `biohybrid swimming robot`, bukan `robot` atau `science lab`), supaya visual menonjolkan topiknya; kata kunci umum hanya sebagai cadangan.
+- `kata_kunci_visual`: 1–3 kata kunci **bahasa Inggris** untuk mencari footage (ambil/kembangkan dari `kata_kunci_visual` Nova). Wajib untuk footage/ai. Kata kunci pertama harus **menyebut produk/teknologi yang dibahas secara spesifik** — pakai nama produk dari `idea.json` → `produk` + bagian yang dibahas kalimat itu (misalnya `Oura Ring 5 sensor`, `biohybrid swimming robot`, bukan `robot` atau `science lab`); Bima memilih shot otomatis dari kata kunci ini, supaya visual menonjolkan topiknya; kata kunci umum hanya sebagai cadangan.
 - `teks_layar` (opsional, ≤ 4 kata): teks penegas di atas layar, misalnya "PROTOTIPE", "0,1 DETIK!". Maksimal 1 setiap 2 kalimat; jangan di kalimat hook.
 - `penekanan` (opsional): 1–2 kata dari kalimat itu yang harus disorot di subtitle (angka, kata kunci emosi).
 - `grafis_gerak` (opsional, **disarankan ±1 dari tiap 2–3 kalimat**): animasi motion graphic yang Kai gambar di atas footage (zona atas layar), **harus sesuai yang sedang diucapkan**. Pilih satu tipe:
@@ -85,6 +85,9 @@ Untuk setiap kalimat di `narasi`:
 - `judul_alternatif`: 2 judul lain dengan sudut berbeda (untuk uji/ganti judul nanti).
 - `deskripsi`: **tanpa link apa pun** (URL sumber cukup di kolom `sumber`). Baris pertama = kalimat paling bikin penasaran yang memuat kata kunci utama (nama teknologinya, ±100 karakter pertama tampil di pencarian); lalu 1–2 kalimat isi/fakta inti; lalu 3–5 hashtag topik spesifik (misalnya `#rovermars #nasa #mobilotonom`). Uli otomatis menambah pertanyaan komentar, ajakan follow, kredit singkat tanpa link, dan hashtag umum channel (`bible/gaya-upload.json`).
 - `komentar_pin`: komentar pertama untuk Zona sematkan (pertanyaan yang memancing diskusi atau fakta tambahan dari idea.json).
+- `lafal` (opsional): nama produk/merek asing di narasi yang BELUM ada di `bible/lafal.json` → cara bacanya dalam ejaan Indonesia,
+  satu kata per kunci, bagian dipisah tanda hubung, mis. `{"SOLIX": "so-liks", "SU7": "es-yu-tujuh"}`. Dara membacakan ejaan ini;
+  subtitle tetap menulis aslinya.
 - `tag`: 8–15 huruf kecil tanpa `#`. `sumber`: semua URL dari idea.json yang dipakai.
 - `suasana`: `tegang` / `ceria` / `misterius` / `epik` / `haru` (Kai memilih musik).
 - Eksperimen aktif di `insights/eksperimen.md` yang menyangkut naskah/judul/hook/durasi: terapkan dan catat `"eksperimen": ["<nama>: <varian>"]`.

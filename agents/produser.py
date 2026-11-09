@@ -449,7 +449,13 @@ def main() -> None:
         elif a.visual == "cepat":
             jalan([PY, "agents/aset/cari_aset.py", "semua", slug], 40 * 60)
         else:
-            claude(f"/aset {slug}", tools("agents/pabrik.py", "agents/aset/cari_aset.py"), 50 * 60)
+            # script dulu (kata kunci visual per kalimat dari Raka + relevansi judul/produk), Claude hanya kalau script tidak lengkap.
+            # Penilaian visual tetap oleh Rara pra-periksa (Claude) yang mengganti shot jelek. Hemat ±700 rb token/video (data 9 Nov 2026).
+            cat.tahap("bima", "jalan", "memilih shot otomatis (script)")
+            jalan([PY, "agents/aset/cari_aset.py", "semua", slug], 40 * 60)
+            if not sudah(slug, "aset"):
+                cat.tahap("bima", "jalan", "script belum lengkap → Bima (Claude) merencanakan visual")
+                claude(f"/aset {slug}", tools("agents/pabrik.py", "agents/aset/cari_aset.py"), 50 * 60)
         if not a.uji and not sudah(slug, "aset"):
             # cadangan tanpa Claude: script Bima memilih otomatis (memakai rencana.json kalau sudah ditulis)
             cat.tahap("bima", "jalan", "visual belum lengkap, Bima mencoba mode otomatis")

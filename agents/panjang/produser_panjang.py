@@ -193,7 +193,7 @@ def main() -> None:
             else:
                 sebelum = {d.name for d in st_panjang.BASE.glob("*")} if st_panjang.BASE.is_dir() else set()
                 pr.claude(f"/panjang-ide {teks}".strip(), pr.tools("agents/panjang/status.py", "agents/ide/radar.py", "agents/ide/cek_topik.py",
-                                                                    "agents/ide/cek_visual.py", web=True),
+                                                                    "agents/ide/cek_visual.py", "agents/ide/kata_cari.py", web=True),
                           60 * 60, turns=50)
                 slug = slug_baru(sebelum)
             if not slug:
@@ -203,6 +203,9 @@ def main() -> None:
         vdir = st_panjang.folder(slug)
         ide = json.loads((vdir / "ide.json").read_text(encoding="utf-8-sig"))
         cat.tahap("bayu", "ok", ide.get("judul_kerja", slug))
+        if not a.uji and not (vdir / "kata_cari.json").exists() and (ide.get("produk") or ide.get("judul_kerja")):
+            # kata pencarian YouTube untuk judul Citra (gratis, tanpa token); cadangan kalau Bayu belum menjalankannya
+            jalan([PY, "agents/ide/kata_cari.py", str(ide.get("produk") or ide.get("judul_kerja"))[:80], "--tulis", slug], 3 * 60)
 
         # 2. Citra: naskah adegan
         cat.tahap("citra", "jalan")
@@ -212,7 +215,8 @@ def main() -> None:
                 (vdir / "naskah.json").write_text(json.dumps(n, ensure_ascii=False, indent=1), encoding="utf-8")
                 st_panjang.set_status(slug, "naskah", "mode uji")
             else:
-                pr.claude(f"/panjang-naskah {slug}", pr.tools("agents/panjang/status.py", "agents/panjang/cek_naskah_panjang.py", "agents/ide/cek_visual.py"),
+                pr.claude(f"/panjang-naskah {slug}", pr.tools("agents/panjang/status.py", "agents/panjang/cek_naskah_panjang.py", "agents/ide/cek_visual.py",
+                                                         "agents/ide/kata_cari.py"),
                           60 * 60, turns=60)
         if not st_panjang.sudah(slug, "naskah"):
             cat.tahap("citra", "gagal", "Naskah belum lolos cek_naskah_panjang.py.")
