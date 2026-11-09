@@ -19,8 +19,8 @@
 ## Autopilot video panjang — `agents/panjang/autopilot_panjang.py`
 
 - Bawaan (`BAWAAN`, ditimpa `bible/autopilot.json` → `panjang`): aktif true, `video_per_hari` 1, `isi_hari` 2, `setujui_otomatis`
-  true, `skor_qc_min` 7, `maks_produksi_per_hari` 2, `jam` "" (otomatis 15–21 menit :30, ≥ 90 mnt dari jam Shorts). Zona memilih
-  jam 12:00 (Nov 2026, disimpan di file laptop).
+  true, `skor_qc_min` 7, `maks_produksi_per_hari` 2, `jam` "" (otomatis 15–21 menit :30, ≥ 90 mnt dari jam Shorts). Nilai yang
+  berlaku di laptop: lihat `otak/data/status.md` → Autopilot (Zona mengubahnya lewat Studio).
 - Jalan: Studio dibuka, tiap ±1 jam selama Studio terbuka, dan tiap putaran autopilot Shorts. Kunci `produksi/autopilot-panjang.lock`.
 - Melanjutkan video terhenti SEBELUM membuat baru: `macet(state, hanya_manual)` → `(slug, manual)`; `coba_lanjut` maks 3x hanya kalau
   tidak maju satu tahap pun; lewat batas → menunggu Zona + Telegram. Video dari tombol Buat juga dilanjutkan (id `panjang-lanjut-…`).

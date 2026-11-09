@@ -23,6 +23,9 @@ Terakhir diperbarui: 2026-11-09 (commit "Otak project"). Sejarah lengkap: `git l
 
 ## Masalah terbuka
 
+- Video panjang `20261106-komputer-sel-otak-cl1` berstatus `draft` padahal sudah di YouTube (sisa balapan lama) → status perlu
+  dirapikan (oleh Zona/atas izin Zona), lalu tambahkan cek konsistensi status vs `upload.json`.
+
 - Render Shorts pernah mati diam-diam saat menunggu (penyebab belum ketemu) → sekarang dicoba ulang + kode keluar dicatat.
 - 2 tes Kai (HyperFrames) gagal di sandbox karena tidak ada `node_modules` — normal; di laptop harus lolos.
 

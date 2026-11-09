@@ -18,7 +18,9 @@ Aturan tetap (upload, lisensi, hapus, rahasia) ada di `AGENTS.md` → Aturan ker
 ## Produksi & jadwal
 
 - **2026-11-02 — Autopilot Shorts 3 video/hari**, isi stok hari ini + besok, upload otomatis yang lolos skor (`skor_qc_min`).
-- **2026-11-05 — Autopilot video panjang 1 video/hari, upload otomatis**; jam tayang 12:00 (permintaan Zona sesudahnya) (`panjang.jam` di `bible/autopilot.json` laptop).
+- **2026-11-05 — Autopilot video panjang 1 video/hari, upload otomatis.** Jam tayang diatur Zona sendiri di Studio (`panjang.jam` di
+  `bible/autopilot.json` laptop): Zona sempat meminta 12:00; per 2026-11-09 file laptop berisi 17:30. Nilai yang berlaku selalu dari
+  `otak/data/status.md` → Autopilot, jangan ditulis tetap di sini.
 - **2026-11-09 — Video yang disetujui harus langsung terjadwal**, tidak menunggu produksi lain selesai.
 - **2026-11-06 — Laptop mati di tengah produksi → lanjutkan dari tahap terakhir, jangan ulang dari awal.**
 - **2026-11-09 — Video yang Zona upload manual / upload dobel**: tandai `dibatalkan` / `manual_videoId` di `upload.json`, jangan dihitung
