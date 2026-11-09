@@ -268,9 +268,13 @@ def _unggah(slug: str, t: datetime) -> dict | None:
     return up if up.get("videoId") else None
 
 
-def isi_slot(state: dict, c: dict) -> int:
+def isi_slot(state: dict, c: dict, hanya_disetujui: bool = False) -> int:
     slots = slot_ke_depan(state, c["n"], 72, akhir_stok(c))
     siap = siap_tayang(state, c)
+    if hanya_disetujui:                      # selama produksi berjalan: hanya video yang sudah disetujui Zona (status export)
+        siap = [x for x in siap if x[1] == "disetujui Zona"]
+        if not siap:
+            return 0
     terisi = 0
     for t in slots:
         if not siap:
@@ -342,10 +346,27 @@ def produksi(state: dict, c: dict, lanjut: str = "") -> str | None:
         f.write(f"# Produksi autopilot — {now().strftime('%Y-%m-%d %H:%M')}\n\n")
         f.flush()
         env = {**os.environ, "PYTHONIOENCODING": "utf-8", "PYTHONUTF8": "1"}
-        try:
-            subprocess.run(args, cwd=ROOT, stdout=f, stderr=subprocess.STDOUT, env=env, timeout=4 * 3600)
-        except subprocess.TimeoutExpired:
-            f.write("\n[autopilot] waktu produksi habis (4 jam)\n")
+        p = subprocess.Popen(args, cwd=ROOT, stdout=f, stderr=subprocess.STDOUT, env=env)
+        mulai, cek_terakhir = time.time(), time.time()
+        while True:
+            try:
+                p.wait(timeout=30)
+                break
+            except subprocess.TimeoutExpired:
+                pass
+            if time.time() - mulai > 4 * 3600:
+                p.kill()
+                f.write("\n[autopilot] waktu produksi habis (4 jam)\n")
+                break
+            # sambil produksi berjalan: video yang BARU DISETUJUI Zona di Studio langsung diupload & dijadwalkan
+            # (dulu baru diperiksa setelah produksi ini selesai, ±45 menit — slot terdekat bisa terlewat)
+            if time.time() - cek_terakhir >= 180:
+                cek_terakhir = time.time()
+                try:
+                    if isi_slot(state, c, hanya_disetujui=True):
+                        wj(STATE, state)
+                except Exception as err:  # noqa: BLE001 — upload sela tidak boleh menghentikan produksi
+                    log(f"upload sela gagal: {str(err)[:120]}")
     hari = now().date().isoformat()
     state.setdefault("produksi", {})[hari] = state.get("produksi", {}).get(hari, 0) + 1
     cat = rj(ROOT / "produksi" / f"{pid}.json")
