@@ -55,8 +55,9 @@ def ciri_produksi() -> dict[str, dict]:
     for d in (ROOT / "panjang").glob("*/export/upload.json"):
         vdir = d.parents[1]
         up, info, n = rj(d), rj(vdir / "export" / "info.json"), rj(vdir / "naskah.json")
-        if up.get("videoId") and up.get("videoId") != "UJI":
-            out[up["videoId"]] = {"slug": vdir.name, "jenis": "panjang", "format": info.get("format") or n.get("format"),
+        vid_p = up.get("manual_videoId") or (None if up.get("dibatalkan") else up.get("videoId"))
+        if vid_p and vid_p != "UJI":
+            out[vid_p] = {"slug": vdir.name, "jenis": "panjang", "format": info.get("format") or n.get("format"),
                                   "durasi": round(float(info.get("durasi") or 0), 1), "adegan": len(n.get("adegan") or []),
                                   "bab": len(info.get("bab") or []), "suasana": n.get("suasana"),
                                   "skor_qc": rj(vdir / "export" / "qc_review.json").get("skor") or rj(vdir / "export" / "qc.json").get("skor")}

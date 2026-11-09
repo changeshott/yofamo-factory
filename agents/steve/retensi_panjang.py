@@ -101,7 +101,8 @@ def main() -> None:
     retensi, meta = data.get("retensi") or {}, {v.get("video"): v for v in data.get("videos") or []}
     hasil = []
     for up_f in sorted((ROOT / "panjang").glob("*/export/upload.json")):
-        vid = rj(up_f).get("videoId")
+        up = rj(up_f)
+        vid = up.get("manual_videoId") or (None if up.get("dibatalkan") else up.get("videoId"))
         if vid and vid in retensi:
             r = analisa_video(vid, retensi[vid], up_f.parents[1], meta.get(vid) or {})
             if r:

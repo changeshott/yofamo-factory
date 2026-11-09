@@ -59,15 +59,16 @@ export function jadwalTayang(produksiAutopilotBerjalan: boolean, produksiPanjang
   try {
     for (const slug of fs.readdirSync(P.videos)) {
       if (!SLUG.test(slug) || sudahAda.has(slug)) continue;
-      const up = baca<{ jadwal?: string | null; url?: string; waktu?: string }>(path.join(P.videos, slug, "export", "upload.json"));
-      if (!up) continue;
+      const up = baca<{ jadwal?: string | null; url?: string; waktu?: string; dibatalkan?: boolean }>(path.join(P.videos, slug, "export", "upload.json"));
+      if (!up || up.dibatalkan) continue;
       const w = (up.jadwal ?? up.waktu ?? "").replace("T", " ").slice(0, 16);
       if (w && w.slice(0, 10) >= tglWIB(now - 2 * 86400_000)) isi(w, slug, up.url ?? null, "shorts");
     }
   } catch { /* belum ada video */ }
   try {
     for (const slug of fs.readdirSync(path.join(ROOT, "panjang"))) {
-      const up = baca<{ jadwal?: string | null; url?: string; waktu?: string }>(path.join(ROOT, "panjang", slug, "export", "upload.json"));
+      const up = baca<{ jadwal?: string | null; url?: string; waktu?: string; dibatalkan?: boolean }>(path.join(ROOT, "panjang", slug, "export", "upload.json"));
+      if (up?.dibatalkan) continue;            // salinan dobel yang dibatalkan Zona (mis. sudah diupload manual)
       const w = (up?.jadwal ?? up?.waktu ?? "").replace("T", " ").slice(0, 16);
       if (w && w.slice(0, 10) >= tglWIB(now - 2 * 86400_000)) isi(w, slug, up?.url ?? null, "panjang");
     }
@@ -126,8 +127,8 @@ export function mingguIni(terbitShorts: string[] = []): MingguIni {
     let slugs: string[] = [];
     try { slugs = fs.readdirSync(dir).filter((x) => SLUG.test(x)); } catch { /* belum ada */ }
     for (const slug of slugs) {
-      const up = baca<{ videoId?: string; jadwal?: string | null; waktu?: string }>(path.join(dir, slug, "export", "upload.json"));
-      if (!up?.videoId || up.videoId === "UJI") continue;
+      const up = baca<{ videoId?: string; jadwal?: string | null; waktu?: string; dibatalkan?: boolean }>(path.join(dir, slug, "export", "upload.json"));
+      if (!up?.videoId || up.videoId === "UJI" || up.dibatalkan) continue;
       const w = (up.jadwal ?? "").replace("T", " ").slice(0, 16);
       if (!w) continue;                                              // tanpa jadwal: private sampai Zona menayangkan (status terbit)
       if (w.slice(0, 10) < senin || w.slice(0, 10) >= seninDepan) continue;
