@@ -143,6 +143,7 @@ def offline() -> None:
                           {"klaim": "Diuji di laboratorium", "sumber_nama": "IEEE Spectrum", "sumber_url": "https://spectrum.ieee.org/x",
                            "kutipan": "tested in the lab", "tanggal_sumber": "2026-06"}],
                 "angka_kunci": [{"angka": "240", "label": "sensor per cm²"}], "kata_kunci_visual": ["robot hand", "electronic skin"],
+                "visual": {"skor": 7, "kata_kunci": ["robot hand"]},
                 "rubrik": {"wow": 5, "dekat": 4, "bukti": 5, "kebaruan": 4, "risiko_rendah": 4, "visual": 3}}
         (vdir / "idea.json").write_text(json.dumps(rich, ensure_ascii=False), encoding="utf-8")
         r = run(tmp, "agents/ide/cek_ide.py", slug, "--tulis")

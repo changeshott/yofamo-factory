@@ -32,15 +32,19 @@ UA = "Mozilla/5.0 (YofamoRadar/1.0; +https://youtube.com/@yofamoo_technology)"
 
 # (nama, url, tier) — tier 1 = rilis resmi lembaga/universitas, 2 = media sains bereputasi
 FEEDS = [
-    ("EurekAlert Tech", "https://www.eurekalert.org/rss/technology_engineering.xml", 1),
-    ("ScienceDaily Tech", "https://www.sciencedaily.com/rss/top/technology.xml", 1),
-    ("ScienceDaily Health Tech", "https://www.sciencedaily.com/rss/health_medicine/medical_technology.xml", 1),
-    ("MIT News Engineering", "https://news.mit.edu/rss/topic/engineering", 1),
-    ("NASA News", "https://www.nasa.gov/news-release/feed/", 1),
-    ("TechXplore", "https://techxplore.com/rss-feed/", 2),
-    ("IEEE Spectrum", "https://spectrum.ieee.org/feeds/feed.rss", 2),
-    ("New Scientist Tech", "https://www.newscientist.com/subject/technology/feed/", 2),
+    # (Nov 2026, permintaan Zona) fokus PRODUK & teknologi yang sudah ada/dijual/dipakai dan bisa diperlihatkan — bukan riset lab/NASA.
+    ("The Verge", "https://www.theverge.com/rss/index.xml", 2),
+    ("Engadget", "https://www.engadget.com/rss.xml", 2),
+    ("Gizmodo", "https://gizmodo.com/feed", 2),
+    ("Digital Trends", "https://www.digitaltrends.com/feed/", 2),
+    ("Android Authority", "https://www.androidauthority.com/feed/", 2),
+    ("GSMArena", "https://www.gsmarena.com/rss-news-reviews.php3", 2),
+    ("Electrek (kendaraan listrik)", "https://electrek.co/feed/", 2),
+    ("Interesting Engineering", "https://interestingengineering.com/feed", 2),
     ("New Atlas", "https://newatlas.com/index.rss", 2),
+    ("TechCrunch Hardware", "https://techcrunch.com/category/hardware/feed/", 2),
+    ("detikInet", "https://inet.detik.com/rss", 2),
+    ("TechXplore", "https://techxplore.com/rss-feed/", 2),
 ]
 
 # kata yang membuat topik "dekat & bisa diperlihatkan" untuk penonton Indonesia (bobot)
@@ -50,11 +54,14 @@ DEKAT = {
     r"\bhome|house|window|wall|furniture|air condition|cooling": ("rumah", 2), r"\bphone|smartphone|battery|charg|screen|display|laptop": ("hp", 3),
     r"\bgame|gaming|vr\b|virtual reality|augmented|ar glasses": ("game", 2), r"\bcar|vehicle|drone|plane|aircraft|train|bike|motorcycle|ship": ("transportasi", 2),
     r"\brobot|humanoid|exoskeleton|gripper": ("robot", 3), r"\bsolar|energy|power|electricity|hydrogen": ("energi", 1),
-    r"\bplastic|recycl|ocean|water|pollution|climate": ("lingkungan", 1), r"\bspace|moon|mars|satellite|rocket|asteroid": ("luar-angkasa", 2),
+    r"\bplastic|recycl|ocean|water|pollution|climate": ("lingkungan", 1), r"\bspace|moon|mars|satellite|rocket|asteroid|nasa|telescope|orbit|planet|galaxy": ("luar-angkasa", -3),
 }
 WOW = (r"\bfirst\b|world'?s|record|breakthrough|self-heal|invisible|shape-shift|liquid metal|levitat|tiny|micro|nano|"
        r"\bcan now\b|without\b|instantly|in seconds|mind|thought|regrow|3d.print|transparent|stronger than|faster than|"
        r"artificial (skin|muscle|eye|leaf)|smart (contact|glass|fabric|pill)|edible|glow")
+PRODUK = (r"\blaunch|unveil|release[sd]?\b|on sale|available|pre-?order|price|priced|\$\d|costs?\b|hands-on|review|announc|"
+          r"now ship|buy\b|rilis|harga|dijual|resmi|gadget|smartphone|app\b|feature|update")
+RISET = r"\bresearchers?\b|scientists?\b|study\b|studies|university|laborator|\blab\b|journal|paper\b|could one day|may someday|in mice|proof.of.concept"
 BUKTI_DEMO = r"\bdemonstrat|prototype|tested|trial|unveil|launch|on sale|available|video|built\b|developed"
 ABSTRAK = (r"\bpolicy|survey|market|stock|funding|investment|earnings|layoff|lawsuit|election|regulation|opinion|"
            r"\btheor|simulation suggests|model predicts|review of|workshop|conference|award|appoint|webinar|podcast")
@@ -115,6 +122,9 @@ def skor(x: dict) -> dict:
     kat, s, alasan = "lainnya", 0.0, []
     for pola, (nama, bobot) in DEKAT.items():
         if re.search(pola, teks):
+            if bobot < 0:                      # antariksa: penalti (penonton channel ini lebih suka teknologi yang dekat)
+                kat, s = nama, s + bobot
+                continue
             if bobot > s:
                 kat = nama
             s = max(s, bobot)
@@ -123,6 +133,12 @@ def skor(x: dict) -> dict:
     if re.search(WOW, teks):
         s += 3
         alasan.append("wow")
+    if re.search(PRODUK, teks):
+        s += 3
+        alasan.append("produk nyata/dijual")
+    if re.search(RISET, teks):
+        s -= 3
+        alasan.append("masih riset")
     if re.search(BUKTI_DEMO, teks):
         s += 1.5
         alasan.append("ada demo/prototipe")
@@ -194,7 +210,7 @@ def main() -> None:
     OUT_JSON.parent.mkdir(parents=True, exist_ok=True)
     OUT_JSON.write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")
     L = [f"# Radar topik Nova — {data['dibuat']}", "",
-         f"{len(unik)} berita ≤ {a.hari} hari dari {len(FEEDS) - len(gagal)}/{len(FEEDS)} sumber. Skor = dekat + wow + demo + tier + segar − abstrak.", "",
+         f"{len(unik)} berita ≤ {a.hari} hari dari {len(FEEDS) - len(gagal)}/{len(FEEDS)} sumber. Skor = dekat + produk nyata + wow + demo + segar − riset/antariksa − abstrak.", "",
          "| # | skor | kategori | judul (sumber, tanggal) | link |", "| --- | --- | --- | --- | --- |"]
     for n, x in enumerate(unik[:30], 1):
         L.append(f"| {n} | {x['skor']} | {x['kategori']} | {x['judul'][:110]} ({x['sumber']}, T{x['tier']}, {x['tanggal'][:10]}) | {x['url']} |")

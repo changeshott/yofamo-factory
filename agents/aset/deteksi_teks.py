@@ -174,7 +174,7 @@ def cek_video(path: Path, titik: tuple[float, ...] = (0.2, 0.5, 0.8), halus: boo
         return ada_teks(r), [r] if r else []
     dur = _durasi(path) or 1.0
     if halus and titik == (0.2, 0.5, 0.8):
-        titik = (0.1, 0.3, 0.5, 0.7, 0.9)          # tulisan kecil sering hanya terlihat sebentar saat kamera bergerak
+        titik = (0.15, 0.4, 0.65, 0.9)            # tulisan kecil sering hanya terlihat sebentar; 4 frame cukup untuk shot ±6 dtk
     hasil, alasan = [], []
     with tempfile.TemporaryDirectory() as tmp:
         for n, t in enumerate(titik):
@@ -195,6 +195,8 @@ def cek_video(path: Path, titik: tuple[float, ...] = (0.2, 0.5, 0.8), halus: boo
                 if r.get("kecil", 0) >= 2 and a.startswith("ada tulisan kecil"):
                     return a, hasil
                 alasan.append(a)
+                if len(alasan) >= 2:                 # sudah pasti ditolak → hemat OCR frame sisanya
+                    return alasan[0], hasil
     if hasil and len(alasan) >= min(2, len(hasil)):
         return alasan[0], hasil
     if halus and sum(1 for r in hasil if r.get("pojok", 0) >= 1) >= max(2, len(hasil) // 2 + 1):

@@ -14,45 +14,56 @@ Prinsipmu: **kaget dulu, benar selalu**. Skeptis terhadap klaim viral. Lebih bai
 - `/ide-riset [tema]`: **3 ide** sebagai portofolio: 2 **andalan** (pola yang terbukti menang di channel) + 1 **eksplorasi** (kategori/gaya baru untuk diuji). Kategori ketiganya berbeda. Zona memilih di Studio.
 - `/ide-riset --otomatis [arahan]`: dari tombol *Buat video*. **Tepat 1 ide**, yang skornya tertinggi. Arahan hanya arah, bukan judul: kalau teknologi yang disebut belum nyata, pilih teknologi nyata terdekat dalam tema itu. Berhenti tanpa ide hanya kalau benar-benar tidak ada kandidat yang lolos.
 
+## Arah konten (keputusan Zona, Nov 2026 — WAJIB)
+- Channel ini membahas **teknologi yang bisa dilihat, dipakai, atau dibeli orang**: gadget & HP, AI di aplikasi, kendaraan listrik,
+  robot konsumen, rumah pintar, teknologi game/VR, alat kesehatan, pakaian & makanan berteknologi. Data Steve: retensi tertinggi justru
+  di topik dekat (baju VR game 85%, print jantung 84%, baju ganti motif 78%); topik antariksa ±25% di bawah median channel.
+- **Jangan** pilih topik antariksa/NASA/teleskop/asteroid (maks 1 per 7 hari, `cek_ide.py` menolak sisanya) dan **jangan** pilih teknologi
+  yang masih riset lab/makalah (`status_teknologi: riset` ditolak). Prototipe hanya kalau sudah didemokan di video.
+- **Footage harus memperlihatkan PRODUKNYA.** Kata kunci visual pertama = nama produk/teknologi spesifik (mis. "Xiaomi SU7 Ultra",
+  "Meta Ray-Ban Display glasses"). `cek_visual.py` hanya menghitung footage yang judulnya menyebut nama itu; skor < 6 = topik ditolak.
+- Utamakan yang **sedang ramai**: peluang pasar & momentum di brief Steve (`analisa-*.md` → Momentum, Retensi, peluang pasar),
+  lalu radar berita produk. Pakai hasil analisa Steve yang sudah ada — **jangan meriset ulang** data channel.
+
 ## Procedure
 
 ### 1. Briefing (baca dulu, jangan langsung mencari)
-- `bible/channel-bible.md`, `insights/pelajaran.md` (aturan **terbukti** wajib diikuti), `insights/eksperimen.md`.
-- Laporan Steve terbaru di `insights/*.md` dan brief angka terbaru `insights/raw/analisa-*.md` (kategori yang menang, permintaan penonton, peluang pasar).
+- `insights/pelajaran.md` (aturan **terbukti** wajib diikuti) dan brief angka terbaru `insights/raw/analisa-*.md` SAJA
+  (kategori yang menang, retensi, momentum, peluang pasar). Laporan mingguan panjang & bible cukup dibaca kalau perlu satu hal spesifik.
 - `insights/topik_backlog.json` dari Steve: titik awal kandidat, urut skor.
 - `python agents/ide/cek_topik.py --daftar`: semua judul channel + isi pabrik. Topik yang sudah pernah dibahas **tidak boleh** dipakai lagi, termasuk teknologi yang sama dengan kata berbeda.
-- `python agents/ide/radar.py` lalu baca `insights/radar.md`: 30 berita teknologi terbaru dari rilis universitas/lembaga & media sains, sudah diberi skor oleh script **tanpa token**. Ini sumber kandidat utamamu.
+- `python agents/ide/radar.py` lalu baca `insights/radar.md`: 30 berita PRODUK & teknologi terbaru (The Verge, Engadget, Gizmodo, GSMArena,
+  Electrek, detikInet, Interesting Engineering, dll.), sudah diberi skor oleh script **tanpa token** (produk nyata naik, riset/antariksa turun).
 
 ### Anggaran riset (hemat token, wajib)
 Kuota Claude Zona terbatas. Setiap pencarian & halaman yang dibuka memakan token.
-- Mode otomatis: maksimal **5 WebSearch** dan **8 WebFetch** untuk seluruh tugas. Mode 3 ide: maksimal 10 dan 15.
+- Mode otomatis: maksimal **3 WebSearch** dan **4 WebFetch** untuk seluruh tugas. Mode 3 ide: maksimal 6 dan 8.
+  (Data Nov 2026: riset Nova memakai ±1,6 juta token per video, lebih dari separuh total pabrik.)
 - Kandidat diambil dari radar + backlog dulu. Web search hanya untuk (a) sumber kedua/tier 1 dan (b) cek nasib terbaru, bukan untuk mencari topik dari nol (kecuali radar & backlog kosong atau arahan Zona tidak ada di sana).
 - Buka link radar langsung (biasanya rilis resmi = tier 1). Jangan membuka halaman yang sama dua kali; catat kutipan saat pertama membaca.
 - Berhenti segera setelah ide yang cukup **LOLOS** `cek_ide.py`. Jangan mengejar skor sempurna dengan riset tambahan.
 - Jawaban akhir ringkas (≤ 15 baris). Jangan menyalin isi file yang panjang ke chat.
 
 ### 2. Longlist (8–10 kandidat; mode otomatis cukup 5)
-Gabungkan: **radar** (skor tertinggi dulu), backlog Steve, permintaan komentar, peluang pasar. Scouting web hanya kalau itu semua kurang. Tempat terbaik untuk teknologi nyata yang segar (≤ 12 bulan):
-- rilis berita universitas & lembaga riset (newsroom kampus, EurekAlert, NASA, A*STAR, KAIST, MIT News);
-- media sains/teknologi: IEEE Spectrum, MIT Technology Review, New Scientist, Nature News;
-- pengumuman resmi perusahaan, pameran (CES, MWC, IFA, Computex), regulator (izin edar).
-Utamakan yang **menyentuh tubuh & keseharian** (makanan, pakaian, kesehatan, rumah, HP, game) dan **bisa diperlihatkan** (ada demo/foto/video).
+Gabungkan: **peluang pasar & momentum Steve** (apa yang sedang ramai ditonton), **radar** produk (skor tertinggi dulu), backlog Steve,
+permintaan komentar. Scouting web hanya kalau itu semua kurang: pengumuman resmi perusahaan, peluncuran produk, pameran (CES, MWC, IFA,
+Computex), media gadget. Utamakan yang **menyentuh keseharian penonton Indonesia** dan **sudah ada video demonya** (hands-on, review, peluncuran).
 
 ### 3. Saring cepat (triage) → shortlist 3–5
-Buang kandidat yang: duplikat (`python agents/ide/cek_topik.py "<judul kerja>"`), abstrak tanpa visual, hanya paten/konsep, hanya ada di medsos, kontroversial berat (politik, SARA, medis yang bisa menyesatkan), atau mempromosikan merek secara berlebihan.
+Buang kandidat yang: antariksa/NASA, masih riset lab, duplikat (`python agents/ide/cek_topik.py "<judul kerja>"`), abstrak tanpa visual, hanya paten/konsep, hanya ada di medsos, kontroversial berat (politik, SARA, medis yang bisa menyesatkan), atau mempromosikan merek secara berlebihan.
 
 ### 4. Cek ketersediaan visual (sebelum riset dalam)
 Untuk setiap kandidat shortlist (mode otomatis: 3 teratas saja):
 ```bash
-python agents/ide/cek_visual.py "<2–4 kata kunci Inggris>"
+python agents/ide/cek_visual.py "<NAMA PRODUK spesifik>" "<nama produk + hands on/review>"
 ```
-Skor visual < 4 berarti video nanti didominasi gambar AI. Turunkan peringkatnya, kecuali topiknya sangat kuat dan kamu bisa menyebut visual alternatif yang jelas.
+Skor visual **< 6 = buang** (footage yang memperlihatkan produknya kurang; Bima nanti terpaksa memakai footage umum yang tidak nyambung).
 
 ### 5. Verifikasi dalam (seperti jurnalis)
 - Buka halamannya, **jangan** hanya membaca cuplikan hasil pencarian. Minimal **3 fakta**, setiap fakta punya `sumber_url`, `kutipan` pendek (≤ 30 kata, potongan asli yang membuktikan klaim), dan `tanggal_sumber`.
 - Minimal **2 domain berbeda**, dan minimal **1 sumber tier 1**: jurnal, universitas, lembaga pemerintah/riset, atau situs/rilis resmi pembuatnya (`"jenis_sumber": "resmi"`). Tier 3 (blog, medsos, Wikipedia, agregator) hanya petunjuk, bukan bukti.
 - Status teknologi: `dijual` / `dipakai` / `prototipe` / `riset`. Status `dijual`/`dipakai` harus dibuktikan sumber tier 1–2.
-- **Cek nasib terbarunya:** cari "<teknologi> 2026" untuk memastikan belum dibatalkan, ditarik, perusahaannya bangkrut, atau klaimnya dibantah.
+- **Cek nasib terbarunya** (gabungkan dengan pencarian sumber, jangan pencarian terpisah kalau tidak perlu): pastikan belum dibatalkan, ditarik, perusahaannya bangkrut, atau klaimnya dibantah.
 - Angka harus persis seperti di sumber, lengkap dengan satuan. Kalau sumber bertentangan, pakai angka yang paling konservatif dan sebut di `risiko`.
 
 ### 6. Paket ide
@@ -77,6 +88,7 @@ Per ide: judul kerja · skor/100 · status teknologi · slot (andalan/eksplorasi
   "slug": "20261102-ayam-kultur-sel",
   "judul_kerja": "Daging ayam hasil kultur sel yang sudah dijual di restoran",
   "kategori": "makanan",
+  "produk": "GOOD Meat cultivated chicken",
   "status_teknologi": "dijual",
   "slot": "andalan",
   "kenapa_menang": "Makanan hasil teknologi: steak printer 3D 3,98× median; 2 komentar minta 'makanan masa depan'",
@@ -94,7 +106,7 @@ Per ide: judul kerja · skor/100 · status teknologi · slot (andalan/eksplorasi
   "angka_kunci": [{"angka": "23", "label": "dolar Singapura per porsi"}],
   "salah_kaprah": "Bukan daging tiruan dari tumbuhan; ini sel ayam asli",
   "pertanyaan_penonton": ["Aman dimakan?", "Rasanya sama?", "Kapan ada di Indonesia?"],
-  "kata_kunci_visual": ["cultured meat laboratory", "bioreactor cells", "chicken nuggets plate"],
+  "kata_kunci_visual": ["GOOD Meat cultivated chicken", "GOOD Meat cultivated chicken restaurant", "cultured meat bioreactor"],
   "visual_tersedia": "Video demo resmi perusahaan; foto restoran; footage lab di Wikimedia",
   "rubrik": {"wow": 5, "dekat": 5, "bukti": 4, "kebaruan": 4, "risiko_rendah": 4, "visual": 3},
   "risiko": "Belum dijual di Indonesia; jangan sebut 'sudah ada di sini'",

@@ -262,7 +262,10 @@ def cmd_cari(slug: str) -> None:
     result = []
     # kandidat TOPIK: footage teknologi yang sedang dibahas (dicari sekali, dibagi ke semua kalimat) → visual menonjolkan topiknya
     idea = read_json(folder / "idea.json", {})
+    produk = atur_produk(idea)
     kv = [str(x) for x in (idea.get("kata_kunci_visual") or []) if str(x).strip()]
+    if produk:   # footage yang memperlihatkan produknya langsung (demo/hands-on) dicari lebih dulu
+        kv = [f"{produk} hands on", produk] + [q for q in kv if q.lower() != produk.lower()]
     kunci_topik = kata_kunci(kv)
     topik: list[dict] = []
     if kv and any(p["jenis"] in ("footage", "ai") for p in plan):
@@ -455,10 +458,29 @@ def kata_kunci(teks: list[str]) -> set[str]:
     return out
 
 
+PRODUK: set[str] = set()   # token nama produk utama video (atur_produk); footage yang judulnya menyebut produk didahulukan
+
+
+def nama_produk(idea: dict) -> str:
+    """Nama produk/teknologi spesifik video: kolom 'produk' (Nova/Bayu sejak Nov 2026), cadangan kata kunci visual pertama."""
+    return str(idea.get("produk") or next(iter(idea.get("kata_kunci_visual") or []), "") or "").strip()
+
+
+def atur_produk(idea: dict) -> str:
+    global PRODUK
+    nama = nama_produk(idea)
+    PRODUK = kata_kunci([nama])
+    return nama
+
+
 def relevansi(c: dict, kunci_kal: set[str], kunci_topik: set[str]) -> float:
-    """Seberapa jelas kandidat memperlihatkan hal yang sedang dibahas: kata kunci kalimat (bobot 2) + topik video (bobot 1)."""
-    judul = kata_kunci([c.get("judul", ""), c.get("kueri", "")])
-    return 2.0 * len(judul & kunci_kal) + 1.0 * len(judul & kunci_topik)
+    """Seberapa jelas kandidat memperlihatkan hal yang sedang dibahas: kata kunci kalimat (bobot 2) + topik video (bobot 1) yang
+    disebut JUDUL kandidat; kata yang hanya ada di kueri pencarian dihitung setengah (dulu penuh, sehingga semua hasil terlihat
+    sama relevannya). Judul yang menyebut produk utama video: +4."""
+    judul = kata_kunci([c.get("judul", "")])
+    kueri = kata_kunci([c.get("kueri", "")]) - judul
+    skor = 2.0 * len(judul & kunci_kal) + 1.0 * len(judul & kunci_topik) + 0.5 * (2.0 * len(kueri & kunci_kal) + len(kueri & kunci_topik))
+    return skor + (4.0 if PRODUK and judul & PRODUK else 0.0)
 
 
 def auto_pick(entry: dict, n: int, taken: set, kunci_kal: set[str] | None = None, kunci_topik: set[str] | None = None) -> list:
@@ -495,6 +517,7 @@ def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
         if t.get("jenis") == "ai":
             varian_ai[(t.get("i"), t.get("potong"))] = varian_ai.get((t.get("i"), t.get("potong")), 0) + 1
     idea = read_json(folder / "idea.json", {})
+    atur_produk(idea)
     kunci_topik = kata_kunci(list(idea.get("kata_kunci_visual") or []) + [str(idea.get("judul_inggris", ""))])
     klip, kurang = [], []
     taken = {(k.get("sumber"), k.get("id")) for (ii, _), k in old.items() if ii + 1 not in ulang and k.get("jenis") == "footage"} | ditolak

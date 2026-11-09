@@ -21,6 +21,11 @@ Wajib baca `bible/panjang-bible.md`, `bible/channel-bible.md`, dan docstring `ag
 | `banding` | dua foto hitam-putih + "vs" | `kiri`/`kanan`: `{label, nilai, ket, objek (Inggris, opsional)}` |
 | `garis_waktu` | garis + titik bertahun | `butir`: 2–5 `{waktu, teks}` |
 | `objek` | benda ASLI berwarna melayang di atas foto hitam-putih | `objek` (benda fisik, Inggris), `label` ≤ 5 kata, `ket` opsional |
+
+**Visual harus sesuai narasi & memperlihatkan produknya** (Zona, Nov 2026): `objek`, `thumbnail.objek` dan `kata_kunci_visual` adegan
+footage memakai NAMA PRODUK spesifik dari `ide.json` → `produk` (mis. "Xiaomi SU7 Ultra", bukan "electric car"), ditambah apa yang
+sedang dikatakan kalimat itu ("Xiaomi SU7 Ultra interior screen" saat narasi membahas layarnya). Adegan `kata` wajib punya `teks_layar`
+(≤ 5 kata dari kalimat itu) supaya layar tidak kosong.
 | `hp` / `tv` | footage diputar di layar HP / TV retro | `kata_kunci_visual`, `teks` opsional, `label` opsional |
 | `judul_bab` | kartu bab (tanpa narasi) | `judul` ≤ 6 kata — minimal 3 → chapter YouTube |
 | `penutup` | pertanyaan besar + Subscribe | `teks_layar` = pertanyaan untuk komentar (adegan terakhir) |

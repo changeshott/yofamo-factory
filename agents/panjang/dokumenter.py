@@ -112,8 +112,12 @@ def data_adegan(i: int, a: dict, waktu: dict, g: dict, slug: str) -> dict:
     isi = {k: v for k, v in a.items() if k not in ("narasi", "jenis", "kata_kunci_visual", "objek_cari")}
     if j == "judul_bab":
         isi["nomor"] = a.get("nomor") or 1
-    if j in ("pembuka", "footage_teks"):
+    if j in ("pembuka", "footage_teks", "kata", "hp", "tv"):
+        # Citra menulis teks layar di `teks_layar` (format naskah dokumenter); template membaca `teks`.
+        # Dulu adegan "kata" tidak dipetakan → selalu tampil kertas kosong.
         isi["teks"] = a.get("teks_layar") or a.get("teks") or ""
+    if j == "kata" and not isi["teks"]:
+        isi["teks"] = " ".join(str(a.get("narasi") or "").split()[:5])       # jangan pernah kertas kosong
     if j == "penutup":
         isi["teks"] = a.get("teks_layar") or a.get("pertanyaan") or ""
     return {"jenis": j, "durasi": round(dur, 3), "fps": FPS, "kata": kata, "kalimat": kal, "isi": isi,
@@ -279,6 +283,7 @@ def main() -> None:
     ap.add_argument("--uji", action="store_true")
     a = ap.parse_args()
     vdir = st_panjang.folder(a.slug)
+    st_panjang.jaga_belum_terbit(a.slug, "dokumenter")
     naskah = rj(vdir / "naskah.json")
     waktu = rj(vdir / "suara" / "waktu.json")
     man = rj(vdir / "footage" / "manifest.json")

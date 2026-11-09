@@ -52,7 +52,7 @@ def latest(prefix: str) -> dict:
 
 
 def sinyal(idea: dict) -> tuple[float, list[str]]:
-    """Bonus/penalti dari data Steve (maks ±15 poin)."""
+    """Bonus/penalti dari data Steve + arah konten Zona (produk nyata > riset, antariksa dibatasi)."""
     poin, alasan = 0.0, []
     an = latest("analisa")
     kat = idea.get("kategori", "")
@@ -70,6 +70,14 @@ def sinyal(idea: dict) -> tuple[float, list[str]]:
         b = min(5.0, 1.5 + vph / 5000)
         poin += b
         alasan.append(f"{len(mirip)} Shorts serupa sedang ramai di pasar (median {vph:.0f} views/hari) → +{b:.1f}")
+    st = idea.get("status_teknologi", "")
+    bonus = {"dijual": 6.0, "dipakai": 4.0, "prototipe": -4.0, "riset": -10.0}.get(st, 0.0)
+    if bonus:
+        poin += bonus
+        alasan.append(f"status {st} → {bonus:+.0f} (Zona: utamakan produk nyata yang bisa diperlihatkan, bukan riset lab)")
+    if kat == "luar-angkasa":
+        poin -= 8
+        alasan.append("antariksa/NASA → −8 (median channel ±25% lebih rendah; maks 1 dari 7 video)")
     kom = (latest("komentar").get("permintaan") or [])
     minta = [c for c in kom if len(t & tokens(c.get("teks", ""))) >= 1]
     if minta:
@@ -92,6 +100,14 @@ def periksa(slug: str) -> tuple[list[str], list[str], dict]:
     st = idea.get("status_teknologi", "")
     if st and st not in STATUS:
         gagal.append(f"status_teknologi '{st}' harus salah satu: {', '.join(sorted(STATUS))}")
+    if st == "riset":
+        gagal.append("status 'riset' (masih di lab/makalah) ditolak: pilih teknologi/produk yang sudah dijual, dipakai, atau minimal prototipe yang sudah didemokan")
+    if idea.get("kategori") == "luar-angkasa":
+        import time as _t
+        baru = [d for d in (ROOT / "videos").glob("*/idea.json")
+                if d.parent.name != slug and _t.time() - d.stat().st_mtime < 7 * 86400 and (rj(d) or {}).get("kategori") == "luar-angkasa"]
+        if baru:
+            gagal.append(f"sudah ada {len(baru)} topik antariksa dalam 7 hari terakhir (maks 1): pilih teknologi yang dekat dengan penonton")
 
     hooks = idea.get("hook_varian") or []
     if len(hooks) < 3:
@@ -146,7 +162,10 @@ def periksa(slug: str) -> tuple[list[str], list[str], dict]:
     if not idea.get("kata_kunci_visual"):
         catatan.append("kata_kunci_visual (Inggris) belum diisi; Bima akan menebak")
     if not idea.get("visual"):
-        catatan.append("ketersediaan footage belum dicek (python agents/ide/cek_visual.py --tulis <slug> ...)")
+        gagal.append("ketersediaan footage belum dicek: jalankan python agents/ide/cek_visual.py --tulis <slug> \"<NAMA PRODUK> ...\"")
+    elif isinstance((idea.get("visual") or {}).get("skor"), (int, float)) and idea["visual"]["skor"] < 6:
+        gagal.append(f"footage yang MEMPERLIHATKAN produk/teknologi ini kurang (skor visual {idea['visual']['skor']}/10, minimal 6): "
+                     "coba kata kunci nama produk (mis. 'Samsung Galaxy Ring hands on') atau pilih topik lain")
 
     # ---- skor
     rub = idea.get("rubrik") or {}

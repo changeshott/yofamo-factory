@@ -24,6 +24,7 @@ import os
 import re
 import shutil
 import subprocess
+import time
 import sys
 import urllib.parse
 from pathlib import Path
@@ -45,7 +46,9 @@ import status as st_panjang  # noqa: E402
 import sumber  # noqa: E402
 
 BUTUH_FOOTAGE = {"footage": None, "pembuka": 1, "hp": 1, "tv": 1}
-DETIK_SHOT = 4.5          # video panjang: ganti shot tiap ±4,5 detik (lebih tenang dari Shorts)
+DETIK_SHOT = 6.0          # video panjang: ganti shot tiap ±6 detik (dulu 4,5: terlalu banyak unduhan → tahap footage sampai 3 jam)
+ANGGARAN_MENIT = 75       # batas waktu tahap footage; sisa adegan memakai shot cadangan, bukan gagal setelah 3 jam
+PRODUK_CALON: list[dict] = []   # footage produk utama (hands on/review), dicari sekali per video dan dibagi ke semua adegan
 
 
 def log(m: str) -> None:
@@ -113,6 +116,8 @@ def cari_footage(vdir: Path, i: int, a: dict, dur: float, topik: set[str], dipak
     kk = [str(x) for x in (a.get("kata_kunci_visual") or [])][:3]
     kunci = bima.kata_kunci(kk)
     calon = kandidat(kk, uji)
+    lihat = {(c["sumber"], c["id"]) for c in calon}
+    calon += [c for c in PRODUK_CALON if (c["sumber"], c["id"]) not in lihat]
     calon.sort(key=lambda c: (-bima.relevansi(c, kunci, topik), (c.get("lebar") or 16) < (c.get("tinggi") or 9),
                               bima.URUT_SUMBER.get(c["sumber"], 9), len(dipakai.get(f"{c['sumber']}-{c['id']}", []))))
     hasil, ditolak = [], set()
@@ -190,6 +195,7 @@ def main() -> None:
     bima.UJI = a.uji
     bima.load_env()
     vdir = st_panjang.folder(a.slug)
+    st_panjang.jaga_belum_terbit(a.slug, "bima-16:9")
     naskah, waktu, ide = rj(vdir / "naskah.json"), rj(vdir / "suara" / "waktu.json"), rj(vdir / "ide.json")
     (vdir / "footage").mkdir(exist_ok=True)
     (vdir / "media").mkdir(exist_ok=True)
@@ -197,6 +203,11 @@ def main() -> None:
     tmp.mkdir(exist_ok=True)
     man = rj(vdir / "footage" / "manifest.json")
     topik = bima.kata_kunci([ide.get("judul_kerja", ""), *(ide.get("objek_visual") or []), *(ide.get("kata_kunci_visual") or [])])
+    produk = bima.atur_produk(ide)
+    if produk and not a.uji:
+        PRODUK_CALON.extend(kandidat([f"{produk} hands on", f"{produk} review"], a.uji))
+        log(f"produk utama '{produk}': {len(PRODUK_CALON)} kandidat footage produk")
+    mulai_t = time.monotonic()
     dipakai: dict = {}
     for daftar in man.values():
         for s in daftar:
@@ -213,6 +224,10 @@ def main() -> None:
         if ad.get("jenis") not in BUTUH_FOOTAGE:
             continue
         if str(i) in man and man[str(i)] and (i + 1) not in a.ulang:
+            continue
+        if time.monotonic() - mulai_t > ANGGARAN_MENIT * 60:
+            log(f"adegan {i + 1:02}: anggaran waktu {ANGGARAN_MENIT} menit habis → pakai shot cadangan")
+            a.cadangan = True
             continue
         dur = float((waktu.get(str(i)) or {}).get("durasi") or 5)
         log(f"adegan {i + 1:02} ({ad.get('jenis')}, {dur:.1f} dtk): {', '.join(ad.get('kata_kunci_visual') or [])}")

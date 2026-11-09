@@ -190,7 +190,7 @@ def catat_token(prompt: str, hasil: dict) -> None:
     token input baru, tulis cache, baca cache, output, giliran, durasi, biaya setara API (langganan Pro tidak ditagih per token)."""
     u = hasil.get("usage") or {}
     kata = prompt.split()
-    slug = next((k for k in kata[1:3] if re.fullmatch(r"[a-z0-9-]{8,80}", k)), None)
+    slug = next((k for k in kata[1:3] if re.fullmatch(r"[a-z0-9][a-z0-9-]{7,79}", k)), None)
     baris = {"waktu": datetime.now().isoformat(timespec="seconds"), "id": os.environ.get("YOFAMO_PRODUKSI_ID", ""),
              "jenis": os.environ.get("YOFAMO_PRODUKSI_JENIS", "shorts"), "langkah": " ".join(k for k in kata[:3] if k.startswith("-") or k.startswith("/")) or kata[0][:40],
              "slug": slug, "input": int(u.get("input_tokens") or 0), "cache_tulis": int(u.get("cache_creation_input_tokens") or 0),
@@ -349,7 +349,7 @@ def main() -> None:
                     jalan([PY, "agents/ide/radar.py"], 3 * 60)          # kandidat gratis tanpa token (cache 12 jam)
                     claude(f"/ide-riset --otomatis {teks}{extra}".strip(),
                            tools("agents/pabrik.py", "agents/ide/radar.py", "agents/ide/cek_topik.py", "agents/ide/cek_visual.py", "agents/ide/cek_ide.py", web=True),
-                           45 * 60, turns=40)
+                           45 * 60, turns=28)        # hemat token: riset Nova ±1,6 jt token/video (Nov 2026)
                 new = [x for x, st in videos().items() if x not in before and st in ("ide", "disetujui")]
                 if not new:
                     break

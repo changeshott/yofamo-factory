@@ -101,6 +101,7 @@ def main() -> None:
     ap.add_argument("--uji", action="store_true")
     a = ap.parse_args()
     vdir = st_panjang.folder(a.slug)
+    st_panjang.jaga_belum_terbit(a.slug, "rakit")
     naskah = json.loads((vdir / "naskah.json").read_text(encoding="utf-8-sig"))
     waktu = json.loads((vdir / "suara" / "waktu.json").read_text(encoding="utf-8"))
     g = animasi.gaya()

@@ -6,6 +6,7 @@ Urutan: ide → naskah → suara → ilustrasi → animasi → draft → export 
 from __future__ import annotations
 
 import json
+import os
 import re
 from datetime import datetime
 from pathlib import Path
@@ -47,6 +48,21 @@ def set_status(slug: str, ke: str, catatan: str = "") -> None:
     tmp = f.with_suffix(".tmp")
     tmp.write_text(json.dumps(d, ensure_ascii=False, indent=2), encoding="utf-8")
     tmp.replace(f)
+
+
+def sudah_diunggah(slug: str) -> bool:
+    try:
+        up = json.loads((folder(slug) / "export" / "upload.json").read_text(encoding="utf-8-sig"))
+    except (OSError, ValueError):
+        return False
+    return bool(up.get("videoId")) and up.get("videoId") != "UJI" and not up.get("dibatalkan")
+
+
+def jaga_belum_terbit(slug: str, nama: str) -> None:
+    """Penjaga: video yang sudah diupload tidak boleh dirender/diubah lagi (dulu Wulan me-render ulang saat Uli mengunggah,
+    lalu bersih.py menghapus adegannya). Lewati dengan env YOFAMO_PAKSA=1 kalau memang sengaja."""
+    if sudah_diunggah(slug) and os.environ.get("YOFAMO_PAKSA") != "1":
+        raise SystemExit(f"[{nama}] {slug} sudah diupload ke YouTube: tidak dirender ulang (YOFAMO_PAKSA=1 untuk memaksa)")
 
 
 def semua() -> list[dict]:
