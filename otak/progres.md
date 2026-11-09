@@ -31,6 +31,7 @@ Terakhir diperbarui: 2026-11-09 (commit "Otak project"). Sejarah lengkap: `git l
 - 2026-11-09 Status video panjang dijaga: tidak bisa mundur setelah diupload (`set_status` di `agents/panjang/status.py`); video
   yang diupload di luar slot autopilot otomatis `terbit` setelah jam tayang (`tandai_tayang`). `20261106-komputer-sel-otak-cl1`
   (draft padahal tayang 8 Nov 19:30, akibat render ulang yang selesai 26 detik setelah upload) dirapikan → `terbit` atas izin Zona.
+  `python agents/panjang/status.py set` keluar dengan kode 1 (tanpa pesan "→ status") kalau perubahan ditolak penjaga.
 - 2026-11-09 Otak project: `otak/`, `agents/otak.py` (indeks otomatis, data laptop, pemeriksa akurasi), `AGENTS.md` diringkas.
 - 2026-11-09 Arah konten produk nyata (radar, cek_ide, cek_visual, skill Nova/Bayu/Citra), relevansi footage dari judul + produk,
   Laras lebih cepat (shot 6 dtk, OCR 4 frame + berhenti dini, anggaran 75 mnt), adegan `kata` tidak putih, penjaga video panjang
