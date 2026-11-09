@@ -38,12 +38,12 @@ def sudah(slug: str, tahap: str) -> bool:
     return s in URUT and URUT.index(s) >= URUT.index(tahap)
 
 
-def set_status(slug: str, ke: str, catatan: str = "") -> None:
+def set_status(slug: str, ke: str, catatan: str = "") -> bool:
     d = baca(slug)
     # status tidak boleh mundur setelah video diupload (dulu render ulang yang masih berjalan mengembalikan video tayang ke 'draft')
     if ke not in ("export", "terbit") and sudah_diunggah(slug) and os.environ.get("YOFAMO_PAKSA") != "1":
         print(f"[status] {slug} sudah diupload: status tidak diubah ke '{ke}'", flush=True)
-        return
+        return False
     d.setdefault("riwayat", []).append({"dari": d.get("status"), "ke": ke, "waktu": datetime.now().isoformat(timespec="seconds"), "catatan": catatan})
     d["status"] = ke
     d["riwayat"] = d["riwayat"][-40:]
@@ -52,6 +52,7 @@ def set_status(slug: str, ke: str, catatan: str = "") -> None:
     tmp = f.with_suffix(".tmp")
     tmp.write_text(json.dumps(d, ensure_ascii=False, indent=2), encoding="utf-8")
     tmp.replace(f)
+    return True
 
 
 def sudah_diunggah(slug: str) -> bool:
@@ -80,8 +81,10 @@ def semua() -> list[dict]:
 if __name__ == "__main__":
     import sys
     if len(sys.argv) >= 3 and sys.argv[1] == "set":
-        set_status(sys.argv[2], sys.argv[3], " ".join(sys.argv[4:]))
-        print(f"[panjang] {sys.argv[2]} → {sys.argv[3]}")
+        if set_status(sys.argv[2], sys.argv[3], " ".join(sys.argv[4:])):
+            print(f"[panjang] {sys.argv[2]} → {sys.argv[3]}")
+        else:
+            sys.exit(1)
     else:
         for v in semua():
             print(f"{v['status'] or '-':10} {v['slug']}  ({v['diubah']})")
