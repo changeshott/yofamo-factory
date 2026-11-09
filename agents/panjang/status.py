@@ -40,6 +40,10 @@ def sudah(slug: str, tahap: str) -> bool:
 
 def set_status(slug: str, ke: str, catatan: str = "") -> None:
     d = baca(slug)
+    # status tidak boleh mundur setelah video diupload (dulu render ulang yang masih berjalan mengembalikan video tayang ke 'draft')
+    if ke not in ("export", "terbit") and sudah_diunggah(slug) and os.environ.get("YOFAMO_PAKSA") != "1":
+        print(f"[status] {slug} sudah diupload: status tidak diubah ke '{ke}'", flush=True)
+        return
     d.setdefault("riwayat", []).append({"dari": d.get("status"), "ke": ke, "waktu": datetime.now().isoformat(timespec="seconds"), "catatan": catatan})
     d["status"] = ke
     d["riwayat"] = d["riwayat"][-40:]

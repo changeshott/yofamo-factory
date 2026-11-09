@@ -294,6 +294,20 @@ def tandai_tayang(state: dict) -> None:
                 st_panjang.set_status(v["slug"], "terbit", f"tayang terjadwal {k} WIB (autopilot)")
             v["status"] = "tayang"
             log(f"{v['slug']} sudah tayang ({k} WIB)")
+    # video yang diupload di luar slot autopilot (tombol Unggah Studio): jam tayang lewat → 'terbit' juga
+    for up_f in st_panjang.BASE.glob("*/export/upload.json") if st_panjang.BASE.is_dir() and not UJI else []:
+        slug = up_f.parents[1].name
+        up = rj(up_f)
+        if not st_panjang.sudah_diunggah(slug) or st_panjang.status(slug) in ("terbit", "ditolak"):
+            continue
+        try:
+            t = datetime.fromisoformat(str(up.get("jadwal") or ""))
+        except ValueError:
+            continue
+        t = t if t.tzinfo else t.replace(tzinfo=WIB)
+        if t + timedelta(minutes=10) <= now():
+            st_panjang.set_status(slug, "terbit", f"sudah di YouTube, tayang {t.strftime('%Y-%m-%d %H:%M')} WIB")
+            log(f"{slug} sudah tayang ({t.strftime('%Y-%m-%d %H:%M')} WIB, diupload di luar slot)")
 
 
 # ------------------------------------------------------------------ produksi

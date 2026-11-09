@@ -42,7 +42,8 @@ Script yang gagal tiba-tiba dicoba ulang (`jalan_ulang`, kode keluar dicatat di 
 - **Tio** (`agents/panjang/dokumenter.py`): `data_adegan()` mengisi template; adegan `kata` tanpa teks memakai 5 kata pertama narasi
   (perbaikan "layar putih kosong", 9 Nov 2026). Menunggu kalau produksi Shorts sedang jalan.
 - **Penjaga**: `footage_panjang.py`, `dokumenter.py`, `rakit_panjang.py` menolak jalan kalau video sudah diupload
-  (`st_panjang.jaga_belum_terbit`, lewati dengan env `YOFAMO_PAKSA=1`).
+  (`st_panjang.jaga_belum_terbit`), dan `set_status` menolak status selain `export`/`terbit` untuk video yang sudah diupload
+  (lewati keduanya dengan env `YOFAMO_PAKSA=1`). Upload di luar slot autopilot → `terbit` otomatis setelah jam tayang.
 - **Wulan**: cek teknis berskor 0–10 + lembar frame bernomor (`export/qc/lembar-N.jpg`), lalu QC visual Claude (maks 4 adegan diganti,
   1 putaran). Skor gabungan dipakai autopilot (`skor_qc` di `agents/panjang/autopilot_panjang.py`).
 

@@ -50,7 +50,7 @@ Pakai untuk menemukan file yang tepat tanpa menjelajah folder. Isi lengkap tetap
 | File | Baris | Isi |
 |---|---|---|
 | `agents/panjang/animasi.py` | 203 | Tio — animator tim video panjang. Mengubah tiap adegan naskah menjadi animasi lukis-komik (HyperFrames: HTML + GSAP). |
-| `agents/panjang/autopilot_panjang.py` | 563 | Autopilot video panjang — tim Ruang Animasi membuat & menjadwalkan sendiri 1 video panjang per hari (bawaan). |
+| `agents/panjang/autopilot_panjang.py` | 577 | Autopilot video panjang — tim Ruang Animasi membuat & menjadwalkan sendiri 1 video panjang per hari (bawaan). |
 | `agents/panjang/cek_naskah_panjang.py` | 269 | Validator naskah video panjang (dipakai Citra sebelum naskah diserahkan ke Gilang & Tio). |
 | `agents/panjang/dokumenter.py` | 319 | Tio (gaya dokumenter modern) — merender tiap adegan video panjang 16:9 (1920x1080, 30 fps). |
 | `agents/panjang/footage_panjang.py` | 318 | Bima (16:9) — footage & objek ASLI untuk video panjang gaya dokumenter. |
@@ -60,7 +60,7 @@ Pakai untuk menemukan file yang tepat tanpa menjelajah folder. Isi lengkap tetap
 | `agents/panjang/periksa_panjang.py` | 150 | Wulan (QC) — pemeriksaan otomatis video panjang sebelum ditonton Zona. |
 | `agents/panjang/produser_panjang.py` | 308 | Produser Ruang Animasi: satu klik → video YouTube panjang (5–12 menit) gaya dokumenter modern: |
 | `agents/panjang/rakit_panjang.py` | 190 | Wulan — editor akhir video panjang. Menyambung adegan Tio + suara Gilang + musik → export/final.mp4 (1920x1080; dokumenter 30 fps, kartun 24 fps). |
-| `agents/panjang/status.py` | 83 | Status video panjang (terpisah dari pabrik Shorts supaya autopilot Shorts tidak pernah menyentuhnya). |
+| `agents/panjang/status.py` | 87 | Status video panjang (terpisah dari pabrik Shorts supaya autopilot Shorts tidak pernah menyentuhnya). |
 | `agents/panjang/suara_panjang.py` | 132 | Gilang — pengisi suara video panjang. Narasi tiap adegan → suara (edge-tts, gratis) + timing tiap kata & kalimat. |
 | `agents/panjang/thumbnail_panjang.py` | 105 | Mila (16:9) — thumbnail video panjang gaya dokumenter: 1280x720 < 2 MB. |
 | `agents/panjang/unggah_panjang.py` | 203 | Uli untuk video panjang: unggah video berstatus export (disetujui Zona, atau autopilot video panjang yang lolos QC) |
