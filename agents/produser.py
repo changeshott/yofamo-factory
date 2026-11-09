@@ -182,13 +182,82 @@ def jalan_tangkap(args: list[str], timeout: int) -> tuple[int, str]:
     return p.wait(), "".join(ekor)
 
 
+TOKEN_LOG = PROD / "token-log.jsonl"
+
+
+def catat_token(prompt: str, hasil: dict) -> None:
+    """Satu baris per langkah Claude di produksi/token-log.jsonl (dibaca agents/pemakaian.py & Studio): id produksi, langkah,
+    token input baru, tulis cache, baca cache, output, giliran, durasi, biaya setara API (langganan Pro tidak ditagih per token)."""
+    u = hasil.get("usage") or {}
+    kata = prompt.split()
+    slug = next((k for k in kata[1:3] if re.fullmatch(r"[a-z0-9-]{8,80}", k)), None)
+    baris = {"waktu": datetime.now().isoformat(timespec="seconds"), "id": os.environ.get("YOFAMO_PRODUKSI_ID", ""),
+             "jenis": os.environ.get("YOFAMO_PRODUKSI_JENIS", "shorts"), "langkah": " ".join(k for k in kata[:3] if k.startswith("-") or k.startswith("/")) or kata[0][:40],
+             "slug": slug, "input": int(u.get("input_tokens") or 0), "cache_tulis": int(u.get("cache_creation_input_tokens") or 0),
+             "cache_baca": int(u.get("cache_read_input_tokens") or 0), "output": int(u.get("output_tokens") or 0),
+             "giliran": hasil.get("num_turns"), "detik": round((hasil.get("duration_ms") or 0) / 1000), "biaya_usd": round(float(hasil.get("total_cost_usd") or 0), 4),
+             "model": ",".join((hasil.get("modelUsage") or {}).keys()), "gagal": bool(hasil.get("is_error"))}
+    try:
+        PROD.mkdir(exist_ok=True)
+        with TOKEN_LOG.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(baris, ensure_ascii=False) + "\n")
+        total = baris["input"] + baris["cache_tulis"] + baris["cache_baca"] + baris["output"]
+        print(f"[produser] token {baris['langkah']}: {total:,} total (baru {baris['input'] + baris['cache_tulis']:,} · cache {baris['cache_baca']:,} · "
+              f"output {baris['output']:,}) · {baris['giliran']} giliran".replace(",", "."), flush=True)
+    except OSError:
+        pass
+
+
+def jalan_claude(args: list[str], timeout: int, prompt: str) -> tuple[int, str]:
+    """claude -p --output-format stream-json: teks Claude tetap tampil di log seperti biasa, dan pemakaian token dicatat."""
+    print(f"[produser] $ {' '.join(a if len(a) < 80 else a[:77] + '…' for a in args[:4])}", flush=True)
+    ekor: list[str] = []
+    try:
+        p = subprocess.Popen(args, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8", errors="replace")
+    except OSError as err:
+        return 127, str(err)
+    batas = time.time() + timeout
+    assert p.stdout is not None
+    hasil = None
+    for line in p.stdout:
+        teks = line.rstrip("\n")
+        try:
+            d = json.loads(teks) if teks.startswith("{") else None
+        except ValueError:
+            d = None
+        if d is None:                                  # pesan biasa (error CLI, peringatan): tampilkan apa adanya
+            if teks.strip():
+                print(teks, flush=True)
+                ekor = (ekor + [teks + "\n"])[-60:]
+        elif d.get("type") == "assistant":
+            for c in (d.get("message") or {}).get("content") or []:
+                if c.get("type") == "text" and c.get("text", "").strip():
+                    print(c["text"], flush=True)
+                    ekor = (ekor + [c["text"] + "\n"])[-60:]
+        elif d.get("type") == "result":
+            hasil = d
+            r = str(d.get("result") or "")
+            if d.get("is_error") and r:
+                print(r, flush=True)
+            ekor = (ekor + [r + "\n"])[-60:]
+        if time.time() > batas:
+            p.kill()
+            print("[produser] waktu habis", flush=True)
+            return 124, "".join(ekor)
+    kode = p.wait()
+    if hasil:
+        catat_token(prompt, hasil)
+    return kode, "".join(ekor)
+
+
 def claude(prompt: str, allowed: list[str], timeout: int, turns: int = 60) -> int:
     """claude -p dengan coba ulang otomatis kalau server Anthropic sedang error (HTTP 500/529/overloaded)."""
     exe = shutil.which("claude")
     if not exe:
         raise RuntimeError("perintah 'claude' tidak ditemukan")
     for coba in range(3):
-        kode, ekor = jalan_tangkap([exe, "-p", prompt, "--model", MODEL, "--max-turns", str(turns), "--allowedTools", *allowed], timeout)
+        kode, ekor = jalan_claude([exe, "-p", prompt, "--model", MODEL, "--max-turns", str(turns), "--output-format", "stream-json", "--verbose",
+                                   "--allowedTools", *allowed], timeout, prompt)
         if API_LIMIT.search(ekor[-1500:]):
             m = RESET.search(ekor[-1500:])
             jam = f"{m.group(1)}:{m.group(2) or '00'}{(m.group(3) or '').lower()}" if m else ""
@@ -225,6 +294,7 @@ def main() -> None:
     if len(teks) < 3:
         teks = ""
     pid = a.id if re.fullmatch(r"[\w-]{3,40}", a.id or "") else datetime.now().strftime("%Y%m%d-%H%M%S")
+    os.environ["YOFAMO_PRODUKSI_ID"], os.environ["YOFAMO_PRODUKSI_JENIS"] = pid, "shorts"     # pencatatan token per video
     cat = Catatan(pid, judul_req, {"suara": a.suara, "visual": a.visual, "uji": a.uji})
     slug = ""
     # satu produksi pada satu waktu (tombol Studio & autopilot berbagi laptop, CPU, dan render)

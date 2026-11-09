@@ -349,6 +349,33 @@ export function QueuePanel({ ctx }: { ctx: PanelCtx }) {
   return <>{vids.map((v) => <VideoCard key={v.slug} v={v} ctx={ctx} />)}</>;
 }
 
+interface Pemakaian {
+  ok: boolean; sejak?: string | null; langkah_tercatat?: number;
+  rata_per_video?: Record<string, { video: number; total: number; baru: number; cache: number; output: number; biaya_usd: number }>;
+  per_langkah?: { jenis: string; langkah: string; rata: number; kali: number }[];
+  video_terbaru?: { slug: string; jenis: string; judul: string; total: number }[];
+}
+const jt = (n: number) => (n >= 1e6 ? `${(n / 1e6).toFixed(2).replace(".", ",")} jt` : n >= 1e3 ? `${Math.round(n / 1e3)} rb` : String(n));
+
+function PemakaianToken() {
+  const [d, setD] = useState<Pemakaian | null>(null);
+  useEffect(() => { fetch("/api/pemakaian", { cache: "no-store" }).then((r) => r.json()).then(setD).catch(() => setD(null)); }, []);
+  if (!d) return null;
+  return (<>
+    <H3>Pemakaian token Claude</H3>
+    {!d.langkah_tercatat ? <Muted>Belum ada data. Token dicatat otomatis mulai produksi berikutnya (tiap langkah Claude: Nova, Raka, Bima, Mila, Rara, Bayu, Citra, Wulan).</Muted> : (<>
+      <ul className="grid grid-cols-2 gap-2 text-sm">{Object.entries(d.rata_per_video ?? {}).map(([j, r]) => (
+        <li key={j} className="rounded-lg border border-line/70 bg-ink-950/50 px-2.5 py-1.5">
+          <b className="block">{j === "panjang" ? "Video panjang" : "Shorts"}: {jt(r.total)} token/video</b>
+          <span className="text-muted">baru {jt(r.baru)} · cache {jt(r.cache)} · output {jt(r.output)} · rata-rata {r.video} video</span>
+        </li>))}</ul>
+      {d.per_langkah?.length ? <Muted className="mt-1.5">Per langkah: {d.per_langkah.map((x) => `${x.jenis === "panjang" ? "▶ " : ""}${x.langkah} ${jt(x.rata)}`).join(" · ")}</Muted> : null}
+      {d.video_terbaru?.length ? <Muted className="mt-1">Terbaru: {d.video_terbaru.slice(0, 5).map((v) => `${v.judul.slice(0, 32)} (${jt(v.total)})`).join(" · ")}</Muted> : null}
+      <Muted className="mt-1">Sejak {d.sejak?.slice(0, 16).replace("T", " ")}. "Cache" = instruksi & alat yang dibaca ulang tiap langkah (jauh lebih ringan dari token baru). Langganan Pro tidak ditagih per token, tapi semuanya mengurangi kuota 5 jam & mingguan.</Muted>
+    </>)}
+  </>);
+}
+
 export function FounderPanel({ ctx }: { ctx: PanelCtx }) {
   const { state, target } = ctx, v = state.videos, ideas = v.filter((x) => x.status === "ide"), ready = v.filter((x) => ["disetujui", "naskah", "suara", "aset"].includes(x.status)), cek = v.filter((x) => x.status === "draft"), up = v.filter((x) => x.status === "export");
   const wk = state.week.published, lu = state.snapshot?.videos.reduce((a, x) => (x.published > a ? x.published : a), ""), gap = lu ? daysSince(lu) : null;
@@ -370,6 +397,7 @@ export function FounderPanel({ ctx }: { ctx: PanelCtx }) {
       <span className="text-muted">Target mengikuti autopilot (video per hari × 7). Ubah di panel Autopilot / Ruang Animasi.</span>
       {gap != null && <span className={gap > 7 ? "text-signal" : "text-muted"}>Upload terakhir di channel {gap} hari lalu.</span>}
     </div>
+    <PemakaianToken />
     <H3>Perlu keputusanmu ({ideas.length})</H3>
     {ideas.length ? ideas.map((x) => <VideoCard key={x.slug} v={x} ctx={ctx} />) : <Muted>Tidak ada ide yang menunggu.</Muted>}
     <H3>Video jadi, perlu kamu tonton ({cek.length})</H3>

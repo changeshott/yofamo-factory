@@ -127,6 +127,7 @@ python agents/aset/deteksi_teks.py <video.mp4> [--halus]   # cek ada teks/subtit
 python agents/panjang/unggah_panjang.py pratinjau|unggah|subtitle <slug> [--jadwal 2026-11-03T19:30]
 python agents/steve/retensi_panjang.py       # Steve: retensi video panjang per bab & adegan → insights/panjang-retensi.md
 python agents/notif.py siapkan|tes|kirim "teks"   # notifikasi Telegram ke HP Zona
+python agents/pemakaian.py [--json]        # token Claude per video (Shorts & panjang) dari produksi/token-log.jsonl (juga di Studio → Meja Zona)
 python agents/tes_pabrik.py [--online]     # tes seluruh pabrik (aman, di folder sementara)
 start_studio.bat                            # buka Studio Yofamo (Windows)
 cd studio && npm run dev                    # sama, manual (http://127.0.0.1:3210)

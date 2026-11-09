@@ -165,6 +165,8 @@ def main() -> None:
     a = ap.parse_args()
     teks = re.sub(r"[^\w\s,.\-?!]", "", a.permintaan, flags=re.UNICODE).strip()[:200]
     pid = a.id if re.fullmatch(r"[\w-]{3,40}", a.id or "") else datetime.now().strftime("%Y%m%d-%H%M%S")
+    import os
+    os.environ["YOFAMO_PRODUKSI_ID"], os.environ["YOFAMO_PRODUKSI_JENIS"] = pid, "panjang"     # pencatatan token per video
     cat = Catatan(pid, teks or ("Lanjutkan: " + a.lanjut if a.lanjut else "Topik dipilih tim"), {"uji": a.uji})
     tanpa_jendela.prioritas_rendah()
     kunci = Kunci(ROOT / "produksi" / ("panjang-uji.lock" if a.uji else "panjang.lock"), maks_jam=12)
