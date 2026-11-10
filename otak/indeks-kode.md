@@ -24,7 +24,7 @@ Pakai untuk menemukan file yang tepat tanpa menjelajah folder. Isi lengkap tetap
 | `agents/pabrik.py` | 222 | Pencatat antrean video pabrik Yofamo (SQLite: state.db). |
 | `agents/pakai_python.py` | 24 | Pastikan script agent berjalan di Python yang paketnya lengkap. |
 | `agents/pemakaian.py` | 134 | Pemakaian token Claude per video (Shorts & video panjang), dari produksi/token-log.jsonl (dicatat agents/produser.py). |
-| `agents/produser.py` | 601 | Produser Yofamo: satu permintaan Zona → satu video jadi, otomatis lewat semua agent. |
+| `agents/produser.py` | 605 | Produser Yofamo: satu permintaan Zona → satu video jadi, otomatis lewat semua agent. |
 | `agents/tanpa_jendela.py` | 46 | Windows: semua proses anak (claude, python, ffmpeg, node) berjalan TANPA jendela console. |
 | `agents/tes_pabrik.py` | 699 | Tes menyeluruh pabrik Yofamo. Aman: semua tes berjalan di folder sementara, project asli tidak disentuh. |
 
@@ -70,7 +70,7 @@ Pakai untuk menemukan file yang tepat tanpa menjelajah folder. Isi lengkap tetap
 
 | File | Baris | Isi |
 |---|---|---|
-| `agents/penulis/cek_naskah.py` | 300 | Raka: editor naskah otomatis. Memeriksa videos/<slug>/script.json seperti script editor profesional. |
+| `agents/penulis/cek_naskah.py` | 316 | Raka: editor naskah otomatis. Memeriksa videos/<slug>/script.json seperti script editor profesional. |
 
 ## agents/qc/
 
@@ -86,7 +86,7 @@ Pakai untuk menemukan file yang tepat tanpa menjelajah folder. Isi lengkap tetap
 | `agents/steve/analitik.py` | 134 | Steve v2 — data retensi dari YouTube Analytics (butuh login yang sama dengan Uli). |
 | `agents/steve/fetch_stats.py` | 208 | Steve — pengambil statistik publik channel Yofamo Technology. |
 | `agents/steve/komentar.py` | 68 | Steve: komentar publik di Shorts channel → apa yang penonton tanyakan, minta, puji, atau keluhkan. |
-| `agents/steve/kumpul.py` | 60 | Steve: kumpulkan semua data sekaligus (tanpa kuota Claude), lalu hitung analisanya. |
+| `agents/steve/kumpul.py` | 68 | Steve: kumpulkan semua data sekaligus (tanpa kuota Claude), lalu hitung analisanya. |
 | `agents/steve/pasar.py` | 94 | Steve: radar pasar — Shorts teknologi berbahasa Indonesia yang sedang ramai 30 hari terakhir (channel lain). |
 | `agents/steve/retensi_panjang.py` | 168 | Steve — retensi video panjang per BAB dan per ADEGAN (tanpa kuota Claude). |
 | `agents/steve/ytdata.py` | 62 | Alat bersama pengumpul data Steve: baca .env, panggil YouTube Data API (API key), snapshot terbaru. |

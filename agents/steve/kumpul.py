@@ -35,6 +35,14 @@ def main() -> None:
     ap.add_argument("--pasar", action="store_true", help="paksa radar pasar")
     ap.add_argument("--ringan", action="store_true", help="statistik + analisa saja")
     a = ap.parse_args()
+    if a.ringan:
+        # Mode ringan (Studio, otomatis tiap hari) dulu TIDAK PERNAH mengambil retensi/komentar → data retensi berhenti di 31 Okt 2026
+        # dan tim belajar dari data lama. Sekarang: sekali sehari mode ringan dinaikkan jadi lengkap (retensi + komentar, tanpa kuota Claude).
+        last = ytdata.latest("analitik")
+        umur_a = (date.today() - date.fromisoformat(last.stem.replace("analitik-", ""))).days if last else 999
+        if umur_a >= 1 and (ROOT / "rahasia" / "token.json").exists():
+            print(f"[steve] data retensi terakhir {umur_a if umur_a < 999 else '—'} hari lalu → hari ini diambil lengkap", flush=True)
+            a.ringan = False
     hasil = {"statistik": jalan("statistik publik channel", "agents/steve/fetch_stats.py")}
     if not a.ringan:
         hasil["komentar"] = jalan("komentar penonton", "agents/steve/komentar.py")

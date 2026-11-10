@@ -6,7 +6,9 @@ Terakhir diperbarui: 2026-11-10 (upgrade kantor Studio; berikutnya: editan Short
 
 - **Upgrade seluruh project (permintaan Zona 2026-11-10)**, urutan pilihan Zona: (1) kantor Studio — selesai tahap 1;
   (2) editan Shorts — selesai tahap 1 (lihat Selesai), menunggu penilaian Zona pada video sungguhan;
-  (3) alur untuk menaikkan views — BELUM dimulai.
+  (3) alur untuk menaikkan views — bagian 1 selesai (data retensi harian, judul/hook produk + frasa pencarian); sisanya di Tertunda no. 9.
+  CATATAN: dua perbaikan template (percikan memancar, latar penutup pekat) belum dilihat hasil render-nya — render uji dihentikan
+  atas permintaan Zona; cek di Short pertama buatan pabrik setelah 10 Nov.
 - **Suara lebih natural**: menunggu Zona menjalankan `contoh_suara.bat` dan memilih suara (belum bisa diuji dari sandbox: layanan
   suara tidak terjangkau). Pilihan lain: `setup_suara.bat` (VoxCPM2, butuh GPU NVIDIA).
 
@@ -23,7 +25,10 @@ Terakhir diperbarui: 2026-11-10 (upgrade kantor Studio; berikutnya: editan Short
 3. **Penjaga balapan (race) Shorts & Studio**: Studio belum mengunci Setujui/Unggah selama produksi slug yang sama berjalan;
    `agents/bersih.py` belum melewati video yang produksinya aktif; status belum dijaga monoton. (Video panjang sudah dijaga:
    `jaga_belum_terbit`.)
-4. **YouTube Analytics basi**: `analitik-*.json` terbaru 2026-10-31 → cari kenapa `kumpul.py` tidak memperbarui (login/izin/error).
+4. Pastikan `analitik-*.json` hari ini benar-benar muncul setelah Studio dibuka (perbaikan 10 Nov); kalau `analitik.py` gagal,
+   lihat `logs/data-*.txt` (login/izin YouTube).
+9. Alur views berikutnya (belum dibuat): post-mortem otomatis 48 jam, bobot skor ide dari hasil nyata (setelah ≥ 5 video arah
+   baru), Shorts → video panjang (ajakan "versi lengkap"), playlist per kategori.
 5. Bima Shorts: kueri kalimat (`p["kata"]`) belum otomatis ditambah nama produk (Raka diminta menulisnya di `kata_kunci_visual`;
    footage topik diawali "`<produk>` hands on").
 7. Kuota YouTube Data API (10.000 unit/hari, 1 pencarian = 100) dipakai bersama Shorts, video panjang, Nova/Bayu & Steve — kalau
@@ -38,6 +43,10 @@ Terakhir diperbarui: 2026-11-10 (upgrade kantor Studio; berikutnya: editan Short
 - 2 tes Kai (HyperFrames) gagal di sandbox karena tidak ada `node_modules` — normal; di laptop harus lolos.
 
 ## Selesai (terbaru di atas, ringkas)
+
+- 2026-11-10 Alur views (tahap 3, bagian 1): data retensi/komentar kembali terambil tiap hari (`kumpul.py --ringan` naik lengkap
+  1x/hari — akar masalah "YouTube Analytics basi"); judul & hook Shorts memakai nama produk + frasa pencarian (`kata_cari.json`,
+  peringatan di `cek_naskah.py`).
 
 - 2026-11-10 Editan Shorts (tahap 2): kamera + grade + vignet, pembuka cincin/percikan, tanda produk, ajakan komentar, momen wow,
   progres bersegmen, efek suara otomatis; perbaikan percikan (memancar) & bayangan teks di penutup. Dirender sungguhan di sandbox

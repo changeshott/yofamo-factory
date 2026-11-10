@@ -211,6 +211,22 @@ def check(slug: str) -> tuple[list[str], list[str], dict, dict]:
         fails.append("belum ada bagian 'wow' (fakta paling mengejutkan)")
     if not any(re.search(r"\b(tapi|ternyata|yang (paling|lebih)|bayangin|bukan cuma|masalahnya|anehnya)\b", str(n.get("kalimat", "")), re.I) for n in narasi[:4]):
         warns.append("belum ada 'open loop' di 4 kalimat awal (misalnya 'tapi yang paling gila…') untuk menahan penonton")
+    # ---- alur views (Nov 2026): penonton harus tahu BARANG APA dalam 2 kalimat pertama; judul memakai frasa yang dicari orang
+    produk = str(idea.get("produk") or "").strip()
+    inti = [w.lower() for w in words(produk) if len(w) >= 3 and not w.isdigit()][:3]
+    if inti:
+        awal = " ".join(str(n.get("kalimat", "")) for n in narasi[:2]).lower()
+        if not any(w in awal for w in inti):
+            warns.append(f"nama produk '{produk}' belum disebut di 2 kalimat pertama — sebut di hook/kalimat 2 supaya penonton langsung tahu barangnya")
+        if not any(w in judul.lower() for w in inti):
+            warns.append(f"judul belum menyebut produk '{produk}' — orang mencari nama produknya")
+    try:
+        kc = json.loads((folder / "kata_cari.json").read_text(encoding="utf-8"))
+        top = [str(e.get("frasa", "")).lower() for e in (kc.get("frasa") or [])[:8] if e.get("frasa")]
+        if top and not any(all(w in judul.lower() for w in f.split()[:3]) for f in top):
+            warns.append(f"judul belum memuat frasa pencarian teratas (mis. '{top[0]}'); pakai kalau bisa dimasukkan secara alami")
+    except (OSError, ValueError):
+        pass
 
     # ---- durasi
     total = sum(panjang)

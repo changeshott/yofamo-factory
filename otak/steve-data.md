@@ -6,7 +6,7 @@
 |---|---|
 | `kumpul.py` | statistik publik (`agents/steve/fetch_stats.py`) + komentar (`agents/steve/komentar.py`) + YouTube Analytics kalau YouTube dihubungkan (`agents/steve/analitik.py`, butuh token di `rahasia/`) + retensi video panjang (`agents/steve/retensi_panjang.py`, kalau ada upload panjang) + radar pasar (`agents/steve/pasar.py`, kalau > 6 hari) + analisa (`agents/steve/analisa.py`) |
 | `--pasar` | paksa radar pasar |
-| `--ringan` | statistik + analisa saja (dipakai Studio sekali sehari) |
+| `--ringan` | statistik + analisa saja (dipakai Studio otomatis); **sekali sehari otomatis naik jadi lengkap** kalau `analitik-*.json` terbaru bukan hari ini dan YouTube terhubung (dulu mode ini tidak pernah mengambil retensi → data berhenti di 31 Okt 2026) |
 
 Setelah selesai memanggil `python agents/otak.py perbarui --data` → `otak/data/status.md`.
 

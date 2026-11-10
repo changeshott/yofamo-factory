@@ -82,6 +82,9 @@ Untuk setiap kalimat di `narasi`:
 
 ### 6. Judul, metadata, eksperimen
 - `judul`: klaim HURUF KAPITAL + kalimat kaget, benar menurut sumber, diakhiri tepat `#Shorts #Teknologi`, ≤ 100 karakter.
+  **Sebut nama produknya** (`idea.json` → `produk`) dan, kalau ada `videos/<slug>/kata_cari.json` (frasa yang benar-benar dicari
+  orang di YouTube, dibuat produser), pakai frasa teratas yang bisa masuk secara alami. Nama produk juga harus terdengar di
+  **2 kalimat pertama** narasi supaya penonton langsung tahu barang apa yang dibahas (`cek_naskah.py` memberi peringatan).
 - `judul_alternatif`: 2 judul lain dengan sudut berbeda (untuk uji/ganti judul nanti).
 - `deskripsi`: **tanpa link apa pun** (URL sumber cukup di kolom `sumber`). Baris pertama = kalimat paling bikin penasaran yang memuat kata kunci utama (nama teknologinya, ±100 karakter pertama tampil di pencarian); lalu 1–2 kalimat isi/fakta inti; lalu 3–5 hashtag topik spesifik (misalnya `#rovermars #nasa #mobilotonom`). Uli otomatis menambah pertanyaan komentar, ajakan follow, kredit singkat tanpa link, dan hashtag umum channel (`bible/gaya-upload.json`).
 - `komentar_pin`: komentar pertama untuk Zona sematkan (pertanyaan yang memancing diskusi atau fakta tambahan dari idea.json).

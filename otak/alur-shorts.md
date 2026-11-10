@@ -35,7 +35,9 @@ Hasil: status `draft`. Zona menyetujui di Studio → `export`; atau autopilot me
   `agents/ide/cek_visual.py "<NAMA PRODUK>" ...`: hanya hasil yang judulnya memuat token inti kata kunci PERTAMA yang dihitung;
   bobot sumber youtube 2.0, wikimedia/pexels 0.6, pixabay 0.5, nasa 0.3. `agents/ide/cek_topik.py`: cek belum pernah dibahas.
 - **Raka** (`.claude/skills/penulis/SKILL.md`): pembuka khas "Tau nggak, …", lembar produksi per kalimat (jenis visual, kata kunci
-  Inggris, teks layar, penekanan), judul + 2 alternatif; validasi `agents/penulis/cek_naskah.py --tulis`.
+  Inggris, teks layar, penekanan), judul + 2 alternatif; validasi `agents/penulis/cek_naskah.py --tulis`. Sebelum Raka, produser
+  menjalankan `agents/ide/kata_cari.py "<produk>" --shorts <slug>` → `kata_cari.json`; validator memberi peringatan kalau nama produk
+  tidak ada di 2 kalimat pertama/judul atau judul tidak memuat frasa pencarian teratas.
 - **Dara**: `bible/gaya-suara.json`; hasil `vo.mp3`, `words.json`, `captions.srt`, `transkrip.txt`. Mesin: VoxCPM2 kalau
   `setup_suara.bat` sudah dijalankan (GPU NVIDIA; per 2026-11-10 BELUM terpasang di laptop → semua video memakai edge-tts
   `id-ID-ArdiNeural`). Jenis suara edge-tts dipilih Zona: `agents/suara/contoh_suara.py` (`contoh_suara.bat`) membuat contoh semua

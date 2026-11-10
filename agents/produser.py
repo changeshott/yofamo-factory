@@ -400,6 +400,10 @@ def main() -> None:
             (ROOT / "videos" / slug / "script.json").write_text(json.dumps({**fx.SCRIPT, "slug": slug}, ensure_ascii=False), encoding="utf-8")
             pabrik("set", slug, "naskah")
         else:
+            idea_k = rj(ROOT / "videos" / slug / "idea.json")
+            if idea_k.get("produk") and not (ROOT / "videos" / slug / "kata_cari.json").exists():
+                # frasa yang benar-benar dicari orang di YouTube untuk produk ini (gratis, tanpa token) → dipakai Raka di judul
+                jalan([PY, "agents/ide/kata_cari.py", str(idea_k["produk"])[:80], "--shorts", slug], 3 * 60)
             claude(f"/penulis {slug}", tools("agents/pabrik.py", "agents/penulis/cek_naskah.py"), 30 * 60)
         if not sudah(slug, "naskah"):
             cat.tahap("raka", "gagal", "Naskah belum lolos validasi. Buka log, lalu minta Raka menulis ulang dari kartu video.")
