@@ -42,7 +42,10 @@ Hasil: status `draft`. Zona menyetujui di Studio → `export`; atau autopilot me
   `setup_suara.bat` sudah dijalankan (GPU NVIDIA; per 2026-11-10 BELUM terpasang di laptop → semua video memakai edge-tts
   `id-ID-ArdiNeural`). Jenis suara edge-tts dipilih Zona: `agents/suara/contoh_suara.py` (`contoh_suara.bat`) membuat contoh semua
   suara id-ID + "Multilingual" ke `suara-khas/contoh/`, `--pakai <nama>` menyimpan ke `bible/suara-pilihan.json` (khusus laptop,
-  tidak di-commit; dibaca Dara & Gilang). Perekam bersama `agents/suara/tts.py` → `rekam()`: batas kata asli, atau perkiraan
+  tidak di-commit): `suara_pria`/`suara_wanita` = Shorts (Dara), `suara_panjang` = video panjang (Gilang, hanya dengan `--panjang`
+  karena video panjang bisa terupload otomatis). Suara pilihan gagal → otomatis cadangan Ardi (`tts.rekam(cadangan=)`).
+  2026-11-10: pilihan Claude atas permintaan Zona = `en-US-AndrewMultilingualNeural` (Shorts), wanita `en-US-AvaMultilingualNeural`
+  — BELUM didengar siapa pun (contoh_suara.bat di laptop gagal 403 untuk semua suara, kemungkinan Python/edge-tts usang di PATH). Perekam bersama `agents/suara/tts.py` → `rekam()`: batas kata asli, atau perkiraan
   per suku kata dari batas kalimat untuk suara yang tidak mengirim batas kata. Pelafalan: `bible/lafal.json`
   + `script.json` → `lafal` (nama produk asing → ejaan baca Indonesia); `lafal.ucapkan()` sebelum TTS, `lafal.pulihkan()` sesudahnya
   supaya `words.json`/subtitle tetap tulisan asli.

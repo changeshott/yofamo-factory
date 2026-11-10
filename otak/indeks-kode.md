@@ -97,10 +97,10 @@ Pakai untuk menemukan file yang tepat tanpa menjelajah folder. Isi lengkap tetap
 |---|---|---|
 | `agents/suara/buat_suara.py` | 328 | Dara — agent suara Yofamo. Mengubah naskah Raka menjadi voice-over (gratis, edge-tts). |
 | `agents/suara/cek_gpu.py` | 45 | Dara: cek apakah laptop siap untuk suara natural VoxCPM2 (GPU NVIDIA) dan mesin video HyperFrames (Node 22). |
-| `agents/suara/contoh_suara.py` | 102 | Pilih jenis suara (gratis, edge-tts): dengarkan contoh semua suara yang bisa berbahasa Indonesia, lalu pakai yang paling natural. |
+| `agents/suara/contoh_suara.py` | 117 | Pilih jenis suara (gratis, edge-tts): dengarkan contoh semua suara yang bisa berbahasa Indonesia, lalu pakai yang paling natural. |
 | `agents/suara/lafal.py` | 105 | Kamus pelafalan Dara & Gilang: nama produk/merek asing dibaca benar oleh suara AI berbahasa Indonesia. |
 | `agents/suara/mesin_suara.py` | 114 | Dara: mesin suara natural (VoxCPM2) yang berjalan di Python khusus suara (.venv-suara). |
-| `agents/suara/tts.py` | 87 | Perekam suara edge-tts bersama (Dara & Gilang): audio + waktu tiap kata, untuk SEMUA jenis suara. |
+| `agents/suara/tts.py` | 101 | Perekam suara edge-tts bersama (Dara & Gilang): audio + waktu tiap kata, untuk SEMUA jenis suara. |
 | `agents/suara/voxcpm_kerja.py` | 142 | Pekerja suara VoxCPM2 (dijalankan Dara lewat Python khusus suara di .venv-suara, BUKAN langsung). |
 
 ## agents/thumbnail/

@@ -69,7 +69,7 @@ def main() -> None:
     sg = g.get("suara", {})
     voice, rate = sg.get("voice", "id-ID-ArdiNeural"), sg.get("rate", "+6%")
     try:        # suara pilihan Zona di laptop ini (agents/suara/contoh_suara.py --pakai)
-        voice = json.loads((ROOT / "bible" / "suara-pilihan.json").read_text(encoding="utf-8")).get("suara_pria") or voice
+        voice = json.loads((ROOT / "bible" / "suara-pilihan.json").read_text(encoding="utf-8")).get("suara_panjang") or voice
     except (OSError, ValueError):
         pass
     pad, judul_detik = float(sg.get("jeda_antar_adegan", 0.35)), float(sg.get("judul_bab_detik", 2.6))

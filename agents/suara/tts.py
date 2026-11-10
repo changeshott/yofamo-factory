@@ -68,8 +68,22 @@ async def _alir(teks: str, voice: str, rate: str, pitch: str, out: Path, batas: 
     return kata, kal
 
 
-async def rekam(teks: str, voice: str, rate: str = "+0%", pitch: str = "+0Hz", out: Path = Path("tts.mp3")) -> list[dict]:
-    """Rekam `teks` ke `out` (mp3) dan kembalikan waktu tiap kata. Melempar RuntimeError kalau tidak ada audio."""
+CADANGAN = "id-ID-ArdiNeural"
+
+
+async def rekam(teks: str, voice: str, rate: str = "+0%", pitch: str = "+0Hz", out: Path = Path("tts.mp3"), cadangan: str | None = CADANGAN) -> list[dict]:
+    """Rekam `teks` ke `out` (mp3) dan kembalikan waktu tiap kata. Suara pilihan (mis. multibahasa) gagal → otomatis suara
+    cadangan Ardi supaya produksi tidak berhenti (cadangan=None mematikan ini). Melempar RuntimeError kalau tidak ada audio."""
+    if cadangan and voice != cadangan:
+        try:
+            return await _rekam(teks, voice, rate, pitch, out)
+        except Exception as err:  # noqa: BLE001
+            print(f"[suara] {voice} gagal ({str(err)[:90]}) → memakai suara cadangan {cadangan}", flush=True)
+            return await _rekam(teks, cadangan, rate, pitch, out)
+    return await _rekam(teks, voice, rate, pitch, out)
+
+
+async def _rekam(teks: str, voice: str, rate: str, pitch: str, out: Path) -> list[dict]:
     kata: list[dict] = []
     try:
         kata, _ = await _alir(teks, voice, rate, pitch, out, "WordBoundary")

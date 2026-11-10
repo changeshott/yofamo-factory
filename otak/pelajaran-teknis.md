@@ -35,6 +35,8 @@
   cache pencarian (`cache/yt-cari/`), jangan mengulang kueri yang sama.
 - Proses yang sudah berjalan memakai kode LAMA sampai selesai: perbaikan yang disinkron di tengah produksi baru berlaku di
   produksi berikutnya (GRX-810 mulai 12:26 dengan kode lama).
+- edge-tts "403 Invalid response status" untuk SEMUA suara = bukan soal jenis suara: paket edge-tts usang di Python yang dipakai,
+  jam laptop meleset, atau VPN. File .bat harus memilih Python yang sama dengan pabrik (yang bisa `import edge_tts, yt_dlp`).
 - Tes `agents/tes_pabrik.py` memakai fixture (judul kandidat tidak cocok kueri) — mengubah rumus relevansi bisa menggagalkan tes Bima;
   jalankan tes sebelum dan sesudah untuk membandingkan.
 

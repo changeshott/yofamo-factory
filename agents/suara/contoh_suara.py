@@ -57,18 +57,29 @@ async def buat(teks: str) -> None:
         ks = await kandidat()
     except Exception as err:  # noqa: BLE001
         sys.exit(f"[suara] daftar suara tidak bisa diambil ({str(err)[:100]}). Cek koneksi internet.")
+    import edge_tts  # type: ignore
+    print(f"[suara] Python: {sys.executable} · edge-tts {getattr(edge_tts, '__version__', '?')}", flush=True)
+    gagal403 = 0
     baris = [f"Contoh suara — kalimat: {teks}", "Dengarkan, lalu pakai yang paling natural:", "    python agents/suara/contoh_suara.py --pakai <nama>", ""]
     for n, v in enumerate(ks, 1):
         nama, jk = v["ShortName"], "wanita" if str(v.get("Gender", "")).lower().startswith("f") else "pria"
         f = KELUAR / f"{n:02d}-{nama}.mp3"
         try:
-            kata = await tts.rekam(baca, nama, "+8%", "+0Hz", f)
+            kata = await tts.rekam(baca, nama, "+8%", "+0Hz", f, cadangan=None)
             cara = "waktu kata asli" if kata and len(kata) >= len(tts.TOKEN.findall(baca)) * 0.8 else "waktu kata perkiraan"
             baris.append(f"{n:02d}  {nama:38} {jk:7} {tts.durasi(f):5.1f} dtk  ({cara})")
             print(f"[suara] {baris[-1]}", flush=True)
         except Exception as err:  # noqa: BLE001 — satu suara gagal → lanjut
             f.unlink(missing_ok=True)
+            gagal403 += "403" in str(err)
             print(f"[suara] {nama}: gagal ({str(err)[:80]})", flush=True)
+            if gagal403 >= 2 and n <= 3:      # dua suara pertama ditolak 403 → bukan soal suaranya; berhenti & jelaskan
+                print("\n[suara] Layanan suara menolak (403). Ini bukan karena jenis suaranya. Penyebab umum & perbaikannya:\n"
+                      "  1. Paket edge-tts di Python ini sudah usang → jalankan:  python -m pip install -U edge-tts\n"
+                      "  2. Jam laptop meleset lebih dari beberapa menit → Setelan Windows → Waktu → Sinkronkan sekarang\n"
+                      "  3. VPN/proxy aktif → matikan dulu\n"
+                      "Lalu jalankan contoh_suara.bat lagi.", flush=True)
+                sys.exit(3)
     (KELUAR / "DAFTAR.txt").write_text("\n".join(baris) + "\n", encoding="utf-8")
     print(f"[suara] selesai → {KELUAR.relative_to(ROOT).as_posix()}/ (buka foldernya, dengarkan satu per satu)")
 
@@ -83,17 +94,21 @@ def main() -> None:
     ap.add_argument("--teks", default=TEKS)
     ap.add_argument("--pakai", default="")
     ap.add_argument("--wanita", action="store_true")
+    ap.add_argument("--panjang", action="store_true", help="pakai juga untuk video panjang (bawaan: hanya Shorts, karena video panjang bisa terupload otomatis)")
     ap.add_argument("--lihat", action="store_true")
     a = ap.parse_args()
     if a.lihat:
         p = pilihan()
-        print(f"Suara utama: {p.get('suara_pria') or 'bawaan (id-ID-ArdiNeural)'} · suara wanita: {p.get('suara_wanita') or 'bawaan (id-ID-GadisNeural)'}")
+        print(f"Shorts: {p.get('suara_pria') or 'bawaan (id-ID-ArdiNeural)'} · wanita: {p.get('suara_wanita') or 'bawaan (id-ID-GadisNeural)'} · "
+              f"video panjang: {p.get('suara_panjang') or 'bawaan (id-ID-ArdiNeural)'}")
         return
     if a.pakai:
         p = pilihan()
         p["suara_wanita" if a.wanita else "suara_pria"] = a.pakai.strip()
+        if a.panjang:
+            p["suara_panjang"] = a.pakai.strip()
         PILIHAN.write_text(json.dumps(p, ensure_ascii=False, indent=2), encoding="utf-8")
-        print(f"[suara] {'suara wanita' if a.wanita else 'suara utama (Shorts & video panjang)'} sekarang: {a.pakai}. Berlaku untuk video berikutnya.")
+        print(f"[suara] {'suara wanita' if a.wanita else 'suara utama Shorts'}{' + video panjang' if a.panjang else ''} sekarang: {a.pakai}. Berlaku untuk video berikutnya.")
         return
     asyncio.run(buat(a.teks))
 
