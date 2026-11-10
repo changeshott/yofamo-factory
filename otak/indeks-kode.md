@@ -26,14 +26,14 @@ Pakai untuk menemukan file yang tepat tanpa menjelajah folder. Isi lengkap tetap
 | `agents/pemakaian.py` | 134 | Pemakaian token Claude per video (Shorts & video panjang), dari produksi/token-log.jsonl (dicatat agents/produser.py). |
 | `agents/produser.py` | 601 | Produser Yofamo: satu permintaan Zona → satu video jadi, otomatis lewat semua agent. |
 | `agents/tanpa_jendela.py` | 46 | Windows: semua proses anak (claude, python, ffmpeg, node) berjalan TANPA jendela console. |
-| `agents/tes_pabrik.py` | 683 | Tes menyeluruh pabrik Yofamo. Aman: semua tes berjalan di folder sementara, project asli tidak disentuh. |
+| `agents/tes_pabrik.py` | 699 | Tes menyeluruh pabrik Yofamo. Aman: semua tes berjalan di folder sementara, project asli tidak disentuh. |
 
 ## agents/editor/
 
 | File | Baris | Isi |
 |---|---|---|
-| `agents/editor/komposisi.py` | 265 | Kai v3 — lapisan HyperFrames (HTML + GSAP → video). Dipanggil oleh rakit.py, bukan dijalankan langsung. |
-| `agents/editor/rakit.py` | 556 | Kai — editor Yofamo. Merakit video Short final langsung dengan ffmpeg (gratis, tanpa buka CapCut): |
+| `agents/editor/komposisi.py` | 302 | Kai v3 — lapisan HyperFrames (HTML + GSAP → video). Dipanggil oleh rakit.py, bukan dijalankan langsung. |
+| `agents/editor/rakit.py` | 619 | Kai — editor Yofamo. Merakit video Short final langsung dengan ffmpeg (gratis, tanpa buka CapCut): |
 
 ## agents/ide/
 
@@ -62,7 +62,7 @@ Pakai untuk menemukan file yang tepat tanpa menjelajah folder. Isi lengkap tetap
 | `agents/panjang/produser_panjang.py` | 312 | Produser Ruang Animasi: satu klik → video YouTube panjang (5–12 menit) gaya dokumenter modern: |
 | `agents/panjang/rakit_panjang.py` | 190 | Wulan — editor akhir video panjang. Menyambung adegan Tio + suara Gilang + musik → export/final.mp4 (1920x1080; dokumenter 30 fps, kartun 24 fps). |
 | `agents/panjang/status.py` | 90 | Status video panjang (terpisah dari pabrik Shorts supaya autopilot Shorts tidak pernah menyentuhnya). |
-| `agents/panjang/suara_panjang.py` | 136 | Gilang — pengisi suara video panjang. Narasi tiap adegan → suara (edge-tts, gratis) + timing tiap kata & kalimat. |
+| `agents/panjang/suara_panjang.py` | 132 | Gilang — pengisi suara video panjang. Narasi tiap adegan → suara (edge-tts, gratis) + timing tiap kata & kalimat. |
 | `agents/panjang/thumbnail_panjang.py` | 105 | Mila (16:9) — thumbnail video panjang gaya dokumenter: 1280x720 < 2 MB. |
 | `agents/panjang/unggah_panjang.py` | 203 | Uli untuk video panjang: unggah video berstatus export (disetujui Zona, atau autopilot video panjang yang lolos QC) |
 
@@ -97,8 +97,10 @@ Pakai untuk menemukan file yang tepat tanpa menjelajah folder. Isi lengkap tetap
 |---|---|---|
 | `agents/suara/buat_suara.py` | 328 | Dara — agent suara Yofamo. Mengubah naskah Raka menjadi voice-over (gratis, edge-tts). |
 | `agents/suara/cek_gpu.py` | 45 | Dara: cek apakah laptop siap untuk suara natural VoxCPM2 (GPU NVIDIA) dan mesin video HyperFrames (Node 22). |
+| `agents/suara/contoh_suara.py` | 102 | Pilih jenis suara (gratis, edge-tts): dengarkan contoh semua suara yang bisa berbahasa Indonesia, lalu pakai yang paling natural. |
 | `agents/suara/lafal.py` | 105 | Kamus pelafalan Dara & Gilang: nama produk/merek asing dibaca benar oleh suara AI berbahasa Indonesia. |
 | `agents/suara/mesin_suara.py` | 114 | Dara: mesin suara natural (VoxCPM2) yang berjalan di Python khusus suara (.venv-suara). |
+| `agents/suara/tts.py` | 87 | Perekam suara edge-tts bersama (Dara & Gilang): audio + waktu tiap kata, untuk SEMUA jenis suara. |
 | `agents/suara/voxcpm_kerja.py` | 142 | Pekerja suara VoxCPM2 (dijalankan Dara lewat Python khusus suara di .venv-suara, BUKAN langsung). |
 
 ## agents/thumbnail/

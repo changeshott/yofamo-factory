@@ -21,6 +21,9 @@ Aturan tetap (upload, lisensi, hapus, rahasia) ada di `AGENTS.md` → Aturan ker
 - **2026-11-10 — Upgrade seluruh project**, urutan: kantor Studio dulu (karakter lebih hidup, tampilan lebih detail, info kerja
   real-time, gaya lebih bagus) → editan (Shorts dulu) → alur untuk menaikkan views.
 
+- **2026-11-10 — Zona minta suara lebih natural untuk bahasa Indonesia + pilihan jenis suara.** Disediakan: contoh semua suara
+  gratis untuk dipilih Zona (`contoh_suara.bat`); pilihannya belum dibuat.
+
 ## Produksi & jadwal
 
 - **2026-11-09 — Kosongkan video panjang yang terputus, buat baru & stabil**: GRX-810 dipindah ke `panjang/_arsip/` (bisa dikembalikan).

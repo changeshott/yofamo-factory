@@ -49,16 +49,9 @@ async def synth(text: str, voice: str, rate: str, out: Path) -> list[dict]:
         import edge_tts  # type: ignore
     except ImportError:
         sys.exit("[dara] Paket edge-tts belum terpasang. Jalankan: python -m pip install -r requirements.txt")
-    comm = edge_tts.Communicate(text, voice, rate=rate, boundary="WordBoundary")
-    words: list[dict] = []
-    with out.open("wb") as f:
-        async for chunk in comm.stream():
-            if chunk["type"] == "audio":
-                f.write(chunk["data"])
-            elif chunk["type"] == "WordBoundary":
-                start = chunk["offset"] / TICKS
-                words.append({"kata": chunk["text"], "mulai": round(start, 3), "selesai": round(start + chunk["duration"] / TICKS, 3)})
-    return words
+    sys.path.insert(0, str(Path(__file__).parent))
+    import tts  # noqa: E402  (batas kata, atau perkiraan dari batas kalimat untuk suara multibahasa)
+    return await tts.rekam(text, voice, rate, "+0Hz", out)
 
 
 # Gaya bicara per bagian naskah (edge-tts tidak punya emosi, jadi "akting" dibuat dari tempo, nada, dan jeda).
@@ -92,6 +85,8 @@ async def synth_prosodi(narasi: list[dict], voice: str, rate: str, out: Path) ->
         import edge_tts  # type: ignore
     except ImportError:
         sys.exit("[dara] Paket edge-tts belum terpasang. Jalankan: python -m pip install -r requirements.txt")
+    sys.path.insert(0, str(Path(__file__).parent))
+    import tts  # noqa: E402
     pr = prosodi_konfig()
     dasar = int(re.match(r"([+-]\d+)%", rate).group(1)) if re.match(r"([+-]\d+)%", rate) else 15
     sem = asyncio.Semaphore(4)
@@ -105,15 +100,8 @@ async def synth_prosodi(narasi: list[dict], voice: str, rate: str, out: Path) ->
             async with sem:
                 for coba in range(3):
                     try:
-                        comm = edge_tts.Communicate(n["kalimat"].strip(), voice, rate=f"{r:+d}%", pitch=f"{nada:+d}Hz", boundary="WordBoundary")
-                        kata, f = [], tdp / f"{i:02d}.mp3"
-                        with f.open("wb") as fh:
-                            async for ch in comm.stream():
-                                if ch["type"] == "audio":
-                                    fh.write(ch["data"])
-                                elif ch["type"] == "WordBoundary":
-                                    a0 = ch["offset"] / TICKS
-                                    kata.append({"kata": ch["text"], "mulai": a0, "selesai": a0 + ch["duration"] / TICKS})
+                        f = tdp / f"{i:02d}.mp3"
+                        kata = await tts.rekam(n["kalimat"].strip(), voice, f"{r:+d}%", f"{nada:+d}Hz", f)
                         if kata and f.stat().st_size > 0:
                             return f, kata
                     except Exception as err:  # gangguan jaringan sesaat
@@ -227,7 +215,7 @@ def set_status(slug: str) -> None:
 def main() -> None:
     ap = argparse.ArgumentParser(description="Dara: naskah → voice-over + timing + subtitle")
     ap.add_argument("slug")
-    ap.add_argument("--voice", default=DEFAULT_VOICE, help="id-ID-ArdiNeural (pria) atau id-ID-GadisNeural (wanita)")
+    ap.add_argument("--voice", default="", help="nama suara edge-tts; kosong = bible/gaya-suara.json → edge.suara_pria (lihat agents/suara/contoh_suara.py)")
     ap.add_argument("--rate", default=DEFAULT_RATE, help="kecepatan, misalnya +10%%")
     ap.add_argument("--uji", action="store_true", help="tanpa internet: timing perkiraan, tanpa audio, status tidak diubah")
     ap.add_argument("--mesin", choices=["auto", "voxcpm", "edge"], default="",
@@ -246,6 +234,18 @@ def main() -> None:
     narasi = [n for n in script.get("narasi", []) if str(n.get("kalimat", "")).strip()]
     if not narasi:
         sys.exit("[dara] naskah kosong")
+    try:        # suara pilihan Zona (contoh_suara.py --pakai); --voice id-ID-GadisNeural dari produser = minta suara wanita
+        edge = json.loads((ROOT / "bible" / "gaya-suara.json").read_text(encoding="utf-8")).get("edge") or {}
+    except (OSError, ValueError):
+        edge = {}
+    try:        # pilihan khusus laptop ini (agents/suara/contoh_suara.py --pakai), menimpa bible/gaya-suara.json
+        edge = {**edge, **json.loads((ROOT / "bible" / "suara-pilihan.json").read_text(encoding="utf-8"))}
+    except (OSError, ValueError):
+        pass
+    if not args.voice:
+        args.voice = str(edge.get("suara_pria") or DEFAULT_VOICE)
+    elif args.voice == "id-ID-GadisNeural" and edge.get("suara_wanita"):
+        args.voice = str(edge["suara_wanita"])
     text = " ".join(n["kalimat"].strip() for n in narasi)
     # kamus pelafalan (bible/lafal.json + script.json → lafal): TTS membaca ejaan baca, timing dipulihkan ke tulisan asli
     sys.path.insert(0, str(Path(__file__).parent))

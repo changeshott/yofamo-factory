@@ -81,7 +81,13 @@
     "musik_di_bawah_narasi_db": 10,
     "musik_redam_saat_bicara": true,
     "_catatan": "Musik dari musik/<suasana>/. Kerasnya tiap lagu diukur lalu disetel musik_di_bawah_narasi_db (10 = setara volume 10/100 di CapCut untuk lagu yang di-master keras: jelas terdengar, tidak menabrak) di bawah narasi. Lebih pelan: 12–14. Lebih keras: 7–8. Saat narasi berbicara musik diredam halus (±2–3 dB), dan frekuensi suara (1–3 kHz) di musik dikurangi sedikit.",
-    "musik_beri_ruang_suara": true
+    "musik_beri_ruang_suara": true,
+    "efek": {
+      "aktif": true,
+      "volume_db": -17,
+      "maks": 14,
+      "_catatan": "Efek suara selaras gambar: hentakan (hit) di pembuka & kalimat wow (didahului riser), pop saat grafis muncul, ding di penutup. Dibuat otomatis (gratis); file sendiri di sfx/ yang namanya memuat hit/pop/riser/ding dipakai lebih dulu. Lebih pelan: -20; lebih keras: -14."
+    }
   },
   "penutup": {
     "tampil": true,
@@ -103,5 +109,17 @@
     "model_potong": "isnet-general-use",
     "objek_ai_cadangan": false,
     "_catatan": "Mila (agents/thumbnail/thumbnail.py): objek ASLI dipotong dari footage Bima (rembg, model_potong) di belakang hook, sama di thumbnail & detik awal video. objek_naik = jarak pusat objek di atas pusat hook (hyperframes.hook_y). objek_ai_cadangan: true = kalau tidak ada objek asli yang bisa dipotong, gambar AI dipakai (video diberi label konten sintetis)."
+  },
+  "kamera": {
+    "kuat": 1.0,
+    "warna_sinematik": true,
+    "_catatan": "Gerak kamera di atas footage (mesin HyperFrames): tiap shot bergantian sedikit dekat/jauh + dorongan pelan, kata penekanan = dorongan singkat, kalimat 'wow' = hentakan dekat lalu tenang, pembuka = kamera mundur cepat. Semua halus tanpa memantul. kuat: 0 = mati, 0.5 = tipis, 1 = bawaan, 1.5 = paling terasa. warna_sinematik: kontras & saturasi sedikit dinaikkan + vignet tipis."
+  },
+  "grafis_otomatis": {
+    "tanda_produk": true,
+    "tanda_produk_detik": 3.4,
+    "ajakan_komentar": true,
+    "ajakan_teks": "Menurut kamu?",
+    "_catatan": "Grafis yang ditambahkan Kai sendiri: nama produk (idea.json → produk) + status setelah hook; gelembung ajakan komentar di kalimat penutup."
   }
 }

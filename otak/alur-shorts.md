@@ -36,7 +36,12 @@ Hasil: status `draft`. Zona menyetujui di Studio → `export`; atau autopilot me
   bobot sumber youtube 2.0, wikimedia/pexels 0.6, pixabay 0.5, nasa 0.3. `agents/ide/cek_topik.py`: cek belum pernah dibahas.
 - **Raka** (`.claude/skills/penulis/SKILL.md`): pembuka khas "Tau nggak, …", lembar produksi per kalimat (jenis visual, kata kunci
   Inggris, teks layar, penekanan), judul + 2 alternatif; validasi `agents/penulis/cek_naskah.py --tulis`.
-- **Dara**: `bible/gaya-suara.json`; hasil `vo.mp3`, `words.json`, `captions.srt`, `transkrip.txt`. Pelafalan: `bible/lafal.json`
+- **Dara**: `bible/gaya-suara.json`; hasil `vo.mp3`, `words.json`, `captions.srt`, `transkrip.txt`. Mesin: VoxCPM2 kalau
+  `setup_suara.bat` sudah dijalankan (GPU NVIDIA; per 2026-11-10 BELUM terpasang di laptop → semua video memakai edge-tts
+  `id-ID-ArdiNeural`). Jenis suara edge-tts dipilih Zona: `agents/suara/contoh_suara.py` (`contoh_suara.bat`) membuat contoh semua
+  suara id-ID + "Multilingual" ke `suara-khas/contoh/`, `--pakai <nama>` menyimpan ke `bible/suara-pilihan.json` (khusus laptop,
+  tidak di-commit; dibaca Dara & Gilang). Perekam bersama `agents/suara/tts.py` → `rekam()`: batas kata asli, atau perkiraan
+  per suku kata dari batas kalimat untuk suara yang tidak mengirim batas kata. Pelafalan: `bible/lafal.json`
   + `script.json` → `lafal` (nama produk asing → ejaan baca Indonesia); `lafal.ucapkan()` sebelum TTS, `lafal.pulihkan()` sesudahnya
   supaya `words.json`/subtitle tetap tulisan asli.
 - **Bima** (`agents/aset/cari_aset.py`): 1–3 shot per kalimat (`SHOT_MAX` 3 dtk), sumber YouTube CC BY → NASA → Wikimedia →
@@ -47,8 +52,19 @@ Hasil: status `draft`. Zona menyetujui di Studio → `export`; atau autopilot me
   `youtube_cari()` (cache 7 hari di `cache/yt-cari/`, berhenti setelah 403/429 kuota); unduhan > 300 MB ditolak dari header dan
   ditandai `.terlalu-besar`.
 - **Mila** (`agents/thumbnail/thumbnail.py`): 1080x1920 < 2 MB, objek asli tanpa latar, gaya hook sama dengan video.
-- **Kai** (`agents/editor/rakit.py`, `agents/editor/komposisi.py`): palet biru `bible/gaya-edit.json`, subtitle 1 kata, musik
-  ±10 dB di bawah narasi dari `musik/<suasana>/`, penutup Subscribe, `export/info.json` → `gaya_gerak`.
+- **Kai** (`agents/editor/rakit.py`, `agents/editor/komposisi.py`, template `agents/editor/hf_template.html`): palet biru
+  `bible/gaya-edit.json`, subtitle 1 kata, musik ±10 dB di bawah narasi dari `musik/<suasana>/`, penutup Subscribe,
+  `export/info.json` → `gaya_gerak`. **Upgrade editan 2026-11-10** (semua bisa disetel/dimatikan di `bible/gaya-edit.json`):
+  - `kamera` (`kuat`, `warna_sinematik`): footage diperlakukan sebagai satu kamera — pembuka mundur cepat, tiap shot bergantian
+    dekat/jauh + dorongan pelan, kata penekanan = dorongan singkat, kalimat `wow` = hentakan + garis cepat + irisan cahaya; grade
+    kontras/saturasi + vignet. Data `shot` (awal tiap shot) dikirim `rakit.py` → `komposisi.data_video(..., shot=)`.
+  - Pembuka: cincin denyut + percikan memancar di belakang objek Mila. Progres atas bersegmen per kalimat.
+  - `grafis_otomatis` (`komposisi.grafis_otomatis()`): tanda PRODUK (nama `idea.json` → `produk` + status, tepat setelah hook) dan
+    gelembung ajakan komentar di kalimat `penutup`.
+  - `audio.efek` (`rakit.daftar_efek()`, `sfx_file()`): hit di pembuka & `wow` (didahului riser), pop saat grafis, ding di penutup;
+    dibuat ffmpeg ke `cache/`, file sendiri di `sfx/` (nama memuat hit/pop/riser/ding) didahulukan.
+  - Shot terakhir berupa kartu grafis → latar penutup dibuat pekat (tulisan kartu tidak membayang).
+  - Uji render di sandbox: `npm install` di root + `HYPERFRAMES_BROWSER_PATH=<chromium Playwright>`; ±8 menit per video uji.
 - **Rara** (`agents/qc/periksa.py`, `.claude/skills/qc/SKILL.md`): cek gelap/beku/durasi/LUFS/porsi AI + lihat frame;
   pendeteksi teks `agents/aset/deteksi_teks.py` menolak footage bertulisan. Wajib menilai produk terlihat: `qc_review.json` →
   `produk_terlihat` (< 0,5 = tidak lolos; `skor_qc()` di `agents/autopilot.py` ikut menolak upload otomatis).

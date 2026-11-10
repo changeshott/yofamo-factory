@@ -321,6 +321,54 @@ def whoosh_file() -> Path:
     return out
 
 
+# Efek suara buatan (gratis, dibuat ffmpeg sekali lalu disimpan di cache/). File sendiri di sfx/ yang namanya memuat
+# kata kuncinya (hit, pop, riser, ding) dipakai lebih dulu.
+SFX_BUATAN = {
+    "hit": "aevalsrc='0.9*sin(2*PI*(95-70*t)*t)*exp(-7*t)+0.25*sin(2*PI*40*t)*exp(-4*t)':d=0.7:s=48000,afade=t=out:st=0.5:d=0.2",
+    "pop": "aevalsrc='0.55*sin(2*PI*(620+900*t)*t)*exp(-30*t)':d=0.18:s=48000",
+    "riser": "aevalsrc='0.32*sin(2*PI*(260*t+820*t*t*t))*min(1\\,t*2.2)':d=0.75:s=48000,afade=t=out:st=0.68:d=0.07",
+    "ding": "aevalsrc='0.45*sin(2*PI*1318*t)*exp(-6*t)+0.25*sin(2*PI*1976*t)*exp(-8*t)':d=0.9:s=48000",
+}
+
+
+def sfx_file(nama: str) -> Path | None:
+    own = sorted(f for f in (ROOT / "sfx").glob("*") if f.suffix.lower() in AUDIO_EXT and nama in f.name.lower())
+    if own:
+        return own[0]
+    CACHE.mkdir(parents=True, exist_ok=True)
+    out = CACHE / f"sfx-{nama}.wav"
+    if not out.exists():
+        try:
+            gerak.ff("-f", "lavfi", "-i", SFX_BUATAN[nama], "-ac", "2", str(out))
+        except Exception:  # noqa: BLE001 — efek suara tidak boleh menggagalkan video
+            return None
+    return out if out.exists() else None
+
+
+def daftar_efek(st: dict, narasi: list[dict], kalimat: list[dict], hook_ada: bool, total: float, tutup: float) -> list[tuple[str, float, float]]:
+    """(nama, detik, dB) efek suara selaras gambar: hentakan di pembuka & kalimat 'wow' (didahului riser),
+    pop saat grafis muncul, ding di penutup. Diatur bible/gaya-edit.json → audio.efek."""
+    ef = (st.get("audio") or {}).get("efek") or {}
+    if ef.get("aktif", True) is False:
+        return []
+    db = float(ef.get("volume_db", -17))
+    out: list[tuple[str, float, float]] = []
+    if hook_ada:
+        out.append(("hit", 0.05, db + 2))
+    for k in kalimat:
+        i = int(k.get("i", -1))
+        if i <= 0 or i >= len(narasi):
+            continue
+        n, t = narasi[i], float(k["mulai"])
+        if n.get("bagian") == "wow":
+            out += [("riser", max(0.0, t - 0.72), db - 2), ("hit", t, db + 1)]
+        elif n.get("grafis_gerak") or str(n.get("teks_layar") or "").strip() or n.get("jenis_visual") == "grafis":
+            out.append(("pop", t + 0.1, db - 1))
+    if tutup > 0.5:
+        out.append(("ding", total + 0.1, db))
+    return [(a, round(t, 3), d) for a, t, d in out if t < total + tutup][: int(ef.get("maks", 14))]
+
+
 # ------------------------------------------------------------------ rakit
 def main() -> None:
     ap = argparse.ArgumentParser(description="Kai: rakit video final dari shot Bima + suara Dara")
@@ -490,13 +538,27 @@ def main() -> None:
             ms = max(0, int((t - 0.18) * 1000))
             chains.append(f"[w{c}]adelay={ms}|{ms}[wd{c}]")
             mix.append(f"[wd{c}]")
+    # efek suara selaras gambar (hentakan pembuka/wow, pop grafis, ding penutup)
+    efek = daftar_efek(st, narasi, words.get("kalimat", []), bool(script.get("hook_teks")), total, tutup)
+    idx_fx = idx + (1 if idx_wh is not None else 0)          # indeks input ffmpeg berikutnya
+    n_fx = 0
+    for nama, t, db_e in efek:
+        f = sfx_file(nama)
+        if not f:
+            continue
+        args += ["-i", str(f)]
+        ms = max(0, int(t * 1000))
+        chains.append(f"[{idx_fx}:a]aresample=48000,aformat=channel_layouts=stereo,volume={db_e:.1f}dB,adelay={ms}|{ms}[fx{n_fx}]")
+        mix.append(f"[fx{n_fx}]")
+        idx_fx += 1
+        n_fx += 1
     lufs = st["audio"].get("loudness_lufs", -14)
     chains.append("".join(mix) + f"amix=inputs={len(mix)}:normalize=0:duration=first,loudnorm=I={lufs}:TP=-1.5:LRA=11,"
                   f"aresample=48000[aout]")
 
     final = out_dir / "final.mp4"
     tmp = out_dir / "final.tmp.mp4"
-    log(f"merakit {n} shot, {total:.1f} dtk + penutup {tutup:.1f} dtk{', musik: ' + music.name if music else ', tanpa musik'}{', whoosh' if idx_wh is not None else ''}")
+    log(f"merakit {n} shot, {total:.1f} dtk + penutup {tutup:.1f} dtk{', musik: ' + music.name if music else ', tanpa musik'}{', whoosh' if idx_wh is not None else ''}{f', {n_fx} efek suara' if n_fx else ''}")
     t0 = time.time()
     keluar = out_dir / "base.mp4" if pakai_hf else tmp
     gerak.ff(*args, "-filter_complex", ";".join(chains), "-map", "[vout]", "-map", "[aout]", "-t", f"{akhir:.3f}",
@@ -512,7 +574,8 @@ def main() -> None:
                                         hook_baris(script.get("hook_teks", ""), script, [str(x) for x in st["hook"].get("warna", [])]),
                                         hook_end, tekanan(words.get("kalimat", []), narasi), kal_dari,
                                         [k for k in klip if k.get("jenis") == "grafis"], gaya,
-                                        objek=vdir / "thumbnail" / "objek.png")   # objek Mila di belakang hook (= thumbnail)
+                                        objek=vdir / "thumbnail" / "objek.png",   # objek Mila di belakang hook (= thumbnail)
+                                        shot=[float(k["mulai"]) for k in klip if k.get("jenis") != "grafis"])
             komposisi.tulis_proyek(out_dir / "hf", base_mp4, data, str(script.get("judul", a.slug)))
             log(f"HyperFrames: {len(data['kata'])} kata subtitle, {len(data['grafis'])} grafis gerak, gaya "
                 + ", ".join(f"{k}={v}" for k, v in data["gaya"].items()) + ", merender…")

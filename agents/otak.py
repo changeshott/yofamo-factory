@@ -28,7 +28,7 @@ INDEKS = OTAK / "indeks-kode.md"
 DATA = OTAK / "data" / "status.md"
 # folder yang isinya dibuat saat produksi (tidak ada di repo bersih) → path di dalamnya tidak dicek keberadaannya
 RUNTIME = ("produksi/", "insights/", "videos/", "panjang/", "logs/", "cache/", "rahasia/", "otak/data/", "musik/", "sfx/",
-           "milik-saya/", "suara-khas/", ".venv-suara/", "node_modules/", "state.db", ".env", "bible/maskot/", "fonts/",
+           "milik-saya/", "suara-khas/", ".venv-suara/", "node_modules/", "state.db", ".env", "bible/maskot/", "fonts/", "bible/suara-pilihan.json",
            # path relatif di dalam folder SATU video (videos/<slug>/ atau panjang/<slug>/)
            "aset/", "export/", "footage/", "media/", "suara/", "adegan/", "hf/", "thumbnail/", "naskah.json", "ide.json")
 KODE = ("agents", ".claude/skills", "studio/app", "studio/lib", "studio/components", "bible/channel-bible.md", "bible/panjang-bible.md")

@@ -68,6 +68,10 @@ def main() -> None:
     g = json.loads(GAYA.read_text(encoding="utf-8")) if GAYA.exists() else {}
     sg = g.get("suara", {})
     voice, rate = sg.get("voice", "id-ID-ArdiNeural"), sg.get("rate", "+6%")
+    try:        # suara pilihan Zona di laptop ini (agents/suara/contoh_suara.py --pakai)
+        voice = json.loads((ROOT / "bible" / "suara-pilihan.json").read_text(encoding="utf-8")).get("suara_pria") or voice
+    except (OSError, ValueError):
+        pass
     pad, judul_detik = float(sg.get("jeda_antar_adegan", 0.35)), float(sg.get("judul_bab_detik", 2.6))
     m = re.match(r"([+-]\d+)%", rate)
     dasar = int(m.group(1)) if m else 0
@@ -119,17 +123,9 @@ def main() -> None:
 
 
 async def _synth(teks: str, voice: str, rate: str, pitch: str, out: Path) -> list[dict]:
-    import edge_tts  # type: ignore
-    comm = edge_tts.Communicate(teks, voice, rate=rate, pitch=pitch, boundary="WordBoundary")
-    kata: list[dict] = []
-    with out.open("wb") as f:
-        async for ch in comm.stream():
-            if ch["type"] == "audio":
-                f.write(ch["data"])
-            elif ch["type"] == "WordBoundary":
-                s = ch["offset"] / dara.TICKS
-                kata.append({"kata": ch["text"], "mulai": round(s, 3), "selesai": round(s + ch["duration"] / dara.TICKS, 3)})
-    return kata
+    sys.path.insert(0, str(ROOT / "agents" / "suara"))
+    import tts  # noqa: E402  (batas kata, atau perkiraan dari batas kalimat untuk suara multibahasa)
+    return await tts.rekam(teks, voice, rate, pitch, out)
 
 
 if __name__ == "__main__":

@@ -564,6 +564,22 @@ def offline() -> None:
         pulih = [w["kata"] for w in lafal.pulihkan(pecah, asli, km)]
         cek("Pelafalan: ejaan baca untuk TTS, subtitle tetap tulisan asli", "syao-mi" in baca and "ei-ai" in baca and " air" in baca
             and pulih == lafal.TOKEN.findall(asli), f"{baca} → {pulih}")
+        # Suara multibahasa tanpa batas kata: waktu tiap kata diperkirakan dari batas kalimat (jumlah kata sama, urut, di dalam kalimat)
+        import tts
+        pk = tts.perkirakan([{"teks": "Tau nggak, cincin ini cuma 2 milimeter?", "mulai": 0.1, "selesai": 3.0}], 3.2)
+        cek("Suara: waktu kata perkiraan untuk suara tanpa batas kata", [w["kata"] for w in pk] == ["Tau", "nggak", "cincin", "ini", "cuma", "2", "milimeter"]
+            and all(a_["selesai"] <= b_["mulai"] + 1e-6 for a_, b_ in zip(pk, pk[1:])) and 0.1 <= pk[0]["mulai"] and pk[-1]["selesai"] <= 3.0)
+        # Kai: tanda produk setelah hook + ajakan komentar di kalimat penutup; efek suara selaras gambar
+        sys.path.insert(0, str(ROOT / "agents" / "editor"))
+        import komposisi
+        import rakit as kai
+        nar = [{"bagian": "hook"}, {"bagian": "wow"}, {"bagian": "penutup"}]
+        kl = [{"i": 0, "mulai": 0.0, "selesai": 3.0}, {"i": 1, "mulai": 3.2, "selesai": 8.0}, {"i": 2, "mulai": 8.2, "selesai": 12.0}]
+        go = komposisi.grafis_otomatis({}, {"produk": "Oura Ring 5", "status_teknologi": "dijual"}, {}, nar, kl, [], 3.0, 12.0, [])
+        ef = kai.daftar_efek({}, nar, kl, True, 12.0, 2.2)
+        cek("Kai: tanda produk, ajakan komentar & efek suara otomatis", [g["tipe"] for g in go] == ["produk", "tanya"] and go[0]["teks"] == "OURA RING 5"
+            and [e[0] for e in ef] == ["hit", "riser", "hit", "ding"], f"{[g['tipe'] for g in go]} · {[e[0] for e in ef]}")
+
         # Kata pencarian: saran yang tidak menyebut produk dibuang, layanan mati → kosong + catatan (tidak dikarang)
         sys.path.insert(0, str(ROOT / "agents" / "ide"))
         import kata_cari

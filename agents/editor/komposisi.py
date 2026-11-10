@@ -145,6 +145,36 @@ def grafis_kalimat(i: int, n: dict, kal: dict, idea: dict, senyap: list[tuple[fl
     return out
 
 
+def grafis_otomatis(st: dict, idea: dict, script: dict, narasi: list[dict], kalimat: list[dict], sudah: list[dict],
+                    hook_end: float, total: float, senyap: list[tuple[float, float]]) -> list[dict]:
+    """Grafis yang ditambahkan Kai sendiri (tanpa menunggu naskah):
+    - tanda PRODUK: nama produk (idea.json → produk) + status, tepat setelah hook — penonton langsung tahu barang apa yang dibahas;
+    - ajakan KOMENTAR di kalimat penutup (kalau kalimat itu belum punya grafis)."""
+    out = []
+    oto = st.get("grafis_otomatis") or {}
+    bentrok = lambda a, b, tipe: any(g["a"] < b and a < g["b"] and g.get("tipe") in tipe for g in sudah)  # noqa: E731
+    produk = str(idea.get("produk") or "").strip()
+    if oto.get("tanda_produk", True) and produk and len(produk) <= 40:
+        a = max(hook_end + 0.15, 0.3)
+        b = min(a + float(oto.get("tanda_produk_detik", 3.4)), total - 0.5)
+        stt = str(idea.get("status_teknologi", "")).lower()
+        if b - a >= 1.5 and not any(x <= a < y for x, y in senyap):
+            for g in sudah:                                       # pil status di jendela yang sama digantikan tanda produk
+                if g.get("tipe") == "status" and g["a"] < b and a < g["b"]:
+                    g["tipe"] = "_buang"
+            out.append({"tipe": "produk", "teks": produk.upper() if len(produk) <= 18 else produk, "ket": LABEL_STATUS.get(stt, ""),
+                        "warna": WARNA_STATUS.get(stt, ""), "a": round(a, 3), "b": round(b, 3)})
+    sudah[:] = [g for g in sudah if g.get("tipe") != "_buang"]
+    if oto.get("ajakan_komentar", True):
+        akhir = next((k for k in reversed(kalimat) if int(k.get("i", -1)) < len(narasi) and narasi[int(k["i"])].get("bagian") == "penutup"), None)
+        if akhir:
+            a, b = float(akhir["mulai"]) + 0.3, min(float(akhir["selesai"]) + 0.1, total)
+            teks = str(oto.get("ajakan_teks", "Menurut kamu?"))[:28]
+            if b - a >= 1.4 and not bentrok(a, b, ("angka", "label", "kata", "perbandingan", "langkah", "status", "produk")):
+                out.append({"tipe": "tanya", "teks": teks, "a": round(a, 3), "b": round(b, 3)})
+    return out
+
+
 def layar_penuh(klip: list[dict]) -> list[dict]:
     """Kartu grafis Bima (shot jenis 'grafis') digambar ulang HyperFrames sebagai layar penuh bergerak."""
     out = []
@@ -180,7 +210,7 @@ def objek_hook(png: Path | None, st: dict) -> dict | None:
 def data_video(st: dict, script: dict, idea: dict, words: dict, narasi: list[dict], total: float, akhir: float,
                senyap: list[tuple[float, float]], hook_baris: list[tuple[str, str, float]], hook_end: float,
                tekan: set[tuple[int, str]], kal_dari, klip_grafis: list[dict] | None = None, gaya: dict | None = None,
-               objek: Path | None = None) -> dict:
+               objek: Path | None = None, shot: list[float] | None = None) -> dict:
     hf = st.get("hyperframes", {})
     gaya = gaya or {k: v[0] for k, v in VARIAN.items()}
     warna = {k: str(v).lstrip("#") for k, v in (st.get("palet") or {}).items() if k in ("utama", "terang", "gelap", "kuning")}
@@ -213,8 +243,15 @@ def data_video(st: dict, script: dict, idea: dict, words: dict, narasi: list[dic
         grafis += grafis_kalimat(i, narasi[i], k, idea, senyap)
     potong = [{"t": round(float(k["mulai"]), 3), "wow": (narasi[int(k["i"])].get("bagian") == "wow") if int(k["i"]) < len(narasi) else False}
               for k in kalimat if int(k.get("i", 0)) > 0]
+    grafis += grafis_otomatis(st, idea, script, narasi, kalimat, grafis, hook_end, total, senyap)
+    layar = layar_penuh(klip_grafis or [])
+    # grafis kecil tidak boleh menimpa layar penuh (kartu grafis Bima yang digambar ulang)
+    grafis = [g for g in grafis if g.get("tipe") not in ("tanya", "produk") or not any(L["a"] < g["b"] and g["a"] < L["b"] for L in layar)]
+    km = st.get("kamera") or {}
     pn = st.get("penutup", {})
     return {
+        "kamera": {"kuat": float(km.get("kuat", 1.0)), "grade": bool(km.get("warna_sinematik", True))},
+        "shot": sorted({round(float(t), 3) for t in (shot or []) if 0 <= float(t) < total}),
         "total": round(total, 3), "akhir": round(akhir, 3), "handle": st.get("handle", {}).get("teks", ""),
         "warna": warna, "gaya": {k: v for k, v in gaya.items() if k in VARIAN},
         "sub": {"px": int(hf.get("subtitle_px", 104)), "min": int(hf.get("subtitle_min", 60)), "y": int(hf.get("subtitle_y", 1180))},
@@ -223,7 +260,7 @@ def data_video(st: dict, script: dict, idea: dict, words: dict, narasi: list[dic
                  "tinggi_maks": int(hk.get("tinggi_maks", 900)), "jeda": float(hk.get("jeda_baris", 0.09)) + 0.03,
                  "baris": [{"teks": t, "warna": warna.get("utama", w) if w.upper().lstrip("#") == utama0 else w, "maks": int(float(hf.get("hook_px_maks", 230)) * sk)} for t, w, sk in hook_baris]},
         "objek": objek_hook(objek, st) if hook_baris and hook_end > 0 else None,
-        "kata": kata, "grafis": grafis, "potong": potong, "layar": layar_penuh(klip_grafis or []),
+        "kata": kata, "grafis": grafis, "potong": potong, "layar": layar,
         "penutup": {"a": round(total, 3), "b": round(akhir, 3), "teks": str(pn.get("teks", ""))} if akhir > total + 0.05 and pn.get("teks") else None,
     }
 

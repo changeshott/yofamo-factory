@@ -5,8 +5,10 @@ Terakhir diperbarui: 2026-11-10 (upgrade kantor Studio; berikutnya: editan Short
 ## Sedang dikerjakan
 
 - **Upgrade seluruh project (permintaan Zona 2026-11-10)**, urutan pilihan Zona: (1) kantor Studio — selesai tahap 1;
-  (2) editan Shorts lebih bagus & kompleks (Kai: `agents/editor/rakit.py`, `agents/editor/komposisi.py`, `bible/gaya-edit.json`);
-  (3) alur untuk menaikkan views.
+  (2) editan Shorts — selesai tahap 1 (lihat Selesai), menunggu penilaian Zona pada video sungguhan;
+  (3) alur untuk menaikkan views — BELUM dimulai.
+- **Suara lebih natural**: menunggu Zona menjalankan `contoh_suara.bat` dan memilih suara (belum bisa diuji dari sandbox: layanan
+  suara tidak terjangkau). Pilihan lain: `setup_suara.bat` (VoxCPM2, butuh GPU NVIDIA).
 
 ## Tertunda (urut prioritas)
 
@@ -36,6 +38,12 @@ Terakhir diperbarui: 2026-11-10 (upgrade kantor Studio; berikutnya: editan Short
 - 2 tes Kai (HyperFrames) gagal di sandbox karena tidak ada `node_modules` — normal; di laptop harus lolos.
 
 ## Selesai (terbaru di atas, ringkas)
+
+- 2026-11-10 Editan Shorts (tahap 2): kamera + grade + vignet, pembuka cincin/percikan, tanda produk, ajakan komentar, momen wow,
+  progres bersegmen, efek suara otomatis; perbaikan percikan (memancar) & bayangan teks di penutup. Dirender sungguhan di sandbox
+  (HyperFrames) dan diperiksa lewat lembar frame. Detail: `otak/alur-shorts.md` → Kai.
+- 2026-11-10 Suara: `agents/suara/tts.py` (waktu kata untuk semua jenis suara), `agents/suara/contoh_suara.py` + `contoh_suara.bat`
+  (contoh & pilihan jenis suara), `bible/suara-pilihan.json` lokal.
 
 - 2026-11-10 Upgrade kantor Studio (tahap 1 dari "upgrade seluruh project": kantor → editan Shorts → alur): gerak halus (rAF,
   jalan 4 frame), karakter 1,5x + pose baru & emote, kegiatan santai (minum, HP, ngobrol, tidur malam), sorak/kaget saat
