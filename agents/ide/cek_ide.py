@@ -72,7 +72,17 @@ def sinyal(idea: dict) -> tuple[float, list[str]]:
         alasan.append(f"{len(mirip)} Shorts serupa sedang ramai di pasar (median {vph:.0f} views/hari) → +{b:.1f}")
     st = idea.get("status_teknologi", "")
     bonus = {"dijual": 6.0, "dipakai": 4.0, "prototipe": -4.0, "riset": -10.0}.get(st, 0.0)
-    if bonus:
+    # hasil nyata (agents/steve/pascatayang.py → insights/bobot-ide.json): kalau status ini sudah punya ≥ 5 video tayang, bonus
+    # tetap diganti pengali yang terukur (dibatasi ±6). 'riset' tetap ditolak di periksa() apa pun datanya.
+    try:
+        ukur = (json.loads((ROOT / "insights" / "bobot-ide.json").read_text(encoding="utf-8")).get("status") or {}).get(st)
+    except (OSError, ValueError):
+        ukur = None
+    if ukur and st != "riset" and int(ukur.get("n", 0)) >= 5:
+        b2 = max(-6.0, min(6.0, (float(ukur["x"]) - 1.0) * 8))
+        poin += b2
+        alasan.append(f"status {st}: video kita {ukur['x']}× median (n={ukur['n']}, terukur) → {b2:+.1f}")
+    elif bonus:
         poin += bonus
         alasan.append(f"status {st} → {bonus:+.0f} (Zona: utamakan produk nyata yang bisa diperlihatkan, bukan riset lab)")
     if kat == "luar-angkasa":

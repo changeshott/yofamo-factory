@@ -172,7 +172,9 @@ def cek_shot_semua(vdir: Path, klip: list[dict], teks: bool = False) -> list[dic
         if beku > 0.7 and k["jenis"] == "footage":
             return {**ref(k), "alasan": f"diam/beku {beku:.0%}"}
         if dt and k["jenis"] == "footage" and k.get("sumber") != "milik":
-            alasan, _ = dt.cek_video(f, halus=True)
+            # mode biasa (bukan halus): logo/label kecil di badan produk wajar di video produk; yang ditolak hanya subtitle &
+            # tulisan besar. Shot yang sudah "dipertahankan" Bima (tidak ada pengganti) tidak ditolak lagi.
+            alasan, _ = dt.cek_video(f) if not k.get("dipertahankan") else (None, [])
             if alasan:
                 return {**ref(k), "alasan": alasan}
         return None
@@ -208,7 +210,8 @@ def pra(slug: str, uji: bool, putaran: int = 2) -> dict:
 
 
 def ref(k: dict) -> dict:
-    return {"shot": label(k), "i": k["i"], "potong": k["potong"], "jenis": k["jenis"], "sumber": k.get("sumber"), "id": k.get("id")}
+    return {"shot": label(k), "i": k["i"], "potong": k["potong"], "jenis": k["jenis"], "sumber": k.get("sumber"), "id": k.get("id"),
+            "sumber_mulai": k.get("sumber_mulai"), "segmen_mulai": k.get("segmen_mulai")}
 
 
 def ganti(slug: str, shots: list[str], alasan: str, uji: bool, rakit: bool = True) -> None:

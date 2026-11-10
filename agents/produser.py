@@ -511,6 +511,14 @@ def main() -> None:
                 cat.tahap("rara", "gagal", "Shot yang ditolak belum berhasil diganti. Lanjutkan dari kartu video.")
                 return cat.akhir("gagal", "Berhenti di pra-periksa Rara.")
             pq = rj(exp / "qc_pra.json")
+            # Penjaga mutu: video yang footage-nya kurang dari separuh (isinya kartu teks/AI) TIDAK dirakit — lebih baik gagal
+            # daripada menghasilkan video kartu teks (Short BLUETTI 10 Nov 2026: 0% footage tetap dirakit).
+            kl = (rj(ROOT / "videos" / slug / "aset" / "manifest.json").get("klip") or []) if not a.uji else []
+            if kl:
+                porsi_f = sum(1 for k in kl if k.get("jenis") == "footage") / len(kl)
+                if porsi_f < 0.5:
+                    cat.tahap("rara", "gagal", f"Footage hanya {porsi_f:.0%} dari shot (sisanya kartu teks/AI). Video tidak dirakit.")
+                    return cat.akhir("gagal", f"Footage produk tidak cukup ({porsi_f:.0%}). Ganti topik atau tambah rekaman di milik-saya/.")
             if (exp / "thumbnail.jpg").exists():
                 # shot pembuka bisa diganti saat pra-periksa → latar thumbnail disusun ulang (cepat; objek tidak digambar ulang)
                 jalan([PY, "agents/thumbnail/thumbnail.py", slug, *(["--uji"] if a.uji else [])], 5 * 60)

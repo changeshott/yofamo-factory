@@ -59,6 +59,7 @@ def main() -> None:
         else:
             print(f"\n[steve] ── radar pasar dilewati (terakhir {umur} hari lalu; mingguan cukup)", flush=True)
     hasil["analisa"] = jalan("analisa gabungan", "agents/steve/analisa.py")
+    hasil["pascatayang"] = jalan("evaluasi pasca-tayang video pabrik (≥ 48 jam)", "agents/steve/pascatayang.py")
     subprocess.run([PY, "agents/otak.py", "perbarui", "--data"], cwd=ROOT, capture_output=True)   # otak: data Steve terbaru
     print("\n[steve] ringkasan: " + ", ".join(f"{k} {'OK' if v else 'GAGAL'}" for k, v in hasil.items()), flush=True)
     sys.exit(0 if hasil["analisa"] else 1)

@@ -25,6 +25,9 @@ Aturan tetap (upload, lisensi, hapus, rahasia) ada di `AGENTS.md` → Aturan ker
   gratis untuk dipilih Zona (`contoh_suara.bat`). **Pilihan Zona: `en-AU-WilliamMultilingualNeural` (pria) dan
   `en-US-EmmaMultilingualNeural` (wanita)** — disimpan di `bible/suara-pilihan.json` laptop.
 
+- **2026-11-10 — "Lanjutkan build semuanya"**: evaluasi 48 jam, ajakan versi lengkap, playlist per kategori (playlist publik dibuat
+  otomatis; hanya menambah video baru), skor ide dari hasil nyata.
+
 ## Produksi & jadwal
 
 - **2026-11-09 — Kosongkan video panjang yang terputus, buat baru & stabil**: GRX-810 dipindah ke `panjang/_arsip/` (bisa dikembalikan).

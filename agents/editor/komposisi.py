@@ -18,6 +18,7 @@ import random
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -248,7 +249,14 @@ def data_video(st: dict, script: dict, idea: dict, words: dict, narasi: list[dic
     # grafis kecil tidak boleh menimpa layar penuh (kartu grafis Bima yang digambar ulang)
     grafis = [g for g in grafis if g.get("tipe") not in ("tanya", "produk") or not any(L["a"] < g["b"] and g["a"] < L["b"] for L in layar)]
     km = st.get("kamera") or {}
-    pn = st.get("penutup", {})
+    pn = dict(st.get("penutup", {}))
+    try:        # ada video panjang tentang produk yang sama → penutup mengajak menonton versi lengkap (jam tonton = syarat monetisasi)
+        sys.path.insert(0, str(ROOT / "agents" / "upload"))
+        import terkait
+        if pn.get("teks") and terkait.versi_panjang(idea):
+            pn["teks"] = str(pn.get("teks_versi_panjang") or "Versi lengkapnya ada di channel ini")
+    except Exception:  # noqa: BLE001
+        pass
     return {
         "kamera": {"kuat": float(km.get("kuat", 1.0)), "grade": bool(km.get("warna_sinematik", True))},
         "shot": sorted({round(float(t), 3) for t in (shot or []) if 0 <= float(t) < total}),

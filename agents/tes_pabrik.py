@@ -580,6 +580,23 @@ def offline() -> None:
         cek("Kai: tanda produk, ajakan komentar & efek suara otomatis", [g["tipe"] for g in go] == ["produk", "tanya"] and go[0]["teks"] == "OURA RING 5"
             and [e[0] for e in ef] == ["hit", "riser", "hit", "ding"], f"{[g['tipe'] for g in go]} · {[e[0] for e in ef]}")
 
+        # Alur views: Short ↔ video panjang berproduk sama, playlist per kategori, evaluasi pasca-tayang (tanpa data = "belum cukup")
+        sys.path.insert(0, str(ROOT / "agents" / "upload"))
+        import terkait
+        pj = tmp / "panjang" / "20991231-oura-ring"
+        (pj / "export").mkdir(parents=True, exist_ok=True)
+        (pj / "ide.json").write_text(json.dumps({"produk": "Oura Ring 5 smart ring"}), encoding="utf-8")
+        (pj / "naskah.json").write_text(json.dumps({"judul": "Oura Ring 5: Cincin Pintar"}), encoding="utf-8")
+        (pj / "export" / "upload.json").write_text(json.dumps({"videoId": "abc123"}), encoding="utf-8")
+        root_asli, terkait.ROOT = terkait.ROOT, tmp
+        vp, vp4, vp0 = terkait.versi_panjang({"produk": "Oura Ring 5"}), terkait.versi_panjang({"produk": "Oura Ring 4"}), terkait.versi_panjang({"produk": "Anker SOLIX"})
+        terkait.ROOT = root_asli
+        cek("Alur: Short menemukan video panjang berproduk sama (bukan model lain)", bool(vp) and vp["judul"].startswith("Oura Ring 5") and vp4 is None and vp0 is None
+            and terkait.nama_playlist("robot", {}) == "Robot Canggih" and terkait.nama_playlist("robot", {"playlist": {"aktif": False}}) is None)
+        r = run(tmp, "agents/steve/pascatayang.py")
+        cek("Steve: evaluasi pasca-tayang berjalan tanpa data (tidak mengarang)", r.returncode == 0 and "belum cukup" in (tmp / "insights" / "pascatayang.md").read_text(encoding="utf-8")
+            and json.loads((tmp / "insights" / "bobot-ide.json").read_text(encoding="utf-8"))["status"] == {}, r.stdout.strip()[-120:])
+
         # Kata pencarian: saran yang tidak menyebut produk dibuang, layanan mati → kosong + catatan (tidak dikarang)
         sys.path.insert(0, str(ROOT / "agents" / "ide"))
         import kata_cari

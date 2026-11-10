@@ -20,6 +20,13 @@ Setelah selesai memanggil `python agents/otak.py perbarui --data` → `otak/data
 - Turunan untuk tim: `insights/pelajaran.md` (aturan terbukti/dugaan), `insights/topik_backlog.json` (Steve → Nova),
   `insights/eksperimen.md`, `insights/panjang-retensi.md` (Bayu & Citra), laporan mingguan `insights/YYYY-Www.md`.
 
+## Evaluasi pasca-tayang — `agents/steve/pascatayang.py` (dijalankan `kumpul.py`, tanpa token)
+
+Video pabrik ≥ 48 jam tayang: views × median, % ditonton, hook 10% (dari `analitik-*.json`), digabung ciri produksi (kategori,
+status, suara, porsi footage, `produk_terlihat`). Hasil: `insights/pascatayang.md` (dibaca Nova & Raka; ≥ 5 video = pola, selain itu
+dugaan), `insights/raw/pascatayang-*.json`, dan `insights/bobot-ide.json` (pengali terukur per status/kategori, hanya n ≥ 5) →
+`agents/ide/cek_ide.py` → `sinyal()` memakai pengali status terukur menggantikan bonus tetap (riset tetap ditolak).
+
 ## Skill `/steve-analis`
 
 Laporan mingguan dari data di atas (`.claude/skills/steve-analis/SKILL.md`): kesehatan channel, apa yang menang, retensi, keputusan

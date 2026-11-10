@@ -50,7 +50,11 @@ Hasil: status `draft`. Zona menyetujui di Studio → `export`; atau autopilot me
   + `script.json` → `lafal` (nama produk asing → ejaan baca Indonesia); `lafal.ucapkan()` sebelum TTS, `lafal.pulihkan()` sesudahnya
   supaya `words.json`/subtitle tetap tulisan asli.
 - **Bima** (`agents/aset/cari_aset.py`): 1–3 shot per kalimat (`SHOT_MAX` 3 dtk), sumber YouTube CC BY → NASA → Wikimedia →
-  Pexels/Pixabay; gambar AI maks 10% (`BATAS_AI`), hook selalu footage. Relevansi kandidat (`relevansi()`): kata yang disebut JUDUL
+  Pexels/Pixabay; gambar AI maks 10% (`BATAS_AI`), hook selalu footage. **Aturan anti-kartu-teks (10 Nov 2026, setelah Short
+  BLUETTI jadi 0% footage):** (a) shot yang ditolak hanya membuang BAGIAN klip itu (`segmen_mulai`), video baru dibuang setelah 3
+  bagiannya ditolak; (b) saat membentuk shot, `ada_tulisan()` mengecek subtitle/tulisan besar dan langsung mencoba bagian/klip lain;
+  (c) kalau tidak ada footage pengganti, shot footage lama DIPERTAHANKAN (`dipertahankan: true`), tidak diganti kartu teks/AI;
+  (d) produser tidak merakit video yang footage-nya < 50% shot. Relevansi kandidat (`relevansi()`): kata yang disebut JUDUL
   kandidat (kalimat ×2, topik ×1), kata yang hanya ada di kueri ×0,5, judul menyebut produk utama +4 (`PRODUK`, diisi `atur_produk()`
   dari `idea.json` → `produk`, cadangan kata kunci visual pertama). Footage topik dicari sekali per video, diawali
   "`<produk>` hands on". Rekaman Zona di `milik-saya/` dipakai lebih dulu kalau nama file cocok. Pencarian YouTube CC lewat
@@ -70,9 +74,19 @@ Hasil: status `draft`. Zona menyetujui di Studio → `export`; atau autopilot me
     dibuat ffmpeg ke `cache/`, file sendiri di `sfx/` (nama memuat hit/pop/riser/ding) didahulukan.
   - Shot terakhir berupa kartu grafis → latar penutup dibuat pekat (tulisan kartu tidak membayang).
   - Uji render di sandbox: `npm install` di root + `HYPERFRAMES_BROWSER_PATH=<chromium Playwright>`; ±8 menit per video uji.
-- **Rara** (`agents/qc/periksa.py`, `.claude/skills/qc/SKILL.md`): cek gelap/beku/durasi/LUFS/porsi AI + lihat frame;
+- **Rara** (`agents/qc/periksa.py`, `.claude/skills/qc/SKILL.md`): cek gelap/beku/durasi/LUFS/porsi AI + lihat frame; cek tulisan
+  Shorts memakai mode BIASA (logo/label kecil di produk dibiarkan); Rara (Claude) menolak maks 4 shot per putaran;
   pendeteksi teks `agents/aset/deteksi_teks.py` menolak footage bertulisan. Wajib menilai produk terlihat: `qc_review.json` →
   `produk_terlihat` (< 0,5 = tidak lolos; `skor_qc()` di `agents/autopilot.py` ikut menolak upload otomatis).
+
+## Alur views (Nov 2026)
+
+- `agents/upload/terkait.py`: `versi_panjang(idea)` — ada video panjang terupload dengan produk sama → penutup Short berbunyi
+  "Versi lengkapnya ada di channel ini" (`komposisi.data_video`) + satu baris di deskripsi (`unggah.metadata`, tanpa link);
+  `masuk_playlist()` — video baru masuk playlist kategorinya (`NAMA_PLAYLIST`, bisa ditimpa `bible/gaya-upload.json` → `playlist`
+  {aktif, nama, lainnya}; video panjang → "Bedah Teknologi (Video Lengkap)"); butuh izin `youtube.force-ssl`, id playlist di-cache di
+  `produksi/playlist.json`; gagal/tanpa izin = dilewati.
+- Kuota YouTube Data API per hari 10.000: upload ±1.600/video, thumbnail 50, playlist 50, pencarian footage 100/kueri.
 
 ## Setelah draft
 

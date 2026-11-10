@@ -7,7 +7,7 @@ Pakai untuk menemukan file yang tepat tanpa menjelajah folder. Isi lengkap tetap
 
 | File | Baris | Isi |
 |---|---|---|
-| `agents/aset/cari_aset.py` | 740 | Bima — pencari aset Yofamo. Untuk setiap kalimat naskah menyiapkan 1–3 shot vertikal 1080x1920 |
+| `agents/aset/cari_aset.py` | 790 | Bima — pencari aset Yofamo. Untuk setiap kalimat naskah menyiapkan 1–3 shot vertikal 1080x1920 |
 | `agents/aset/deteksi_teks.py` | 221 | Pendeteksi teks di footage (gratis, lokal): subtitle tertempel, judul, watermark, tulisan besar. |
 | `agents/aset/gerak.py` | 181 | Alat ffmpeg Bima: menyeragamkan klip ke 1080x1920, membuat gerak Ken Burns untuk gambar AI, |
 | `agents/aset/sumber.py` | 186 | Sumber klip Bima. Semua mengembalikan kandidat dengan bentuk yang sama. |
@@ -24,22 +24,22 @@ Pakai untuk menemukan file yang tepat tanpa menjelajah folder. Isi lengkap tetap
 | `agents/pabrik.py` | 222 | Pencatat antrean video pabrik Yofamo (SQLite: state.db). |
 | `agents/pakai_python.py` | 24 | Pastikan script agent berjalan di Python yang paketnya lengkap. |
 | `agents/pemakaian.py` | 134 | Pemakaian token Claude per video (Shorts & video panjang), dari produksi/token-log.jsonl (dicatat agents/produser.py). |
-| `agents/produser.py` | 605 | Produser Yofamo: satu permintaan Zona → satu video jadi, otomatis lewat semua agent. |
+| `agents/produser.py` | 613 | Produser Yofamo: satu permintaan Zona → satu video jadi, otomatis lewat semua agent. |
 | `agents/tanpa_jendela.py` | 46 | Windows: semua proses anak (claude, python, ffmpeg, node) berjalan TANPA jendela console. |
-| `agents/tes_pabrik.py` | 699 | Tes menyeluruh pabrik Yofamo. Aman: semua tes berjalan di folder sementara, project asli tidak disentuh. |
+| `agents/tes_pabrik.py` | 716 | Tes menyeluruh pabrik Yofamo. Aman: semua tes berjalan di folder sementara, project asli tidak disentuh. |
 
 ## agents/editor/
 
 | File | Baris | Isi |
 |---|---|---|
-| `agents/editor/komposisi.py` | 302 | Kai v3 — lapisan HyperFrames (HTML + GSAP → video). Dipanggil oleh rakit.py, bukan dijalankan langsung. |
+| `agents/editor/komposisi.py` | 310 | Kai v3 — lapisan HyperFrames (HTML + GSAP → video). Dipanggil oleh rakit.py, bukan dijalankan langsung. |
 | `agents/editor/rakit.py` | 619 | Kai — editor Yofamo. Merakit video Short final langsung dengan ffmpeg (gratis, tanpa buka CapCut): |
 
 ## agents/ide/
 
 | File | Baris | Isi |
 |---|---|---|
-| `agents/ide/cek_ide.py` | 223 | Nova: validasi + skor satu ide (videos/<slug>/idea.json), seperti editor riset memeriksa pitch. |
+| `agents/ide/cek_ide.py` | 233 | Nova: validasi + skor satu ide (videos/<slug>/idea.json), seperti editor riset memeriksa pitch. |
 | `agents/ide/cek_topik.py` | 102 | Cek apakah topik sudah pernah dibahas di channel Yofamo (atau sedang dikerjakan pabrik). |
 | `agents/ide/cek_visual.py` | 120 | Nova: cek ketersediaan visual LEGAL untuk satu topik SEBELUM topik itu dipilih. |
 | `agents/ide/kata_cari.py` | 102 | Kata pencarian YouTube (gratis, tanpa token & tanpa kuota API): apa yang benar-benar diketik orang Indonesia tentang satu produk. |
@@ -64,7 +64,7 @@ Pakai untuk menemukan file yang tepat tanpa menjelajah folder. Isi lengkap tetap
 | `agents/panjang/status.py` | 90 | Status video panjang (terpisah dari pabrik Shorts supaya autopilot Shorts tidak pernah menyentuhnya). |
 | `agents/panjang/suara_panjang.py` | 132 | Gilang — pengisi suara video panjang. Narasi tiap adegan → suara (edge-tts, gratis) + timing tiap kata & kalimat. |
 | `agents/panjang/thumbnail_panjang.py` | 105 | Mila (16:9) — thumbnail video panjang gaya dokumenter: 1280x720 < 2 MB. |
-| `agents/panjang/unggah_panjang.py` | 203 | Uli untuk video panjang: unggah video berstatus export (disetujui Zona, atau autopilot video panjang yang lolos QC) |
+| `agents/panjang/unggah_panjang.py` | 211 | Uli untuk video panjang: unggah video berstatus export (disetujui Zona, atau autopilot video panjang yang lolos QC) |
 
 ## agents/penulis/
 
@@ -76,7 +76,7 @@ Pakai untuk menemukan file yang tepat tanpa menjelajah folder. Isi lengkap tetap
 
 | File | Baris | Isi |
 |---|---|---|
-| `agents/qc/periksa.py` | 287 | Rara — QC (quality control) Yofamo. Memeriksa video final sebelum sampai ke Zona, lalu memperbaiki sendiri. |
+| `agents/qc/periksa.py` | 290 | Rara — QC (quality control) Yofamo. Memeriksa video final sebelum sampai ke Zona, lalu memperbaiki sendiri. |
 
 ## agents/steve/
 
@@ -86,8 +86,9 @@ Pakai untuk menemukan file yang tepat tanpa menjelajah folder. Isi lengkap tetap
 | `agents/steve/analitik.py` | 134 | Steve v2 — data retensi dari YouTube Analytics (butuh login yang sama dengan Uli). |
 | `agents/steve/fetch_stats.py` | 208 | Steve — pengambil statistik publik channel Yofamo Technology. |
 | `agents/steve/komentar.py` | 68 | Steve: komentar publik di Shorts channel → apa yang penonton tanyakan, minta, puji, atau keluhkan. |
-| `agents/steve/kumpul.py` | 68 | Steve: kumpulkan semua data sekaligus (tanpa kuota Claude), lalu hitung analisanya. |
+| `agents/steve/kumpul.py` | 69 | Steve: kumpulkan semua data sekaligus (tanpa kuota Claude), lalu hitung analisanya. |
 | `agents/steve/pasar.py` | 94 | Steve: radar pasar — Shorts teknologi berbahasa Indonesia yang sedang ramai 30 hari terakhir (channel lain). |
+| `agents/steve/pascatayang.py` | 156 | Steve — evaluasi pasca-tayang otomatis (tanpa kuota Claude): tiap video buatan pabrik yang sudah tayang ≥ 48 jam |
 | `agents/steve/retensi_panjang.py` | 168 | Steve — retensi video panjang per BAB dan per ADEGAN (tanpa kuota Claude). |
 | `agents/steve/ytdata.py` | 62 | Alat bersama pengumpul data Steve: baca .env, panggil YouTube Data API (API key), snapshot terbaru. |
 
@@ -114,7 +115,8 @@ Pakai untuk menemukan file yang tepat tanpa menjelajah folder. Isi lengkap tetap
 | File | Baris | Isi |
 |---|---|---|
 | `agents/upload/jadwal.py` | 223 | Jadwal tayang Yofamo — mencari jam upload yang paling cocok untuk Shorts, tanpa kuota API & tanpa Claude. |
-| `agents/upload/unggah.py` | 313 | Uli — agent upload Yofamo. Mengunggah video yang SUDAH disetujui Zona ke YouTube sebagai PRIVATE, |
+| `agents/upload/terkait.py` | 117 | Uli — menghubungkan video supaya penonton lanjut menonton (alur views, Nov 2026): |
+| `agents/upload/unggah.py` | 332 | Uli — agent upload Yofamo. Mengunggah video yang SUDAH disetujui Zona ke YouTube sebagai PRIVATE, |
 
 ## Skill Claude (`.claude/skills/<nama>/SKILL.md`)
 

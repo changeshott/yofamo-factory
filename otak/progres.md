@@ -27,8 +27,10 @@ Terakhir diperbarui: 2026-11-10 (upgrade kantor Studio; berikutnya: editan Short
    `jaga_belum_terbit`.)
 4. Pastikan `analitik-*.json` hari ini benar-benar muncul setelah Studio dibuka (perbaikan 10 Nov); kalau `analitik.py` gagal,
    lihat `logs/data-*.txt` (login/izin YouTube).
-9. Alur views berikutnya (belum dibuat): post-mortem otomatis 48 jam, bobot skor ide dari hasil nyata (setelah ≥ 5 video arah
-   baru), Shorts → video panjang (ajakan "versi lengkap"), playlist per kategori.
+9. Belum teruji di produksi sungguhan (kode baru 10 Nov sore): aturan anti-kartu-teks Bima/Rara, playlist (butuh izin
+   `youtube.force-ssl`; cek `upload.json` → `playlist`), `insights/pascatayang.md` setelah `kumpul.py` jalan.
+10. Kuota YouTube 10.000/hari: 4 upload/hari ≈ 6.400 unit → sisa pencarian footage sedikit; pertimbangkan project API kedua
+    khusus pencarian (kunci terpisah di `.env`).
 5. Bima Shorts: kueri kalimat (`p["kata"]`) belum otomatis ditambah nama produk (Raka diminta menulisnya di `kata_kunci_visual`;
    footage topik diawali "`<produk>` hands on").
 7. Kuota YouTube Data API (10.000 unit/hari, 1 pencarian = 100) dipakai bersama Shorts, video panjang, Nova/Bayu & Steve — kalau
@@ -43,6 +45,13 @@ Terakhir diperbarui: 2026-11-10 (upgrade kantor Studio; berikutnya: editan Short
 - 2 tes Kai (HyperFrames) gagal di sandbox karena tidak ada `node_modules` — normal; di laptop harus lolos.
 
 ## Selesai (terbaru di atas, ringkas)
+
+- 2026-11-10 sore **Perbaikan penting: Short BLUETTI jadi kartu teks semua (0% footage).** Sebab: cek tulisan mode ketat menolak 13/14
+  klip review produk, Rara menolak sisanya ("produk tidak terlihat"), pengganti = kartu teks, produser tetap merakit. Perbaikan:
+  aturan anti-kartu-teks Bima (lihat `otak/alur-shorts.md`), cek tulisan mode biasa, batas tolak Rara, penjaga footage < 50%.
+  Video BLUETTI itu sendiri jangan disetujui (status draft).
+- 2026-11-10 Alur views bagian 2: evaluasi pasca-tayang + bobot ide terukur (`pascatayang.py`), Short → video panjang
+  ("versi lengkap"), playlist per kategori (`agents/upload/terkait.py`).
 
 - 2026-11-10 Alur views (tahap 3, bagian 1): data retensi/komentar kembali terambil tiap hari (`kumpul.py --ringan` naik lengkap
   1x/hari — akar masalah "YouTube Analytics basi"); judul & hook Shorts memakai nama produk + frasa pencarian (`kata_cari.json`,

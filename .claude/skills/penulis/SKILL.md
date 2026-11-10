@@ -81,6 +81,7 @@ Untuk setiap kalimat di `narasi`:
   Tanpa `grafis_gerak`, Kai otomatis memakai angka kunci yang disebut di kalimat, `teks_layar`, label status (riset/prototipe/dijual) di kalimat konteks, dan chip sumber tier 1. Jangan pasang grafis di kalimat hook, dan jangan di kalimat yang visualnya `grafis` (kartu penuh).
 
 ### 6. Judul, metadata, eksperimen
+- Kalau ada `insights/pascatayang.md`: lihat bagian "Resep" (hook 10%, durasi, suara yang menahan penonton) dan tiru yang berlabel **pola**.
 - `judul`: klaim HURUF KAPITAL + kalimat kaget, benar menurut sumber, diakhiri tepat `#Shorts #Teknologi`, ≤ 100 karakter.
   **Sebut nama produknya** (`idea.json` → `produk`) dan, kalau ada `videos/<slug>/kata_cari.json` (frasa yang benar-benar dicari
   orang di YouTube, dibuat produser), pakai frasa teratas yang bisa masuk secara alami. Nama produk juga harus terdengar di

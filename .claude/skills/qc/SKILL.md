@@ -21,7 +21,13 @@ Argumen: `<slug> --pra`, `<slug> --akhir`, atau `<slug>` saja (= pilih otomatis:
 3. Buka setiap `pra-lembar-N.jpg` dengan Read. Label oranye = shot (`3a` = kalimat 3, potongan a). Isi kalimat tiap shot ada di `export/qc_pra.json` → `shot_info`. Tolak shot yang:
    - **tidak sesuai isi kalimatnya** (misalnya kalimat tentang lensa kontak tapi gambarnya laptop);
    - **tidak memperlihatkan produk yang dibahas** (`videos/<slug>/idea.json` → `produk`) padahal kalimatnya tentang produk itu —
-     stok umum (kota, orang mengetik, lab, langit) ditolak kalau kandidat lain memperlihatkan produknya;
+     stok umum (kota, orang mengetik, lab, langit) ditolak HANYA kalau di `aset/kandidat.json` kalimat itu masih ada kandidat
+     lain yang memperlihatkan produknya;
+   **Jangan menolak berlebihan** (pelajaran Short BLUETTI 10 Nov 2026: 13 dari 14 shot ditolak → video jadi kartu teks semua):
+   - logo/label kecil di badan produk, tangan/orang yang sedang MEMAKAI produk, dan produk model sejenis itu WAJAR — jangan ditolak;
+   - tolak maksimal **4 shot per putaran**, pilih yang paling parah; footage produk yang kurang sempurna selalu lebih baik daripada
+     kartu teks. Kalau footage di `export/qc_pra.json` → `porsi.footage` sudah di bawah 0,6, jangan menolak lagi kecuali rusak/hitam;
+   - Bima sekarang mencoba bagian lain dari video yang sama, dan mempertahankan shot lama kalau tidak ada pengganti.
    - punya **teks/huruf acak** di gambar AI, watermark, logo channel lain, atau wajah orang yang jadi fokus;
    - gelap, buram parah, rusak, atau cacat AI yang mencolok (jari aneh, benda meleleh);
    - shot hook (`1a`) yang lemah: shot pertama harus paling menarik;

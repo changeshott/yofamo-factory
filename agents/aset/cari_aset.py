@@ -532,6 +532,29 @@ def auto_pick(entry: dict, n: int, taken: set, kunci_kal: set[str] | None = None
     return free[:n] or [k + 1 for k in range(min(n, len(entry["kandidat"])))]
 
 
+_DT = [None, False]      # (modul pendeteksi teks, sudah dicoba)
+
+
+def ada_tulisan(f: Path) -> str | None:
+    """Alasan kalau shot Shorts ini punya subtitle/tulisan BESAR yang akan bertabrakan dengan subtitle Yofamo (mode biasa:
+    logo kecil di badan produk & label kecil dibiarkan — itu wajar di video produk). None = bersih / pendeteksi belum siap."""
+    if UJI:
+        return None
+    if not _DT[1]:
+        _DT[1] = True
+        try:
+            import deteksi_teks as dt
+            _DT[0] = dt if dt.sesi() is not None else None
+        except Exception:  # noqa: BLE001
+            _DT[0] = None
+    if _DT[0] is None:
+        return None
+    try:
+        return _DT[0].cek_video(f)[0]
+    except Exception:  # noqa: BLE001
+        return None
+
+
 def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
     folder, narasi, spans, total = load_video(slug)
     plan = load_plan(folder, narasi)
@@ -552,7 +575,15 @@ def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
     old = {(k["i"], k["potong"]): k for k in read_json(aset / "manifest.json", {}).get("klip", [])}
     # shot yang ditolak QC Rara (atau Zona): kandidat footage itu tidak dipakai lagi, gambar AI dibuat ulang dengan variasi lain
     tolak = read_json(aset / "tolak.json", {}).get("tolak", [])
-    ditolak = {(str(t.get("sumber")), str(t.get("id"))) for t in tolak if t.get("jenis") == "footage"}
+    # Video review produk hampir selalu punya SEBAGIAN adegan bertulisan. Dulu satu shot ditolak = seluruh video dibuang → footage
+    # habis → video jadi kartu teks semua (Short BLUETTI, 10 Nov 2026). Sekarang yang dibuang hanya bagian itu; video baru
+    # dibuang setelah 3 bagiannya ditolak.
+    hitung_tolak: dict[tuple[str, str], int] = {}
+    for t in tolak:
+        if t.get("jenis") == "footage":
+            kk = (str(t.get("sumber")), str(t.get("id")))
+            hitung_tolak[kk] = hitung_tolak.get(kk, 0) + 1
+    ditolak = {kk for kk, n_t in hitung_tolak.items() if n_t >= 3}
     varian_ai = {}
     for t in tolak:
         if t.get("jenis") == "ai":
@@ -568,6 +599,10 @@ def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
     ai_maks = int(total_shot * BATAS_AI)
     ai_pakai = 0
     segmen: dict[str, list] = {}                 # bagian klip yang sudah dipakai (seluruh video) → pemakaian ulang ambil bagian lain
+    for t in tolak:                              # bagian yang ditolak dianggap "sudah dipakai" → bagian lain yang diambil
+        if t.get("jenis") == "footage" and (t.get("segmen_mulai") is not None or t.get("sumber_mulai") is not None):
+            m0 = float(t.get("segmen_mulai") if t.get("segmen_mulai") is not None else t.get("sumber_mulai") or 0)
+            segmen.setdefault(f"{t.get('sumber')}-{t.get('id')}", []).append((m0, m0 + 4.0))
     for p, span in zip(plan, spans):
         i = p["i"]
         e = entries.get(i, {"kandidat": [], "jenis": p["jenis"]})
@@ -601,12 +636,15 @@ def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
             if (i + 1) not in ulang and keep and keep.get("file") == name and out.exists() and abs(keep["durasi"] - dur) < 0.05 and keep.get("uji") == UJI:
                 klip.append(keep)
                 if keep.get("jenis") == "footage":
-                    m0 = float(keep.get("sumber_mulai") or 0)
+                    m0 = float(keep.get("segmen_mulai") if keep.get("segmen_mulai") is not None else keep.get("sumber_mulai") or 0)
                     segmen.setdefault(f"{keep.get('sumber')}-{keep.get('id')}", []).append((m0, m0 + float(keep["durasi"])))
                 ai_pakai += keep.get("jenis") == "ai"
                 streak = streak + 1 if keep.get("jenis") == "footage" else 0
                 continue
             meta = None
+            cadang = aset / f"_lama-{name}"
+            if keep and keep.get("jenis") == "footage" and out.exists() and p["jenis"] != "grafis":
+                shutil.copy2(out, cadang)        # shot lama disimpan: kalau tidak ada footage pengganti, shot ini dipakai lagi
             want = choice[s] if s < len(choice) else (choice[s % len(choice)] if choice else None)
             boleh_ai = ai_pakai < ai_maks and i > 0       # hook selalu footage asli
             if want == "ai" and not boleh_ai:
@@ -648,8 +686,11 @@ def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
                         if gelap > 0.35 or beku > 0.7:
                             taken.add((c["sumber"], c["id"]))
                             raise RuntimeError(f"klip {'gelap' if gelap > 0.35 else 'diam/beku'} ({max(gelap, beku):.0%}), cari yang lain")
+                        if c["sumber"] != "milik" and (alasan_t := ada_tulisan(out)):
+                            raise RuntimeError(f"{alasan_t} → coba bagian/klip lain")   # bagian ini sudah tercatat di segs → berikutnya bagian lain
                         meta = {"jenis": "footage", **{k: c[k] for k in ("sumber", "id", "judul", "url_halaman", "pembuat", "lisensi", "kueri")},
-                                "sumber_mulai": round(start, 2), "kandidat_no": int(str(t).split(":")[-1]),
+                                "sumber_mulai": round(start, 2), "segmen_mulai": round(float(segs[-1][0]), 2) if segs else round(start, 2),
+                                "kandidat_no": int(str(t).split(":")[-1]),
                                 "relevansi": rel.get(int(str(t).split(":")[-1]), 0), **({"pakai_ulang": True} if pakai_ulang else {})}
                         taken.add((c["sumber"], c["id"]))
                     break
@@ -657,6 +698,15 @@ def cmd_unduh(slug: str, otomatis: bool, ulang: set[int]) -> None:
                     log(f"{i + 1:02}{letter}: {t} gagal ({str(err)[:120]}), coba berikutnya")
                 except Exception as err:  # yt-dlp melempar jenis error sendiri
                     log(f"{i + 1:02}{letter}: {t} gagal ({type(err).__name__}: {str(err)[:120]}), coba berikutnya")
+            if cadang.exists():
+                if (not meta or meta["jenis"] in ("grafis", "ai")) and keep:
+                    gelap, beku = gerak.cek_shot(cadang)
+                    if gelap <= 0.35 and beku <= 0.7:   # footage lama masih layak tonton → lebih baik daripada kartu teks
+                        cadang.replace(out)
+                        meta = {k: v for k, v in keep.items() if k not in ("i", "potong", "file", "mulai", "selesai", "durasi", "kalimat", "uji")}
+                        meta["dipertahankan"] = True
+                        log(f"{i + 1:02}{letter}: tidak ada footage pengganti → shot lama dipertahankan (bukan kartu teks)")
+                cadang.unlink(missing_ok=True)
             if not meta:
                 kurang.append(i + 1)
                 continue

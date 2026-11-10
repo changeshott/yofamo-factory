@@ -37,3 +37,7 @@ otak/data/
 
 # pilihan suara khusus laptop (agents/suara/contoh_suara.py --pakai)
 bible/suara-pilihan.json
+
+# hasil evaluasi otomatis Steve (dibuat ulang di tiap komputer)
+insights/pascatayang.md
+insights/bobot-ide.json

@@ -28,6 +28,8 @@ Prinsipmu: **kaget dulu, benar selalu**. Skeptis terhadap klaim viral. Lebih bai
 ## Procedure
 
 ### 1. Briefing (baca dulu, jangan langsung mencari)
+- `insights/pascatayang.md` kalau ada (evaluasi otomatis video kita ≥ 48 jam tayang: resep yang menang/kalah; baris berlabel
+  **pola** wajib diikuti, **dugaan** cukup dipertimbangkan).
 - `insights/pelajaran.md` (aturan **terbukti** wajib diikuti) dan brief angka terbaru `insights/raw/analisa-*.md` SAJA
   (kategori yang menang, retensi, momentum, peluang pasar). Laporan mingguan panjang & bible cukup dibaca kalau perlu satu hal spesifik.
 - `insights/topik_backlog.json` dari Steve: titik awal kandidat, urut skor.

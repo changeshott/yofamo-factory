@@ -26,6 +26,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "agents"))
+sys.path.insert(0, str(Path(__file__).parent))
 import pakai_python  # noqa: E402
 
 if __name__ == "__main__":
@@ -161,6 +162,8 @@ def susun_deskripsi(sc: dict, kredit: str, musik: str, gaya: dict) -> str:
     pertanyaan = str(sc.get("komentar_pin") or "").strip()
     if pertanyaan:
         bagian.append(f"💬 {tanpa_link(pertanyaan)}")
+    if gaya.get("_versi_panjang"):
+        bagian.append(f"▶ Versi lengkapnya ada di channel ini: {tanpa_link(gaya['_versi_panjang'])}")
     if gaya.get("ajakan"):
         bagian.append(f"🔔 {gaya['ajakan']}")
     if kredit:
@@ -181,7 +184,15 @@ def metadata(slug: str) -> dict:
         kredit = (kredit + "\n" if kredit else "") + f"Foto objek: \"{dari.get('judul', '')}\" oleh {dari.get('pembuat', '-')} ({dari['lisensi']})"
     judul = re.sub(r"[<>]", "", sc.get("judul") or slug)[:100]
     musik = str(rj(vdir / "export" / "info.json").get("musik_kredit") or "").strip()
-    desk = susun_deskripsi(sc, kredit, musik, rj(ROOT / "bible" / "gaya-upload.json"))
+    gaya = rj(ROOT / "bible" / "gaya-upload.json")
+    try:                                                # video panjang tentang produk yang sama → disebut di deskripsi (tanpa link)
+        import terkait
+        vp = terkait.versi_panjang(rj(vdir / "idea.json"))
+        if vp:
+            gaya["_versi_panjang"] = vp["judul"]
+    except Exception:  # noqa: BLE001
+        pass
+    desk = susun_deskripsi(sc, kredit, musik, gaya)
     desk = re.sub(r"[<>]", "", desk)[:4900]
     tags, n = [], 0
     for t in sc.get("tag", []):
@@ -277,7 +288,15 @@ def unggah(slug: str, jadwal: str | None) -> None:
     if pin:
         info["komentar_pin"] = pin       # API tidak bisa menyematkan komentar; Zona tempel & sematkan sendiri
     info["thumbnail"] = pasang_thumbnail(yt, vid, vdir)
-    up.write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
+    up.write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")     # simpan dulu: upload sudah berhasil
+    try:                                                # playlist per kategori (tidak pernah menggagalkan upload)
+        import terkait
+        pl = terkait.masuk_playlist(yt, creds(), vid, str(rj(vdir / "idea.json").get("kategori") or ""), log)
+        if pl:
+            info["playlist"] = pl
+            up.write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception as err:  # noqa: BLE001
+        log(f"playlist dilewati ({str(err)[:90]})")
     subprocess.run([sys.executable, str(ROOT / "agents" / "pabrik.py"), "set", slug, "export", "--note", f"diupload private: {vid}"], cwd=ROOT)
     log(f"selesai: {info['url']} (private{', tayang ' + jadwal + ' WIB' if jadwal else ''}).")
     # hemat ruang: file besar video ini dihapus dari laptop (bible/penyimpanan.json → hapus_setelah_upload)

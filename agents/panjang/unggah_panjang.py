@@ -179,6 +179,14 @@ def unggah(slug: str, jadwal: str | None) -> None:
     if sub != "ok":
         info["subtitle_catatan"] = sub
     (exp / "upload.json").write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
+    try:                                                # playlist video panjang (tidak pernah menggagalkan upload)
+        import terkait
+        pl = terkait.masuk_playlist(yt, c, vid, "panjang", log)
+        if pl:
+            info["playlist"] = pl
+            (exp / "upload.json").write_text(json.dumps(info, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception as err:  # noqa: BLE001
+        log(f"playlist dilewati ({str(err)[:90]})")
     log(f"selesai: {info['url']} (private, tayang otomatis {jadwal} WIB){', subtitle terpasang' if sub == 'ok' else ''}.")
     import subprocess  # hemat ruang: file render video ini dihapus (bible/penyimpanan.json → hapus_setelah_upload)
     subprocess.run([sys.executable, str(ROOT / "agents" / "bersih.py"), "semua", "--otomatis"], cwd=ROOT)
