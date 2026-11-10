@@ -1,12 +1,13 @@
 import type { StudioState } from "@/lib/types";
-import { shade, sprite, type Look, type Pose } from "./sprites";
+import { emote, shade, sprite, type Emote, type Look, type Pose } from "./sprites";
 import { activeStage, kerjaShorts, kerjaShortsSemua, tugasAgent } from "@/lib/format";
 import { BH, BLOCKED, BW, FOUNDER, FUTURE, OX, OY, PINTU, R2X, RD, RW, SPOTS, T, TEAM, TEAM2, TW, WALL, type AgentDef } from "./world";
 
 type Pt = [number, number];
 type BBox = [number, number, number, number];
 export interface Hit { id: string; label: string; bbox: BBox; person: boolean }
-export interface OverlayItem { kind: "tag" | "bubble" | "badge"; x: number; y: number; text: string; tone?: string }
+export interface OverlayItem { kind: "tag" | "bubble" | "badge" | "sign"; x: number; y: number; text: string; tone?: string; sub?: string; pips?: [number, number] }
+export interface Kerja { kind: "busy" | "ok" | "err" | "stopped"; text: string; sejak?: string | null; pips?: [number, number] }
 
 const P = (x: number, y: number, z = 0): Pt => [Math.round(OX + (x - y) * T), Math.round(OY + ((x + y) * T) / 2 - z)];
 const bboxOf = (pts: Pt[]): BBox => { const xs = pts.map((p) => p[0]), ys = pts.map((p) => p[1]); return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]; };
@@ -61,18 +62,43 @@ function findPath(from: Pt, to: Pt): Pt[] {
 }
 
 /* ------------------------------------------------------------ aktor */
+type Kegiatan = "" | "minum" | "hp" | "lihat" | "pikir" | "musik" | "tidur" | "ngobrol";
 interface Actor {
-  def: AgentDef; x: number; y: number; path: Pt[]; wait: number; frame: number;
-  pose: Pose; facing: "front" | "back"; mode: "idle" | "work" | "report"; sitIdle: boolean; screen?: Pt; reportedAt?: string | null;
+  def: AgentDef; x: number; y: number; path: Pt[]; wait: number; frame: number; langkah: number;
+  pose: Pose; facing: "front" | "back"; mode: "idle" | "work" | "report" | "antar" | "ngobrol" | "sorak" | "gagal"; sitIdle: boolean; screen?: Pt;
+  reportedAt?: string | null; failedAt?: string | null;
+  act: Kegiatan; actT: number; emo: Emote | null; next: { act: Kegiatan; emo: Emote | null; t: number; facing?: "front" | "back" } | null; teman: Actor | null; bicara: boolean;
 }
 const seatOf = (d: AgentDef): Pt => [d.desk[0] + 1, d.desk[1] + 1.55];
+/** Karakter digambar 1,5x (blok piksel 3:2) supaya proporsinya pas dengan meja & posenya terbaca. */
+const SKALA = 1.5;
+/** Urutan kerja tiap pabrik (untuk jalur produksi di lantai & serah terima dokumen). */
+const ALUR_SHORTS: [string, string][] = [["fetch", "steve"], ["ide", "nova"], ["penulis", "raka"], ["suara", "dara"], ["aset", "bima"], ["thumbnail", "mila"], ["editor", "kai"], ["qc", "rara"], ["upload", "uli"]];
+const ALUR_PANJANG: [string, string][] = [["p_ide", "bayu"], ["p_naskah", "citra"], ["p_suara", "gilang"], ["p_ilustrasi", "laras"], ["p_animasi", "tio"], ["p_rakit", "wulan"]];
+/** Kegiatan di tiap tempat santai: pose, emote, lama (tick 0,1 dtk), arah hadap. */
+const DI_TEMPAT: Record<string, { act: Kegiatan; emo: Emote | null; t: [number, number]; facing?: "front" | "back" }> = {
+  kopi: { act: "minum", emo: "kopi", t: [60, 110] }, dispenser: { act: "minum", emo: null, t: [40, 70] }, sofa: { act: "hp", emo: null, t: [80, 160] },
+  jendela: { act: "lihat", emo: null, t: [60, 120], facing: "back" }, papan: { act: "pikir", emo: "bulb", t: [50, 90], facing: "back" },
+  tv: { act: "pikir", emo: "bulb", t: [50, 90], facing: "back" }, server: { act: "lihat", emo: null, t: [40, 70], facing: "back" },
+  meja_bundar: { act: "hp", emo: null, t: [60, 120] }, arcade: { act: "musik", emo: "note", t: [80, 150], facing: "back" },
+  sofa_animasi: { act: "hp", emo: null, t: [80, 160] }, meja_cahaya: { act: "pikir", emo: "bulb", t: [60, 110] },
+};
+const acak = (a: number, b: number) => a + Math.floor(Math.random() * (b - a + 1));
+const mmss = (iso?: string | null) => { const d = iso ? Math.max(0, Date.now() - Date.parse(iso)) / 1000 : NaN; return Number.isFinite(d) && d < 86400 ? `${String(Math.floor(d / 60)).padStart(2, "0")}:${String(Math.floor(d % 60)).padStart(2, "0")}` : ""; };
 
 export class OfficeEngine {
   private buf = document.createElement("canvas");
   private topeng: HTMLCanvasElement | null = null;
+  private latar = document.createElement("canvas");   // ruangan (dinding, lantai, jendela) digambar sekali per fase hari
+  private latarKunci = "";
   private g: CanvasRenderingContext2D;
   private tick = 0;
+  private waktu = 0;                                   // detik sejak mulai (animasi halus: awan, debu, jalur)
   private actors: Actor[];
+  private tahapLalu = { shorts: "", panjang: "" };
+  private robot = { x: 8.5, y: 10.5, path: [] as Pt[], wait: 30, arah: 1 };
+  private debu = Array.from({ length: 26 }, (_, i) => ({ x: 0.3 + ((i * 37) % 30) / 10, y: 1 + ((i * 53) % 86) / 10, z: 6 + ((i * 29) % 60), v: 0.6 + ((i * 7) % 5) / 5, f: i * 1.7 }));
+  private uap = Array.from({ length: 5 }, (_, i) => ({ t: i * 0.9 }));
   state: StudioState | null = null;
   hits: Hit[] = [];
   hoverId: string | null = null;
@@ -85,18 +111,31 @@ export class OfficeEngine {
     this.g.imageSmoothingEnabled = false;
     this.actors = SEMUA.map((def, i) => {
       const [x, y] = seatOf(def);
-      return { def, x, y, path: [], wait: 30 + i * 25, frame: i * 7, pose: "sit", facing: "back", mode: "idle", sitIdle: true, reportedAt: undefined };
+      return { def, x, y, path: [], wait: 30 + i * 25, frame: i * 7, langkah: 0, pose: "sit", facing: "back", mode: "idle", sitIdle: true, reportedAt: undefined,
+        act: "", actT: 0, emo: null, next: null, teman: null, bicara: false };
     });
+    this.latar.width = BW; this.latar.height = BH;
   }
   get canvas() { return this.buf; }
 
-  jobFor(def: AgentDef): { kind: "busy" | "ok" | "err" | "stopped"; text: string } | null {
+  jobFor(def: AgentDef): Kerja | null {
     if (def.ruang === "animasi") {   // tim video panjang: status dari produksi panjang yang sedang berjalan
       const tahap = this.state?.panjang?.tahap;
-      return tahap && def.busy[tahap] ? { kind: "busy", text: def.busy[tahap]! } : null;
+      if (!tahap || !def.busy[tahap]) return null;
+      const i = ALUR_PANJANG.findIndex(([k]) => k === tahap);
+      return { kind: "busy", text: def.busy[tahap]!, pips: i >= 0 ? [i + 1, ALUR_PANJANG.length] : undefined };
     }
     const kini = kerjaShortsSemua(this.state);   // tombol Studio, antrean, ATAU autopilot di latar
-    if (kini.length) { const t = tugasAgent(def.busy, kini); return t ? { kind: "busy", text: t } : null; }
+    if (kini.length) {
+      const t = tugasAgent(def.busy, kini);
+      if (!t) return null;
+      const p = this.state?.produksi?.[0], aktif = p?.status === "berjalan" ? activeStage(this.state) : "";
+      if (p && aktif && def.busy[aktif]) {       // agent ini yang memegang tahap produksi sekarang → tampilkan waktu & tahap ke-n
+        const i = p.tahap.findIndex((x) => x.status === "jalan");
+        return { kind: "busy", text: t, sejak: i >= 0 ? p.tahap[i].mulai : null, pips: i >= 0 ? [i + 1, p.tahap.length] : undefined };
+      }
+      return { kind: "busy", text: t };
+    }
     const j = this.state?.job;
     const key = j?.job === "produksi" ? activeStage(this.state) : j?.job;
     if (!j?.job || !key || !def.busy[key]) return null;
@@ -112,33 +151,124 @@ export class OfficeEngine {
     if (this.reduced) { a.x = to[0]; a.y = to[1]; a.path = []; }
   }
 
+  /** Lepaskan teman ngobrol (dipanggil saat salah satu dipanggil bekerja atau obrolan selesai). */
+  private lepas(a: Actor) {
+    const b = a.teman;
+    a.teman = null; a.bicara = false;
+    if (b) { b.teman = null; b.bicara = false; if (b.mode === "ngobrol") { b.mode = "idle"; b.wait = acak(20, 60); b.emo = null; b.act = ""; } }
+  }
+  private bebas(a: Actor) { return a.mode === "idle" && !a.path.length && !a.teman && a.act !== "tidur"; }
+
+  /** Tahap produksi berganti → agent yang baru selesai mengantar dokumen ke meja agent berikutnya. */
+  private serahTerima() {
+    const st = this.state;
+    const kini = { shorts: st?.produksi?.[0]?.status === "berjalan" ? activeStage(st) : "", panjang: st?.panjang?.tahap ?? "" };
+    for (const [ruang, alur] of [["shorts", ALUR_SHORTS], ["panjang", ALUR_PANJANG]] as const) {
+      const lalu = this.tahapLalu[ruang], baru = kini[ruang];
+      if (lalu && baru && lalu !== baru) {
+        const dari = this.actors.find((a) => a.def.id === alur.find(([k]) => k === lalu)?.[1]);
+        const ke = this.actors.find((a) => a.def.id === alur.find(([k]) => k === baru)?.[1]);
+        if (dari && ke && dari !== ke) {
+          this.lepas(dari);
+          const [sx, sy] = seatOf(ke.def);
+          dari.mode = "antar"; dari.act = ""; dari.next = null; dari.emo = "kertas"; dari.wait = 28; dari.sitIdle = false;
+          this.go(dari, [sx + 0.75, sy + 0.2]);
+        }
+      }
+      this.tahapLalu[ruang] = baru;
+    }
+  }
+
+  /** Logika 10x per detik: siapa bekerja, siapa santai, kegiatan apa. Gerak halusnya di advance(). */
   step() {
     this.tick++;
+    const malam = dayPhase().night === 1;
+    this.serahTerima();
     for (const a of this.actors) {
       a.frame++;
-      const st = this.jobFor(a.def), seat = seatOf(a.def);
-      if (st?.kind === "busy" && a.mode !== "work") { a.mode = "work"; a.sitIdle = true; this.go(a, seat); }
-      if (st?.kind === "ok" && a.mode === "work" && a.reportedAt !== this.state?.job.finished) {
-        a.mode = "report"; a.reportedAt = this.state?.job.finished; this.go(a, a.def.ruang ? SPOTS.lapor_animasi : SPOTS.lapor); a.wait = 50;
+      const st = this.jobFor(a.def), seat = seatOf(a.def), selesai = this.state?.job.finished;
+      if (st?.kind === "busy" && a.mode !== "work" && a.mode !== "antar") {
+        this.lepas(a); a.mode = "work"; a.sitIdle = true; a.act = ""; a.actT = 0; a.emo = null; a.next = null; this.go(a, seat);
       }
-      if (!st || (st.kind !== "busy" && a.mode === "work")) { if (a.mode === "work") { a.mode = "idle"; a.wait = 40; } }
-      if (a.path.length) {
-        const [tx, ty] = a.path[0], dx = tx - a.x, dy = ty - a.y, dist = Math.hypot(dx, dy), sp = 0.085;
-        if (dist <= sp) { a.x = tx; a.y = ty; a.path.shift(); } else { a.x += (dx / dist) * sp; a.y += (dy / dist) * sp; }
-        a.pose = "walk"; a.facing = dy < -0.01 || (Math.abs(dy) < 0.01 && dx < 0) ? "back" : "front";
+      if (st?.kind === "ok" && a.mode === "work" && a.reportedAt !== selesai) { a.mode = "sorak"; a.reportedAt = selesai; a.wait = 24; a.path = []; a.emo = "bintang"; a.sitIdle = false; }
+      if (st?.kind === "err" && a.mode === "work" && a.failedAt !== selesai) { a.mode = "gagal"; a.failedAt = selesai; a.wait = 45; a.path = []; a.emo = "seru"; a.sitIdle = false; }
+      if ((!st || st.kind !== "busy") && a.mode === "work") { a.mode = "idle"; a.wait = 40; }
+      if (a.path.length) { a.pose = "walk"; continue; }
+      const atSeat = Math.hypot(a.x - seat[0], a.y - seat[1]) < 0.06;
+      if (a.next) { a.act = a.next.act; a.actT = a.next.t; a.emo = a.next.emo; if (a.next.facing) a.facing = a.next.facing; else if (!atSeat) a.facing = "front"; a.next = null; }
+      else if (!atSeat && !a.act && a.mode === "idle") a.facing = "front";
+      // pose saat diam
+      a.pose = atSeat && a.sitIdle ? (a.act === "tidur" ? "sleep" : "sit")
+        : a.mode === "sorak" ? "cheer" : a.mode === "gagal" ? "shock" : a.mode === "antar" ? "carry"
+        : a.act === "minum" ? "drink" : a.act === "hp" ? "phone" : a.mode === "ngobrol" && a.bicara ? "talk" : "stand";
+      if (a.pose !== "sit" && a.pose !== "sleep" && a.pose !== "stand" && a.pose !== "talk") a.facing = "front";
+      if (a.mode === "sorak") { if (--a.wait <= 0) { a.mode = "report"; a.emo = null; this.go(a, a.def.ruang ? SPOTS.lapor_animasi : SPOTS.lapor); a.wait = 50; } continue; }
+      if (a.mode === "gagal") { if (--a.wait <= 0) { a.mode = "idle"; a.emo = null; a.wait = 30; } continue; }
+      if (a.mode === "report") { a.facing = "back"; if (--a.wait <= 0) { a.mode = "idle"; a.sitIdle = true; this.go(a, seat); } continue; }
+      if (a.mode === "antar") { if (a.wait === 14) a.emo = "cek"; if (--a.wait <= 0) { a.mode = "idle"; a.emo = null; a.sitIdle = true; a.wait = acak(60, 120); this.go(a, seat); } continue; }
+      if (a.mode === "ngobrol") {
+        const b = a.teman;
+        if (!b || b.mode !== "ngobrol") { this.lepas(a); a.mode = "idle"; a.wait = 30; continue; }
+        if (!b.path.length) {   // dua-duanya sudah sampai: bergantian bicara
+          const giliran = ((this.tick >> 4) % 2 === 0) === (a.def.id < b.def.id);
+          a.bicara = giliran; a.emo = giliran ? "titik" : null;
+          if (--a.wait <= 0) { this.lepas(a); a.mode = "idle"; a.emo = null; a.wait = acak(30, 80); }
+        }
         continue;
       }
-      const atSeat = Math.hypot(a.x - seat[0], a.y - seat[1]) < 0.06;
-      a.pose = atSeat && a.sitIdle ? "sit" : "stand";
-      if (a.mode === "report") { a.facing = "back"; if (--a.wait <= 0) { a.mode = "idle"; a.sitIdle = true; this.go(a, seat); } continue; }
-      if (!atSeat) a.facing = "front";
       if (a.mode === "work") continue;
+      if (a.actT > 0) { if (--a.actT <= 0) { a.act = ""; a.emo = null; a.wait = acak(10, 40); } continue; }
       if (--a.wait > 0) continue;
-      const names = Object.keys(SPOTS).filter((k) => !k.startsWith("lapor") && ruangDi(SPOTS[k][0]) === (a.def.ruang ?? ""));
-      if (Math.random() < 0.45) { a.sitIdle = true; this.go(a, seat); }
-      else { a.sitIdle = false; const s = SPOTS[names[Math.floor(Math.random() * names.length)]]; this.go(a, [s[0] + (Math.random() - 0.5) * 0.4, s[1] + (Math.random() - 0.5) * 0.3]); }
-      a.wait = 80 + Math.floor(Math.random() * 140);
+      // pilih kegiatan santai berikutnya
+      const ruang = a.def.ruang ?? "", r = Math.random();
+      if (malam && r < 0.45) { a.sitIdle = true; this.go(a, seat); a.next = { act: "tidur", emo: "zzz", t: acak(250, 500) }; a.wait = 0; continue; }
+      if (r < 0.34) { a.sitIdle = true; this.go(a, seat); a.wait = acak(80, 220); continue; }
+      const teman = r < 0.56 ? this.actors.filter((b) => b !== a && (b.def.ruang ?? "") === ruang && this.bebas(b)) : [];
+      if (teman.length) {
+        const b = teman[Math.floor(Math.random() * teman.length)], t = ruang ? SPOTS.lapor_animasi : [[11.3, 11.9], [7.8, 5.3], [4.2, 9.4], [12.4, 5.2]][Math.floor(Math.random() * 4)];
+        a.mode = b.mode = "ngobrol"; a.teman = b; b.teman = a; a.wait = b.wait = acak(70, 130); a.sitIdle = b.sitIdle = false; a.act = b.act = ""; b.next = null;
+        this.go(a, [t[0], t[1]]); this.go(b, [t[0] + 0.45, t[1] + 0.45]);
+        a.next = { act: "", emo: null, t: 0, facing: "front" }; b.next = { act: "", emo: null, t: 0, facing: "back" };
+        continue;
+      }
+      const names = Object.keys(SPOTS).filter((k) => !k.startsWith("lapor") && ruangDi(SPOTS[k][0]) === ruang);
+      const nama = names[Math.floor(Math.random() * names.length)], sp = SPOTS[nama], k = DI_TEMPAT[nama];
+      a.sitIdle = false; this.go(a, [sp[0] + (Math.random() - 0.5) * 0.4, sp[1] + (Math.random() - 0.5) * 0.3]);
+      if (k) a.next = { act: k.act, emo: k.emo, t: acak(k.t[0], k.t[1]), facing: k.facing };
+      a.wait = acak(40, 120);
     }
+    // robot penyedot debu: keliling kantor Shorts, menunggu sebentar di tiap titik
+    const rb = this.robot;
+    if (!rb.path.length && --rb.wait <= 0) {
+      for (let coba = 0; coba < 12; coba++) {
+        const tx = 1 + Math.random() * 14, ty = 1.2 + Math.random() * 11.5;
+        if (!blocked[Math.floor(ty * G) * GW + Math.floor(tx * G)]) { rb.path = findPath([rb.x, rb.y], [tx, ty]); break; }
+      }
+      rb.wait = acak(20, 60);
+    }
+  }
+
+  /** Gerak halus tiap frame (dt detik): jalan mengikuti jalur, ayunan langkah, partikel. */
+  advance(dt: number) {
+    this.waktu += dt;
+    const jalan = (o: { x: number; y: number; path: Pt[] }, kec: number) => {
+      let sisa = kec * dt;
+      while (o.path.length && sisa > 0) {
+        const [tx, ty] = o.path[0], dx = tx - o.x, dy = ty - o.y, dist = Math.hypot(dx, dy);
+        if (dist <= sisa) { o.x = tx; o.y = ty; o.path.shift(); sisa -= dist; } else { o.x += (dx / dist) * sisa; o.y += (dy / dist) * sisa; sisa = 0; }
+        if (dist > 0.001) return [dx, dy] as const;
+      }
+      return null;
+    };
+    for (const a of this.actors) {
+      if (!a.path.length) continue;
+      const d = jalan(a, a.mode === "antar" || a.mode === "report" ? 1.25 : a.mode === "work" ? 1.4 : 0.95);
+      a.langkah += dt * 7.5; a.pose = "walk";
+      if (d) a.facing = d[1] < -0.01 || (Math.abs(d[1]) < 0.01 && d[0] < 0) ? "back" : "front";
+    }
+    const d = jalan(this.robot, 0.7); if (d) this.robot.arah = d[0] - d[1] >= 0 ? 1 : -1;
+    for (const p of this.debu) { p.z += p.v * dt * 1.6; p.x += Math.sin(this.waktu * 0.4 + p.f) * dt * 0.05; if (p.z > 70) p.z = 4; }
+    for (const u of this.uap) { u.t += dt; if (u.t > 4.5) u.t = 0; }
   }
 
   /* ============================================================ menggambar */
@@ -445,7 +575,28 @@ export class OfficeEngine {
     const [cx, cy] = P(x, y); this.px(cx - 6, cy - 1, 12, 2, "#2A3240"); this.px(cx - 1, cy - 4, 2, 4, "#3B4556");
     this.box(x - 0.24, y - 0.24, 0.48, 0.48, 3, "#2F3B4F", 9);
   }
-  private chairBack(x: number, y: number, c: string) { this.box(x - 0.24, y + 0.18, 0.48, 0.08, 9, c, 13); this.box(x - 0.03, y + 0.2, 0.06, 0.06, 4, "#3B4556", 9); }
+  private chairBack(x: number, y: number, c: string) { this.box(x - 0.28, y + 0.2, 0.56, 0.09, 14, c, 13); this.box(x - 0.2, y + 0.2, 0.4, 0.09, 3, shade(c, 1.25), 27); this.box(x - 0.03, y + 0.22, 0.06, 0.06, 4, "#3B4556", 9); }
+  /** Barang pribadi di meja tiap agent (kecil, khas pekerjaannya). */
+  private barangMeja(id: string, x: number, y: number) {
+    const z = 25, buku = (bx: number, by: number, cols: string[]) => cols.forEach((c, k) => this.box(bx, by, 0.3, 0.2, 2, c, z + k * 2));
+    switch (id) {
+      case "steve": this.box(x + 0.52, y + 0.6, 0.28, 0.22, 1, "#FDFBF4", z); { const [a, b] = P(x + 0.58, y + 0.78, z + 1); this.px(a, b - 2, 1, 2, "#47B5FF"); this.px(a + 2, b - 3, 1, 3, "#FF9A4D"); this.px(a + 4, b - 1, 1, 1, "#47B5FF"); } break;
+      case "nova": buku(x + 0.5, y + 0.62, ["#6FD29A", "#F2C94C", "#F07178"]); break;
+      case "raka": this.box(x + 0.5, y + 0.6, 0.3, 0.22, 1, "#FFE9B8", z); this.box(x + 0.84, y + 0.62, 0.04, 0.2, 1, "#FF9A4D", z); break;
+      case "bima": this.box(x + 0.5, y + 0.62, 0.26, 0.18, 5, "#2A3240", z); this.box(x + 0.58, y + 0.8, 0.1, 0.04, 3, "#4FD1C5", z + 1); break;
+      case "mila": this.box(x + 0.48, y + 0.58, 0.36, 0.26, 1, "#2A3240", z); this.box(x + 0.51, y + 0.6, 0.3, 0.2, 1, "#FF6BCB", z + 0.5); break;
+      case "kai": this.box(x + 0.52, y + 0.62, 0.22, 0.16, 4, "#1A1F2B", z); this.box(x + 0.52, y + 0.62, 0.05, 0.16, 7, "#F2C94C", z); this.box(x + 0.69, y + 0.62, 0.05, 0.16, 7, "#F2C94C", z); break;
+      case "rara": this.box(x + 0.52, y + 0.62, 0.3, 0.2, 1, "#FDFBF4", z); this.box(x + 0.6, y + 0.66, 0.12, 0.1, 5, "#E05A66", z + 1); break;
+      case "uli": this.box(x + 0.58, y + 0.64, 0.1, 0.1, 9, "#ECF2F8", z); this.box(x + 0.58, y + 0.64, 0.1, 0.1, 3, "#FF4D4D", z + 9); this.box(x + 0.54, y + 0.62, 0.18, 0.14, 2, "#4E7BD9", z); break;
+      case "dara": buku(x + 0.5, y + 0.62, ["#C792EA", "#F4F1E8"]); break;
+      case "bayu": buku(x + 0.5, y + 0.62, ["#FF7A2F", "#FFD23F", "#19C6C6"]); break;
+      case "citra": this.box(x + 0.5, y + 0.6, 0.3, 0.22, 1, "#FFF4DC", z); this.box(x + 0.84, y + 0.62, 0.04, 0.2, 1, "#F2385A", z); break;
+      case "laras": this.box(x + 0.5, y + 0.62, 0.26, 0.18, 5, "#2A2440", z); this.box(x + 0.58, y + 0.8, 0.1, 0.04, 3, "#FFD23F", z + 1); break;
+      case "tio": this.box(x + 0.48, y + 0.58, 0.36, 0.26, 1, "#2A2440", z); this.box(x + 0.51, y + 0.6, 0.3, 0.2, 1, "#6B3FD4", z + 0.5); break;
+      case "wulan": this.box(x + 0.52, y + 0.62, 0.3, 0.2, 1, "#FDFBF4", z); this.box(x + 0.6, y + 0.66, 0.12, 0.1, 5, "#39D36B", z + 1); break;
+      case "gilang": this.box(x + 0.6, y + 0.3, 0.06, 0.06, 12, "#2A3240", z); this.box(x + 0.55, y + 0.25, 0.16, 0.12, 6, "#14101F", z + 12); break;
+    }
+  }
   private plant(x: number, y: number, s = 1) {
     this.box(x - 0.2 * s, y - 0.2 * s, 0.4 * s, 0.4 * s, 12 * s, "#C2734F");
     const [cx, cy] = P(x, y, 12 * s), g = this.g;
@@ -531,20 +682,102 @@ export class OfficeEngine {
     this.poly([P(20.95, 0, 64), P(20.95, 0, 74), P(21.25, 0, 69)], "#FF5C5C");
   }
 
-  private person(look: Look, id: string, x: number, y: number, pose: Pose, facing: "front" | "back", frame: number, lift = 0): BBox {
-    const [sx, sy] = P(x, y), g = this.g;
-    g.fillStyle = "rgba(0,0,0,.2)"; g.beginPath(); g.ellipse(sx, sy, 6, 2.5, 0, 0, Math.PI * 2); g.fill();
-    const img = sprite(look, id, pose, facing, frame);
-    const top = (pose === "sit" ? sy - img.height - 13 : sy - img.height + (pose === "walk" && frame % 2 ? -1 : 0)) - lift;
-    g.drawImage(img, sx - 6, top);
-    return [sx - 7, top - 1, sx + 7, sy + 2];
+  private person(look: Look, id: string, x: number, y: number, pose: Pose, facing: "front" | "back", frame: number, lift = 0, emo: Emote | null = null): BBox {
+    const [sx, sy] = P(x, y), g = this.g, duduk = pose === "sit" || pose === "sleep", K = SKALA;
+    const lompat = pose === "cheer" ? (frame % 2 ? 4 : 1) : 0;
+    g.fillStyle = "rgba(0,0,0,.24)"; g.beginPath(); g.ellipse(sx, sy, (lompat ? 5 : 6.5) * K * 0.8, (lompat ? 2 : 2.6) * K * 0.8, 0, 0, Math.PI * 2); g.fill();
+    const img = sprite(look, id, pose, facing, frame), w = 12 * K, h = img.height * K;
+    const goyang = pose === "walk" ? (frame % 2 ? -1 : 0) : pose === "sleep" ? 2 : 0;
+    const top = Math.round((duduk ? sy - h - 9 : sy - h) + goyang - lift - lompat);
+    g.drawImage(img, Math.round(sx - w / 2), top, w, h);
+    if (emo) {
+      const e = emote(emo, Math.floor(this.tick / 4)), naik = emo === "zzz" || emo === "note" ? Math.round(Math.sin(this.waktu * 2.2 + sx) * 1.5) : emo === "bintang" ? -(frame % 2) * 2 : 0;
+      g.drawImage(e, Math.round(sx + (emo === "zzz" ? 4 : -9)), top - 19 + naik, 18, 18);
+    }
+    return [sx - w / 2 - 1, top - 1, sx + w / 2 + 1, sy + 2];
+  }
+
+  /** Awan bergerak pelan di balik jendela (siang & sore). */
+  private awan(ph: Phase) {
+    if (ph.night > 0.6) return;
+    const g = this.g, warna = ph.name === "sore" ? "rgba(255,226,196,.75)" : "rgba(255,255,255,.8)";
+    const jendela: Pt[][] = [...[[1.0, 3.6], [4.2, 6.8], [7.4, 9.6]].map(([y0, y1]) => this.qx(0, y0, y1, 38, 100)), ...[[16.8, 18.8], [19.2, 21.2]].map(([x0, x1]) => this.qy(0, x0, x1, 40, 98))];
+    jendela.forEach((q, i) => {
+      const [x0, y0, x1] = bboxOf(q), w = x1 - x0 + 40;
+      g.save(); g.beginPath(); q.forEach(([x, y], k) => (k ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); g.clip();
+      g.fillStyle = warna;
+      for (let c = 0; c < 2; c++) {
+        const cx = x0 - 20 + ((this.waktu * (2.2 + c) + i * 31 + c * 47) % w), cy = y0 + 8 + c * 9 + (i % 2) * 4;
+        g.beginPath(); g.ellipse(Math.round(cx), cy, 9, 3, 0, 0, Math.PI * 2); g.ellipse(Math.round(cx) + 6, cy - 2, 6, 3, 0, 0, Math.PI * 2); g.fill();
+      }
+      g.restore();
+    });
+  }
+
+  /** Jalur produksi menyala di lantai: meja ke meja sesuai urutan kerja. Hijau = selesai, garis berjalan = sedang dikerjakan. */
+  private jalurProduksi() {
+    const st = this.state, g = this.g;
+    const gambar = (alur: [string, string][], aktif: string, warna: string) => {
+      const kini = alur.findIndex(([k]) => k === aktif);
+      if (kini < 0) return;
+      const titik = alur.map(([, id]) => { const d = SEMUA.find((x) => x.id === id)!; const [sx, sy] = seatOf(d); return P(sx, sy + 0.25); });
+      g.save(); g.lineWidth = 2; g.lineCap = "round";
+      for (let i = 1; i < titik.length; i++) {
+        const [a, b] = [titik[i - 1], titik[i]];
+        g.setLineDash(i <= kini ? (i === kini ? [5, 4] : []) : [1, 5]);
+        g.lineDashOffset = i === kini ? -this.waktu * 14 : 0;
+        g.strokeStyle = i < kini ? "rgba(111,210,154,.55)" : i === kini ? warna : "rgba(255,255,255,.16)";
+        g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.stroke();
+      }
+      g.setLineDash([]);
+      titik.forEach(([x, y], i) => {
+        const r = i === kini ? 5 + Math.sin(this.waktu * 4) * 1.5 : 2.5;
+        g.fillStyle = i < kini ? "rgba(111,210,154,.8)" : i === kini ? warna : "rgba(255,255,255,.22)";
+        g.beginPath(); g.ellipse(x, y, r, r / 2, 0, 0, Math.PI * 2); g.fill();
+        if (i === kini) { g.strokeStyle = warna; g.lineWidth = 1; g.globalAlpha = 0.5; g.beginPath(); g.ellipse(x, y, r + 5, (r + 5) / 2, 0, 0, Math.PI * 2); g.stroke(); g.globalAlpha = 1; }
+      });
+      g.restore();
+    };
+    if (st?.produksi?.[0]?.status === "berjalan") gambar(ALUR_SHORTS, activeStage(st), "rgba(111,211,255,.95)");
+    if (st?.panjang?.tahap) gambar(ALUR_PANJANG, st.panjang.tahap, "rgba(255,79,163,.95)");
+  }
+
+  /** Robot penyedot debu kecil yang berkeliling (lampu berkedip, sedikit jejak bersih). */
+  private robotDebu() {
+    const rb = this.robot, [x, y] = P(rb.x, rb.y), g = this.g;
+    g.fillStyle = "rgba(0,0,0,.25)"; g.beginPath(); g.ellipse(x, y + 1, 7, 3.2, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = "#1E2633"; g.beginPath(); g.ellipse(x, y - 1, 6.5, 3.2, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = "#3B4A62"; g.beginPath(); g.ellipse(x, y - 2.5, 6, 2.8, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = "#566A8A"; g.beginPath(); g.ellipse(x, y - 3, 3.2, 1.4, 0, 0, Math.PI * 2); g.fill();
+    this.px(x + rb.arah * 3 - 1, y - 3, 2, 1, (this.tick >> 2) % 2 ? "#6FD3FF" : "#2D8CFF");
+  }
+
+  /** Debu di sinar matahari (siang/sore) & uap mesin kopi. */
+  private partikel(ph: Phase) {
+    const g = this.g;
+    if (ph.night < 0.6) {
+      for (const p of this.debu) {
+        if (p.y > 9.6 || (p.y > 3.6 && p.y < 4.2) || (p.y > 6.8 && p.y < 7.4)) continue;
+        const [x, y] = P(p.x, p.y + p.x * 0.47, p.z), a = 0.25 + 0.35 * Math.abs(Math.sin(this.waktu * 0.9 + p.f));
+        g.fillStyle = ph.name === "sore" ? `rgba(255,214,160,${a})` : `rgba(255,252,236,${a})`; g.fillRect(x, y, 1, 1);
+      }
+    }
+    for (const u of this.uap) {
+      const k = u.t / 4.5, [x, y] = P(10.9, 14.1, 52 + k * 14);
+      g.fillStyle = `rgba(255,255,255,${0.32 * (1 - k)})`; g.fillRect(x + Math.round(Math.sin(u.t * 2.4) * 1.5), y, 1 + (k > 0.5 ? 1 : 0), 1);
+    }
   }
 
   render(): void {
     const ph = dayPhase(), g = this.g, st = this.state;
     g.clearRect(0, 0, BW, BH);
-    this.room(ph);
-    this.room2(ph);
+    if (this.latarKunci !== ph.name) {            // dinding, lantai & jendela: digambar ulang hanya saat fase hari berganti
+      const lg = this.latar.getContext("2d")!; lg.imageSmoothingEnabled = false; lg.clearRect(0, 0, BW, BH);
+      this.g = lg; this.room(ph); this.room2(ph); this.g = g; this.latarKunci = ph.name;
+    }
+    g.drawImage(this.latar, 0, 0);
+    this.awan(ph);
+    this.jalurProduksi();
     const hits: Hit[] = [this.whiteboard(), this.tv(), this.layarJadwal(ph)];
     this.neon(ph); this.door(); this.trophyCabinet();
 
@@ -574,6 +807,7 @@ export class OfficeEngine {
           this.mug(x + 1.62, y + 0.55, 25, def.color); this.box(x + 0.15, y + 0.55, 0.32, 0.24, 1, "#F4F1E8", 25);
           if (def.id === "dara") { this.box(x + 1.72, y + 0.2, 0.06, 0.06, 14, "#2A3240", 25); this.box(x + 1.66, y + 0.14, 0.18, 0.14, 7, "#1A1F2B", 39); this.poly(this.qy(y + 0.14, x + 1.68, x + 1.82, 41, 44), "#C792EA"); }
           else { this.box(x + 0.08, y + 0.12, 0.08, 0.08, 1, "#2A3240", 25); this.box(x + 0.1, y + 0.14, 0.04, 0.04, 12, "#3B4556", 26); this.box(x + 0.04, y + 0.1, 0.2, 0.12, 3, on ? "#FFE7A8" : "#C9D3E0", 37); }
+          this.barangMeja(def.id, x, y);
         },
       }) });
       const [sx, sy] = seatOf(def);
@@ -615,9 +849,12 @@ export class OfficeEngine {
 
     for (const a of this.actors) {
       objs.push({ key: a.x + a.y + (a.pose === "sit" ? 0.02 : 0.3), id: `agent:${a.def.id}`, label: a.def.name, person: true, draw: () => {
-        const b = this.person(a.def.look, a.def.id, a.x, a.y, a.pose, a.pose === "sit" ? "back" : a.facing, Math.floor(a.frame / 3));
+        const fr = a.pose === "walk" ? Math.floor(a.langkah) : Math.floor(a.frame / 3);
+        const b = this.person(a.def.look, a.def.id, a.x, a.y, a.pose, a.pose === "sit" || a.pose === "sleep" ? "back" : a.facing, fr, 0, a.emo);
         a.screen = [ (b[0] + b[2]) / 2, b[1] ]; return b; } });
     }
+    { const rb = this.robot; objs.push({ key: rb.x + rb.y - 0.2, draw: () => this.robotDebu() }); }
+    objs.push({ key: 99, draw: () => this.partikel(ph) });
     let zonaTop: Pt = [0, 0];
     objs.push({ key: zx + zy + 0.02, id: "founder", label: "Zona (kamu)", person: true, draw: () => { const b = this.person(FOUNDER.look, "zona", zx, zy, "stand", "front", Math.floor(tk / 6), 12); zonaTop = [(b[0] + b[2]) / 2, b[1]]; return b; } });
 
@@ -651,8 +888,19 @@ export class OfficeEngine {
       if (!a.screen) continue;
       const s = this.jobFor(a.def);
       ov.push({ kind: "tag", x: a.screen[0], y: a.screen[1] - 2, text: a.def.name, tone: a.def.color });
-      if (s && !(a.mode === "report" && s.kind === "ok" && a.path.length)) ov.push({ kind: "bubble", x: a.screen[0], y: a.screen[1] - 15, text: a.mode === "report" && !a.path.length ? "Bos, sudah selesai!" : s.text, tone: s.kind });
+      if (s && !(a.mode === "report" && s.kind === "ok" && a.path.length) && a.mode !== "antar") {
+        const lapor = a.mode === "report" && !a.path.length, sorak = a.mode === "sorak";
+        ov.push({ kind: "bubble", x: a.screen[0], y: a.screen[1] - (a.emo ? 24 : 15), text: lapor ? "Bos, sudah selesai!" : sorak ? "Yes, beres!" : s.text, tone: s.kind,
+          sub: s.kind === "busy" ? mmss(s.sejak) : undefined, pips: s.kind === "busy" ? s.pips : undefined });
+      } else if (a.mode === "antar" && !a.path.length) ov.push({ kind: "bubble", x: a.screen[0], y: a.screen[1] - 24, text: "Ini, lanjutkan ya", tone: "ok" });
     }
+    // papan kecil: tayang berikutnya (di atas layar jadwal) & hitungan minggu ini (di atas papan antrean)
+    const brk = st?.jadwal?.berikut;
+    if (brk?.waktu) {
+      const sisa = Math.max(0, Date.parse(brk.waktu) - Date.now()) / 60000, [jx, jy] = P(0, 13.3, 106);
+      ov.push({ kind: "sign", x: jx, y: jy, text: `Tayang ${brk.jam}`, sub: sisa >= 60 ? `${Math.floor(sisa / 60)}j ${Math.floor(sisa % 60)}m lagi` : `${Math.ceil(sisa)} menit lagi`, tone: "#47B5FF" });
+    }
+    if (st?.week) { const [wx, wy] = P(3.2, 0, 104); ov.push({ kind: "sign", x: wx, y: wy, text: `Minggu ini ${st.week.published + st.week.terjadwal}/${st.week.target}`, tone: "#6FD29A" }); }
     ov.push({ kind: "tag", x: zonaTop[0], y: zonaTop[1] - 2, text: "Zona · founder", tone: "founder" });
     const n = (st?.videos ?? []).filter((v) => v.status === "ide" || v.status === "naskah").length;
     if (n) { const [bx, by] = P(fx + 0.3, fy + 0.85, 36); ov.push({ kind: "badge", x: bx, y: by - 6, text: String(n) }); }

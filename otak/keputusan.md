@@ -18,6 +18,9 @@ Aturan tetap (upload, lisensi, hapus, rahasia) ada di `AGENTS.md` → Aturan ker
 - **2026-11-09 — Pilih usulan 3, 4, 5, 7**: kata pencarian untuk judul video panjang, kamus pelafalan, QC produk terlihat
   (aturan yang dibuat: `produk_terlihat` < 0,5 = tidak lolos/tidak diupload otomatis), script dulu–Claude belakangan (Bima Shorts).
 
+- **2026-11-10 — Upgrade seluruh project**, urutan: kantor Studio dulu (karakter lebih hidup, tampilan lebih detail, info kerja
+  real-time, gaya lebih bagus) → editan (Shorts dulu) → alur untuk menaikkan views.
+
 ## Produksi & jadwal
 
 - **2026-11-09 — Kosongkan video panjang yang terputus, buat baru & stabil**: GRX-810 dipindah ke `panjang/_arsip/` (bisa dikembalikan).

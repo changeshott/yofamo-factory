@@ -78,17 +78,35 @@ export default function Office({ state, onOpen, fokus = null, kiri = 0, kanan = 
           html += `<div class="pointer-events-none absolute -translate-x-1/2 -translate-y-full whitespace-nowrap rounded px-1.5 pt-[3px] pb-[2px] font-pixel text-[11px] leading-none tracking-wide shadow ${founder ? "bg-signal text-[#24140A]" : "bg-[#08121F]/85 text-ink-50"}" style="left:${x}px;top:${y}px">${founder ? "" : `<span class="mr-1 inline-block size-[7px] rounded-[1px] align-[0px]" style="background:${o.tone}"></span>`}${esc(o.text)}</div>`;
         } else if (o.kind === "bubble") {
           const tone = o.tone === "ok" ? "bg-[#E3F8EC]" : o.tone === "err" ? "bg-[#FFE4E4]" : o.tone === "stopped" ? "bg-[#EEF1F5]" : "bg-[#FDFBF6]";
-          html += `<div class="bubble pointer-events-none absolute -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md border-2 border-[#1A2638] px-2 py-1 font-pixel text-[12px] leading-tight text-[#1A2638] shadow-[2px_2px_0_rgba(0,0,0,.35)] ${tone}" style="left:${x}px;top:${y}px">${esc(o.text)}</div>`;
+          const pips = o.pips ? `<span class="mt-[3px] flex items-center gap-[2px]">${Array.from({ length: o.pips[1] }, (_, i) => `<i class="block h-[4px] w-[7px] rounded-[1px] ${i + 1 < o.pips![0] ? "bg-[#3FAE74]" : i + 1 === o.pips![0] ? "bg-[#2D8CFF] animate-pulse motion-reduce:animate-none" : "bg-[#C9D3E0]"}"></i>`).join("")}${o.sub ? `<b class="ml-1 font-pixel text-[10px] font-normal text-[#51627C] tabular-nums">${esc(o.sub)}</b>` : ""}</span>` : "";
+          html += `<div class="bubble pointer-events-none absolute -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-md border-2 border-[#1A2638] px-2 py-1 font-pixel text-[12px] leading-tight text-[#1A2638] shadow-[2px_2px_0_rgba(0,0,0,.35)] ${tone}" style="left:${x}px;top:${y}px">${esc(o.text)}${pips}</div>`;
+        } else if (o.kind === "sign") {
+          html += `<div class="pointer-events-none absolute -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-[3px] border border-white/10 bg-[#08121F]/90 px-1.5 pt-[3px] pb-[2px] text-center font-pixel text-[10px] leading-tight tracking-wide shadow" style="left:${x}px;top:${y}px;color:${o.tone ?? "#BFE3FF"}"><span class="mr-1 inline-block size-[5px] rounded-full align-[1px] animate-pulse motion-reduce:animate-none" style="background:${o.tone ?? "#BFE3FF"}"></span>${esc(o.text)}${o.sub ? `<span class="ml-1 text-ink-50/70">${esc(o.sub)}</span>` : ""}</div>`;
         } else {
           html += `<div class="pointer-events-none absolute grid h-5 min-w-5 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-bad px-1.5 font-pixel text-xs text-white ring-2 ring-[#08121F] animate-pulse motion-reduce:animate-none" style="left:${x}px;top:${y}px">${esc(o.text)}</div>`;
         }
       }
       if (ov.dataset.html !== html) { ov.innerHTML = html; ov.dataset.html = html; }
     };
-    const loop = () => { eng.step(); eng.render(); draw(); };
-
-    fit(); loop();
-    const timer = window.setInterval(() => { if (!document.hidden) loop(); }, 100);
+    // Logika 10x/detik; gerak & gambar mengikuti layar (maks ±30 fps, turun otomatis kalau laptop sedang berat merender video).
+    let lalu = performance.now(), sisaLogika = 0, sisaGambar = 0, jeda = 1000 / 30, berat = 0, raf = 0;
+    const frame = (now: number) => {
+      raf = requestAnimationFrame(frame);
+      if (document.hidden) { lalu = now; return; }
+      const dt = Math.min(250, now - lalu); lalu = now;
+      sisaLogika += dt; sisaGambar += dt;
+      while (sisaLogika >= 100) { eng.step(); sisaLogika -= 100; }
+      if (sisaGambar < jeda) return;
+      eng.advance(Math.min(0.25, sisaGambar / 1000)); sisaGambar = 0;
+      const t0 = performance.now();
+      eng.render(); if (!anim) draw();
+      const lama = performance.now() - t0;
+      berat = berat * 0.9 + lama * 0.1;
+      jeda = eng.reduced ? 250 : berat > 14 ? 1000 / 12 : berat > 8 ? 1000 / 20 : 1000 / 30;
+    };
+    fit(); eng.step(); eng.render(); draw();
+    raf = requestAnimationFrame(frame);
+    const timer = 0;
     const ro = new ResizeObserver(() => { fit(); draw(); });
     ro.observe(el);
 
@@ -172,7 +190,7 @@ export default function Office({ state, onOpen, fokus = null, kiri = 0, kanan = 
     cv.addEventListener("pointerdown", down); cv.addEventListener("pointermove", move); cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
     cv.addEventListener("wheel", wheel, { passive: false }); cv.addEventListener("pointerleave", leave); cv.addEventListener("dblclick", reset);
     return () => {
-      window.clearInterval(timer); ro.disconnect(); cancelAnimationFrame(anim);
+      window.clearInterval(timer); cancelAnimationFrame(raf); ro.disconnect(); cancelAnimationFrame(anim);
       cv.removeEventListener("pointerdown", down); cv.removeEventListener("pointermove", move); cv.removeEventListener("pointerup", up); cv.removeEventListener("pointercancel", up);
       cv.removeEventListener("wheel", wheel); cv.removeEventListener("pointerleave", leave); cv.removeEventListener("dblclick", reset);
     };

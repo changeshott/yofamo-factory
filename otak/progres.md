@@ -1,10 +1,12 @@
 # Progres
 
-Terakhir diperbarui: 2026-11-09 sore (usulan 3,4,5,7 + perbaikan video panjang macet). Sejarah lengkap: `git log`.
+Terakhir diperbarui: 2026-11-10 (upgrade kantor Studio; berikutnya: editan Shorts, lalu alur). Sejarah lengkap: `git log`.
 
 ## Sedang dikerjakan
 
-- (kosong)
+- **Upgrade seluruh project (permintaan Zona 2026-11-10)**, urutan pilihan Zona: (1) kantor Studio — selesai tahap 1;
+  (2) editan Shorts lebih bagus & kompleks (Kai: `agents/editor/rakit.py`, `agents/editor/komposisi.py`, `bible/gaya-edit.json`);
+  (3) alur untuk menaikkan views.
 
 ## Tertunda (urut prioritas)
 
@@ -34,6 +36,11 @@ Terakhir diperbarui: 2026-11-09 sore (usulan 3,4,5,7 + perbaikan video panjang m
 - 2 tes Kai (HyperFrames) gagal di sandbox karena tidak ada `node_modules` — normal; di laptop harus lolos.
 
 ## Selesai (terbaru di atas, ringkas)
+
+- 2026-11-10 Upgrade kantor Studio (tahap 1 dari "upgrade seluruh project": kantor → editan Shorts → alur): gerak halus (rAF,
+  jalan 4 frame), karakter 1,5x + pose baru & emote, kegiatan santai (minum, HP, ngobrol, tidur malam), sorak/kaget saat
+  selesai/gagal, serah terima dokumen antar meja, jalur produksi di lantai, gelembung dengan titik tahap + waktu, papan kecil
+  "Tayang berikutnya" & "Minggu ini", awan/debu/uap, robot penyedot debu, barang pribadi di meja. Detail: `otak/studio.md`.
 
 - 2026-11-09 Video panjang tidak jadi-jadi — akar masalah GRX-810 (3 jam habis untuk 2 adegan): file NASA > 300 MB diunduh ulang
   tiap shot, YouTube API 429 (kuota). Perbaikan: `http_download` menolak dari header Content-Length + penanda `.terlalu-besar`;

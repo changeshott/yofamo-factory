@@ -58,7 +58,7 @@ export const TEAM: AgentDef[] = [
   {
     id: "dara", skill: "suara", job: "suara", name: "Dara", role: "Suara & subtitle", desk: [1.6, 7.0], color: "#C792EA",
     about: "Mengubah naskah Raka menjadi voice-over ekspresif (tempo, nada & jeda mengikuti bagian naskah), timing per kata, subtitle, dan transkrip. Gratis, tanpa kuota Claude.",
-    look: { skin: "#E8B892", hair: "#2E2140", shirt: "#9B6BD3", pants: "#2B2B3A", accent: "#F4F1E8", style: "bun" },
+    look: { skin: "#E8B892", hair: "#2E2140", shirt: "#9B6BD3", pants: "#2B2B3A", accent: "#F4F1E8", style: "bun", headphone: true },
     busy: { suara: "Merekam suara…" },
   },
   {
@@ -70,7 +70,7 @@ export const TEAM: AgentDef[] = [
   {
     id: "kai", skill: "editor", job: "editor", name: "Kai", role: "Editor video", desk: [9.2, 7.0], color: "#F2C94C",
     about: "Merakit video final dengan HyperFrames: hook bertingkat, subtitle 1 kata, grafis gerak biru sesuai kalimat, transisi halus, musik latar volume 10, dan penutup Subscribe. Gratis, tanpa kuota Claude.",
-    look: { skin: "#E0AC86", hair: "#3B2A20", shirt: "#E3B23C", pants: "#2A2F3A", accent: "#1C1C1C", style: "short", glasses: true },
+    look: { skin: "#E0AC86", hair: "#3B2A20", shirt: "#E3B23C", pants: "#2A2F3A", accent: "#1C1C1C", style: "short", glasses: true, headphone: true },
     busy: { editor: "Merender video…" },
   },
   {
@@ -110,14 +110,14 @@ export const TEAM2: AgentDef[] = [
   {
     id: "gilang", skill: "panjang-naskah", job: "panjang", ruang: "animasi", name: "Gilang", role: "Pengisi suara", desk: [31.4, 2.6], color: "#19C6C6",
     about: "Mengisi narasi per adegan (edge-tts, tempo mengikuti jenis adegan) dan mencatat waktu tiap kata untuk subtitle kecil, kata yang muncul, dan butir motion graphic.",
-    look: { skin: "#B97D57", hair: "#121212", shirt: "#19C6C6", pants: "#30323D", accent: "#F4F1E8", style: "cap" },
-    busy: { p_suara: "Merekam suara Yofa…" },
+    look: { skin: "#B97D57", hair: "#121212", shirt: "#19C6C6", pants: "#30323D", accent: "#F4F1E8", style: "cap", headphone: true },
+    busy: { p_suara: "Merekam narasi…" },
   },
   {
     id: "laras", skill: "panjang-naskah", job: "panjang", ruang: "animasi", name: "Laras", role: "Pencari footage", desk: [23.8, 7.0], color: "#FFD23F",
     about: "Mencari footage 16:9 asli (YouTube CC BY, NASA, Wikimedia, Pexels, Pixabay) yang memperlihatkan teknologi yang diucapkan; tiap klip dicek pendeteksi teks — ada subtitle, tulisan, label nama, atau watermark → ditolak. Memotong benda asli (latar transparan) untuk motion graphic & thumbnail.",
     look: { skin: "#F3CFB0", hair: "#2E2140", shirt: "#FFD23F", pants: "#3A3550", accent: "#F2385A", style: "bun" },
-    busy: { p_ilustrasi: "Menggambar ilustrasi…" },
+    busy: { p_ilustrasi: "Mencari footage…" },
   },
   {
     id: "tio", skill: "panjang-naskah", job: "panjang", ruang: "animasi", name: "Tio", role: "Motion graphic", desk: [27.6, 7.0], color: "#6B3FD4",

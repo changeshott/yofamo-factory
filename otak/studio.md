@@ -9,6 +9,19 @@ di folder `studio/`.
 
 - `studio/app/page.tsx` → `studio/components/Studio.tsx` (kerangka: sidebar tim kiri, jadwal tayang kanan `studio/components/jadwal.tsx`,
   dok bawah, palet perintah Ctrl+K). Kantor bergambar: `studio/components/office/` (`Office.tsx`, `engine.ts`, `sprites.ts`, `world.ts`).
+- **Kantor (upgrade 2026-11-10)** — kanvas isometrik pixel-art 864×560 (`BW`×`BH` di `world.ts`):
+  - `Office.tsx`: kamera (zoom/geser/terbang ke objek), loop `requestAnimationFrame` — logika `eng.step()` 10x/detik, gerak `eng.advance(dt)`
+    + `eng.render()` maks ±30 fps dan turun otomatis ke 20/12 fps kalau menggambar > 8/14 ms (laptop sedang merender video);
+    overlay DOM: `tag` (nama), `bubble` (kerja + titik tahap `pips` + waktu berjalan `sub`), `sign` (papan kecil), `badge`.
+  - `engine.ts`: `jobFor()` (siapa bekerja; `Kerja.sejak`/`pips` dari `produksi[0].tahap`), `step()` (mode aktor: idle/work/report/antar/
+    ngobrol/sorak/gagal; kegiatan santai per tempat `DI_TEMPAT`; malam → tidur di meja), `serahTerima()` (tahap berganti → agent
+    mengantar dokumen ke meja agent berikutnya; urutan `ALUR_SHORTS`/`ALUR_PANJANG`), `advance()` (jalan halus, robot, partikel),
+    `jalurProduksi()` (garis menyala meja→meja), `awan()`, `partikel()`, `robotDebu()`, `barangMeja()`. Latar (dinding/lantai) di-cache
+    per fase hari (`latar`, `latarKunci`). Karakter digambar `SKALA` 1,5x.
+  - `sprites.ts`: peta karakter 12×19, pose `stand|walk(4 frame)|sit|sleep|cheer|drink|carry|phone|talk|shock`, `Look.headphone`,
+    emote 7×7 (`emote()`: zzz, note, bulb, kopi, cek, seru, titik, bintang, kertas, hati).
+  - Cara uji visual (sandbox): `npm ci` di `studio/`, `npx next dev`, Playwright dengan `page.route('**/api/state')` untuk memalsukan
+    produksi berjalan/berganti tahap, lalu screenshot.
 - Panel di `studio/components/panels.tsx`: `AgentPanel`, `VideoCard` (setujui/upload), `QueuePanel`, `FounderPanel` (Meja Zona +
   `PemakaianToken`), `AnalyticsPanel`, `ReportsPanel`, `BiblePanel`, `ActivityPanel`, `HealthPanel` (Sistem: Python, Claude, YouTube,
   Telegram), `ProduksiPanel`, `GaleriPanel`, `KelolaPanel` (hapus — hanya Zona), `MusikPanel`, `AutopilotPanel`, `AutopilotPanjang`
