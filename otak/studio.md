@@ -20,6 +20,11 @@ di folder `studio/`.
     per fase hari (`latar`, `latarKunci`). Karakter digambar `SKALA` 1,5x.
   - `sprites.ts`: peta karakter 12×19, pose `stand|walk(4 frame)|sit|sleep|cheer|drink|carry|phone|talk|shock`, `Look.headphone`,
     emote 7×7 (`emote()`: zzz, note, bulb, kopi, cek, seru, titik, bintang, kertas, hati).
+  - **Ruang depan (2026-11-11)**: `RD` 22, sekat kaca di `SEKAT` (y 15,4) dengan pintu; Ruang Meeting (meja, layar `layarRapat()`,
+    kursi `KURSI_RAPAT`), Ruang Istirahat (sofa L, foosball, mesin jajan), Studio Suara (bilik rekam, lampu ON AIR), Taman (kolam,
+    pohon, bangku) — digambar `ruangDepan()`, papan nama `NAMA_RUANG`, tempat santai baru di `SPOTS`/`DI_TEMPAT`. **Rapat tim**: tiap
+    ±5–7 menit agent Shorts yang santai (≥ 3, tidak saat produksi/malam) berkumpul di kursi rapat (mode `rapat`, bergantian bicara).
+    Kanvas jadi `BW` 984 × `BH` 640, `OX` 372.
   - Cara uji visual (sandbox): `npm ci` di `studio/`, `npx next dev`, Playwright dengan `page.route('**/api/state')` untuk memalsukan
     produksi berjalan/berganti tahap, lalu screenshot.
 - Panel di `studio/components/panels.tsx`: `AgentPanel`, `VideoCard` (setujui/upload), `QueuePanel`, `FounderPanel` (Meja Zona +

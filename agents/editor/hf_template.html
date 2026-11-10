@@ -217,11 +217,12 @@ const D = __DATA__;
   }
 
   function hitung(tl, nEl, angka, a, dur) {
-    const s = String(angka), target = Number(s.replace(/\./g, "").replace(",", ".")), des = s.includes(",");
+    const s = String(angka), target = Number(s.replace(/\./g, "").replace(",", ".")), des = s.includes(","), nd = des ? Math.min(3, s.split(",")[1].length) : 0;
     if (!isFinite(target)) { nEl.textContent = s; return; }
     const o = { v: 0 };
     tl.fromTo(o, { v: 0 }, { v: target, duration: dur, ease: "power2.out",
-      onUpdate: () => { nEl.textContent = des ? o.v.toFixed(1).replace(".", ",") : Math.round(o.v).toLocaleString("id-ID"); } }, a);
+      onUpdate: () => { nEl.textContent = des ? o.v.toFixed(nd).replace(".", ",") : Math.round(o.v).toLocaleString("id-ID"); },
+      onComplete: () => { nEl.textContent = s; } }, a);   // angka akhir = persis seperti di naskah (dulu 2,56 tampil 2,6)
   }
 
   function bangun() {

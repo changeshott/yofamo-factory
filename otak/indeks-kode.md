@@ -32,14 +32,14 @@ Pakai untuk menemukan file yang tepat tanpa menjelajah folder. Isi lengkap tetap
 
 | File | Baris | Isi |
 |---|---|---|
-| `agents/editor/komposisi.py` | 310 | Kai v3 — lapisan HyperFrames (HTML + GSAP → video). Dipanggil oleh rakit.py, bukan dijalankan langsung. |
+| `agents/editor/komposisi.py` | 366 | Kai v3 — lapisan HyperFrames (HTML + GSAP → video). Dipanggil oleh rakit.py, bukan dijalankan langsung. |
 | `agents/editor/rakit.py` | 619 | Kai — editor Yofamo. Merakit video Short final langsung dengan ffmpeg (gratis, tanpa buka CapCut): |
 
 ## agents/ide/
 
 | File | Baris | Isi |
 |---|---|---|
-| `agents/ide/cek_ide.py` | 233 | Nova: validasi + skor satu ide (videos/<slug>/idea.json), seperti editor riset memeriksa pitch. |
+| `agents/ide/cek_ide.py` | 234 | Nova: validasi + skor satu ide (videos/<slug>/idea.json), seperti editor riset memeriksa pitch. |
 | `agents/ide/cek_topik.py` | 102 | Cek apakah topik sudah pernah dibahas di channel Yofamo (atau sedang dikerjakan pabrik). |
 | `agents/ide/cek_visual.py` | 120 | Nova: cek ketersediaan visual LEGAL untuk satu topik SEBELUM topik itu dipilih. |
 | `agents/ide/kata_cari.py` | 102 | Kata pencarian YouTube (gratis, tanpa token & tanpa kuota API): apa yang benar-benar diketik orang Indonesia tentang satu produk. |

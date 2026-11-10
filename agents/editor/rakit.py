@@ -445,7 +445,7 @@ def main() -> None:
     z, zd, dorong = float(g.get("punch_zoom", 0.08)), float(g.get("punch_detik", 0.28)), float(g.get("dorong", 0.06))
     T = float(g.get("transisi_detik", 0.3))
     daftar_tr = [str(x) for x in g.get("transisi", ["smoothleft", "zoomin", "smoothup", "slideleft", "circleopen"])] or ["fade"]
-    gaya = komposisi.pilih_gaya(a.slug, VIDEOS, g)      # kombinasi gaya gerak video ini (beda dari video sebelumnya)
+    gaya = komposisi.pilih_gaya(a.slug, VIDEOS, g, str(script.get("suasana") or ""))      # kombinasi gaya gerak video ini (beda dari video sebelumnya)
     daftar_tr = komposisi.urut_transisi(daftar_tr, gaya)
     tr_wow = str(g.get("transisi_wow", "fadewhite"))
     chains = []

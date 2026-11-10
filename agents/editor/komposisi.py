@@ -39,10 +39,21 @@ VARIAN = {
     "masuk": ["naik", "geser", "skala", "lipat"],                 # cara kartu grafis masuk
     "layar": ["kisi", "cincin", "garis", "titik"],                # latar grafis layar penuh
     "aksen": ["sapuan", "bingkai", "garis", "denyut"],            # aksen di pergantian kalimat
-    "palet": ["biru", "elektrik", "langit", "samudra", "kobalt"],  # nuansa biru (utama, terang)
+    # warna aksen (utama, terang): nuansa biru khas channel + warna suasana (dipilih menurut suasana naskah, lihat PALET_SUASANA)
+    "palet": ["biru", "elektrik", "langit", "samudra", "kobalt", "bara", "magma", "jeruk", "toska", "ungu", "nila", "emas", "magenta", "mint", "mawar"],
 }
 PALET = {"biru": ("2D8CFF", "6FD3FF"), "elektrik": ("1F6FFF", "7FD8FF"), "langit": ("3B9BFF", "9AD8FF"),
-         "samudra": ("0EA5E9", "7DD3FC"), "kobalt": ("2563EB", "8EC5FF")}
+         "samudra": ("0EA5E9", "7DD3FC"), "kobalt": ("2563EB", "8EC5FF"),
+         "bara": ("FF4D3D", "FFB3A6"), "magma": ("FF7A1A", "FFC78A"), "jeruk": ("FF8A1F", "FFD09A"), "toska": ("14B8A6", "7FE7DA"),
+         "ungu": ("8B5CF6", "C9B8FF"), "nila": ("6366F1", "B4B8FF"), "emas": ("F59E0B", "FFD98A"), "magenta": ("EC4899", "FFB3D6"),
+         "mint": ("10B981", "86EFC5"), "mawar": ("FB7185", "FFC2CB")}
+# Warna mengikuti SUASANA suara & naskah (Zona, Nov 2026: gaya beraneka ragam & sesuai suara): tiap suasana punya 2 warna khas
+# + 2 nuansa biru channel; yang paling jarang dipakai video lain yang dipilih.
+PALET_SUASANA = {"tegang": ["bara", "magma", "kobalt", "elektrik"], "ceria": ["jeruk", "toska", "langit", "biru"],
+                 "misterius": ["ungu", "nila", "kobalt", "samudra"], "epik": ["emas", "magenta", "elektrik", "biru"],
+                 "haru": ["mint", "mawar", "langit", "samudra"]}
+SATUAN = (r"kilowatt jam|kwh|kilowatt|watt|kw|mah|volt|ampere|persen|%|derajat|°c|km/jam|kilometer|km|meter|cm|mm|milimeter|kilogram|kg|gram|"
+          r"ton|liter|jam|menit|detik|hari|minggu|bulan|tahun|juta|miliar|triliun|ribu|rupiah|dolar|megapiksel|mp|hz|hertz|gb|tb|inci|kali lipat|kali|x")
 
 
 def tersedia() -> tuple[bool, str]:
@@ -65,7 +76,7 @@ def _kunci(t: str) -> str:
     return re.sub(r"[^0-9a-z]", "", t.lower())
 
 
-def pilih_gaya(slug: str, videos: Path, st: dict | None = None) -> dict:
+def pilih_gaya(slug: str, videos: Path, st: dict | None = None, suasana: str = "") -> dict:
     """Pilih kombinasi gaya gerak untuk satu video: tiap unsur memakai varian yang paling jarang dipakai video lain
     dan tidak sama dengan video sebelumnya. Video yang dirakit ulang (Rara) memakai gaya yang sama seperti sebelumnya."""
     st = st or {}
@@ -93,6 +104,8 @@ def pilih_gaya(slug: str, videos: Path, st: dict | None = None) -> dict:
     h = int(hashlib.sha1(slug.encode()).hexdigest(), 16)
     gaya = {}
     for n, (k, opsi) in enumerate(VARIAN.items()):
+        if k == "palet":
+            opsi = PALET_SUASANA.get(str(suasana).lower()) or ["biru", "elektrik", "langit", "samudra", "kobalt"]
         hitung = {o: sum(1 for g in lalu if g.get(k) == o) for o in opsi}
         baru = lalu[-1].get(k) if lalu else None
         gaya[k] = min(opsi, key=lambda o: (o == baru, hitung[o], ((h >> (n * 6)) + opsi.index(o) * 37) % 101))
@@ -144,6 +157,46 @@ def grafis_kalimat(i: int, n: dict, kal: dict, idea: dict, senyap: list[tuple[fl
         if sumber:
             out.append({"tipe": "sumber", "teks": f"Sumber: {str(sumber)[:34]}", "a": a, "b": min(b + 0.6, float(kal["selesai"]) + 0.6)})
     return out
+
+
+def angka_otomatis(narasi: list[dict], kalimat: list[dict], sudah: list[dict], hook_end: float, senyap: list[tuple[float, float]]) -> list[dict]:
+    """Kalimat yang menyebut ANGKA + satuan tapi belum punya grafis → kartu angka otomatis (yang didengar = yang terlihat).
+    Hanya angka yang tertulis sebagai digit di naskah; maksimal satu tiap dua kalimat; tidak di hook & penutup."""
+    out, terakhir = [], -9
+    for k in kalimat:
+        i = int(k.get("i", -1))
+        if i <= 0 or i >= len(narasi) or narasi[i].get("bagian") in ("hook", "penutup") or i - terakhir < 2:
+            continue
+        a, b = float(k["mulai"]) + 0.08, min(float(k["selesai"]) + 0.05, float(k["mulai"]) + 3.6)
+        if b - a < 1.2 or float(k["mulai"]) < hook_end or any(x <= (a + b) / 2 < y for x, y in senyap):
+            continue
+        if any(g["a"] < b and a < g["b"] and g.get("tipe") not in ("sumber",) for g in sudah + out):
+            continue
+        m = re.search(rf"(?<![\w.,])(\d{{1,3}}(?:[.,]\d{{1,3}})*)\s*({SATUAN})\b", str(narasi[i].get("kalimat", "")), re.I)
+        if not m:
+            continue
+        sisa = str(narasi[i]["kalimat"])[m.end():].split()
+        label = " ".join([m.group(2)] + [re.sub(r"[.,!?]+$", "", w) for w in sisa[:2] if not re.match(r"^(dan|yang|dengan|untuk|atau|tapi|jadi)\b", w, re.I)])
+        out.append({"tipe": "angka", "angka": m.group(1), "akhiran": "", "label": label.strip()[:40], "judul": "faktanya", "a": a, "b": b, "otomatis": True})
+        terakhir = i
+    return out
+
+
+def sinkron_kata(grafis: list[dict], kata: list[dict], kalimat: list[dict]) -> None:
+    """Grafis muncul TEPAT saat kata kuncinya diucapkan (bukan di awal kalimat): kartu angka saat angkanya disebut, kata/label
+    saat kata pertamanya disebut. Kalau katanya tidak ketemu atau sisa waktunya terlalu pendek, waktu awal dibiarkan."""
+    for g in grafis:
+        kunci = g.get("angka") if g.get("tipe") == "angka" else (str(g.get("teks") or "").split() or [""])[0] if g.get("tipe") in ("kata", "label") else ""
+        kunci = _kunci(str(kunci))
+        if not kunci:
+            continue
+        kal = next((k for k in kalimat if float(k["mulai"]) - 0.1 <= g["a"] <= float(k["selesai"])), None)
+        if not kal:
+            continue
+        w = next((x for x in kata if float(kal["mulai"]) - 0.05 <= x["a"] <= float(kal["selesai"]) and _kunci(x["t"]).startswith(kunci[:6])), None)
+        if w and g["b"] - (w["a"] - 0.1) >= 1.1 and w["a"] - 0.1 > g["a"]:
+            g["a"] = round(w["a"] - 0.1, 3)
+            g["sinkron"] = True
 
 
 def grafis_otomatis(st: dict, idea: dict, script: dict, narasi: list[dict], kalimat: list[dict], sudah: list[dict],
@@ -246,6 +299,9 @@ def data_video(st: dict, script: dict, idea: dict, words: dict, narasi: list[dic
               for k in kalimat if int(k.get("i", 0)) > 0]
     grafis += grafis_otomatis(st, idea, script, narasi, kalimat, grafis, hook_end, total, senyap)
     layar = layar_penuh(klip_grafis or [])
+    if (st.get("grafis_otomatis") or {}).get("angka", True):
+        grafis += [g for g in angka_otomatis(narasi, kalimat, grafis, hook_end, senyap) if not any(L["a"] < g["b"] and g["a"] < L["b"] for L in layar)]
+    sinkron_kata(grafis, kata, kalimat)
     # grafis kecil tidak boleh menimpa layar penuh (kartu grafis Bima yang digambar ulang)
     grafis = [g for g in grafis if g.get("tipe") not in ("tanya", "produk") or not any(L["a"] < g["b"] and g["a"] < L["b"] for L in layar)]
     km = st.get("kamera") or {}

@@ -73,6 +73,11 @@ Hasil: status `draft`. Zona menyetujui di Studio → `export`; atau autopilot me
   - `audio.efek` (`rakit.daftar_efek()`, `sfx_file()`): hit di pembuka & `wow` (didahului riser), pop saat grafis, ding di penutup;
     dibuat ffmpeg ke `cache/`, file sendiri di `sfx/` (nama memuat hit/pop/riser/ding) didahulukan.
   - Shot terakhir berupa kartu grafis → latar penutup dibuat pekat (tulisan kartu tidak membayang).
+  - **Gaya beraneka ragam & sesuai suara (2026-11-11)**: warna aksen dipilih menurut `script.json` → `suasana` (`PALET_SUASANA`:
+    tegang bara/magma, ceria jeruk/toska, misterius ungu/nila, epik emas/magenta, haru mint/mawar + nuansa biru channel), yang
+    paling jarang dipakai (`pilih_gaya(..., suasana)`). `sinkron_kata()`: kartu angka/kata/label muncul tepat saat kata kuncinya
+    diucapkan. `angka_otomatis()`: kalimat berisi angka + satuan tanpa grafis → kartu angka otomatis (`grafis_otomatis.angka`).
+    Angka desimal di kartu sekarang berakhir persis seperti naskah (dulu 2,56 tampil 2,6).
   - Uji render di sandbox: `npm install` di root + `HYPERFRAMES_BROWSER_PATH=<chromium Playwright>`; ±8 menit per video uji.
 - **Rara** (`agents/qc/periksa.py`, `.claude/skills/qc/SKILL.md`): cek gelap/beku/durasi/LUFS/porsi AI + lihat frame; cek tulisan
   Shorts memakai mode BIASA (logo/label kecil di produk dibiarkan); Rara (Claude) menolak maks 4 shot per putaran;

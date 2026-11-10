@@ -46,6 +46,9 @@ Terakhir diperbarui: 2026-11-10 (upgrade kantor Studio; berikutnya: editan Short
 
 ## Selesai (terbaru di atas, ringkas)
 
+- 2026-11-11 Motion graphic Shorts: warna menurut suasana, sinkron kata, kartu angka otomatis, perbaikan desimal. Kantor: Ruang
+  Meeting, Ruang Istirahat, Studio Suara, Taman + rapat tim. Skor ide: bonus arah Zona tetap, data terukur hanya ±3.
+
 - 2026-11-10 sore **Perbaikan penting: Short BLUETTI jadi kartu teks semua (0% footage).** Sebab: cek tulisan mode ketat menolak 13/14
   klip review produk, Rara menolak sisanya ("produk tidak terlihat"), pengganti = kartu teks, produser tetap merakit. Perbaikan:
   aturan anti-kartu-teks Bima (lihat `otak/alur-shorts.md`), cek tulisan mode biasa, batas tolak Rara, penjaga footage < 50%.

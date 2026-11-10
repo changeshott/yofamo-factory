@@ -1,11 +1,13 @@
 import type { Look } from "./sprites";
 
 /** Ukuran ruangan (tile isometrik) dan buffer piksel. */
-export const RW = 22, RD = 15, WALL = 112, T = 16;
+export const RW = 22, RD = 22, WALL = 112, T = 16;
+/** Baris ruang depan (y ≥ SEKAT): Ruang Meeting & Ruang Istirahat (sisi Shorts), Studio Suara & Taman (sisi Animasi). */
+export const SEKAT = 15.4;
 /** Ruang Animasi (tim video panjang) di samping kanan kantor Shorts: x dari R2X sampai TW, dipisah dinding kaca + pintu. */
 export const R2X = 22.6, PINTU: [number, number] = [6.6, 8.8];
 export const TW = 36;
-export const BW = 864, BH = 560, OX = 256, OY = 132;
+export const BW = 984, BH = 640, OX = 372, OY = 132;
 
 /** Dua ruang kantor + tampilan semua. Batas x (tile) tiap ruang, dipakai kamera untuk membingkai satu ruang. */
 export type Ruang = "semua" | "shorts" | "animasi";
@@ -157,7 +159,21 @@ export const SPOTS: Record<string, [number, number]> = {
   sofa_animasi: [33.4, 12.0],
   meja_cahaya: [27.0, 11.6],
   lapor_animasi: [29.5, 9.8],
+  // ruang depan
+  meeting: [5.0, 20.3],
+  istirahat_sofa: [13.2, 18.6],
+  foosball: [17.2, 19.9],
+  mesin_jajan: [20.2, 16.9],
+  studio_suara: [25.6, 19.2],
+  taman: [32.4, 19.0],
 };
+/** Kursi rapat di sekeliling meja Ruang Meeting (dipakai saat rapat tim). */
+export const KURSI_RAPAT: [number, number][] = [[3.2, 17.2], [5.0, 17.2], [6.8, 17.2], [3.2, 20.2], [5.0, 20.2], [6.8, 20.2], [1.9, 18.7], [8.1, 18.7]];
+/** Nama ruang yang ditampilkan sebagai papan kecil (koordinat tile). */
+export const NAMA_RUANG: { nama: string; di: [number, number]; warna: string }[] = [
+  { nama: "Ruang Meeting", di: [5.0, 15.6], warna: "#6FD3FF" }, { nama: "Ruang Istirahat", di: [16.0, 15.6], warna: "#FFD23F" },
+  { nama: "Studio Suara", di: [25.8, 15.6], warna: "#C792EA" }, { nama: "Taman", di: [32.6, 15.6], warna: "#6FD29A" },
+];
 
 /** Area yang tidak bisa dilewati (x0, y0, x1, y1) dalam tile. */
 export const BLOCKED: [number, number, number, number][] = [
@@ -181,4 +197,13 @@ export const BLOCKED: [number, number, number, number][] = [
   [32.4, 11.4, 36, 14.6], // sofa retro
   [25.8, 10.8, 28.4, 12.2], // meja cahaya animator
   [23.0, 13.4, 25.4, 15], // rak kaset & TV CRT
+  // sekat kaca ruang depan (pintu di x 4,2–5,8 · 15,2–16,8 · 25–26,4 · 31,6–33,2)
+  [0, 15.1, 4.2, 15.7], [5.8, 15.1, 15.2, 15.7], [16.8, 15.1, 22.9, 15.7], [22.9, 15.1, 25.0, 15.7], [26.4, 15.1, 31.6, 15.7], [33.2, 15.1, 36, 15.7],
+  [9.7, 15.7, 10.3, 22], [28.7, 15.7, 29.3, 22], [22.0, 15.7, 22.9, 22], // sekat antar ruang depan
+  [2.6, 17.7, 7.4, 19.7], // meja rapat
+  [10.6, 16.2, 12.2, 20.4], [10.6, 20.0, 14.4, 21.4], // sofa L ruang istirahat
+  [16.4, 18.4, 18.0, 19.4], // foosball
+  [20.6, 15.8, 21.9, 17.4], // mesin jajan & kulkas
+  [23.2, 16.2, 24.6, 18.0], [26.8, 20.2, 28.4, 21.6], // bilik rekam & rak alat
+  [34.2, 16.2, 35.8, 17.8], [29.8, 20.2, 31.4, 21.6], // pohon besar & bangku taman
 ];
