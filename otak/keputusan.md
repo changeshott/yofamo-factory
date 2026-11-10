@@ -22,7 +22,8 @@ Aturan tetap (upload, lisensi, hapus, rahasia) ada di `AGENTS.md` → Aturan ker
   real-time, gaya lebih bagus) → editan (Shorts dulu) → alur untuk menaikkan views.
 
 - **2026-11-10 — Zona minta suara lebih natural untuk bahasa Indonesia + pilihan jenis suara.** Disediakan: contoh semua suara
-  gratis untuk dipilih Zona (`contoh_suara.bat`); pilihannya belum dibuat.
+  gratis untuk dipilih Zona (`contoh_suara.bat`). **Pilihan Zona: `en-AU-WilliamMultilingualNeural` (pria) dan
+  `en-US-EmmaMultilingualNeural` (wanita)** — disimpan di `bible/suara-pilihan.json` laptop.
 
 ## Produksi & jadwal
 

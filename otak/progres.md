@@ -9,9 +9,8 @@ Terakhir diperbarui: 2026-11-10 (upgrade kantor Studio; berikutnya: editan Short
   (3) alur untuk menaikkan views — bagian 1 selesai (data retensi harian, judul/hook produk + frasa pencarian); sisanya di Tertunda no. 9.
   CATATAN: dua perbaikan template (percikan memancar, latar penutup pekat) belum dilihat hasil render-nya — render uji dihentikan
   atas permintaan Zona; cek di Short pertama buatan pabrik setelah 10 Nov.
-- **Suara lebih natural**: Zona minta Claude memilihkan → Shorts memakai `en-US-AndrewMultilingualNeural` (cadangan otomatis Ardi),
-  video panjang tetap Ardi sampai Zona mendengar hasilnya. `contoh_suara.bat` pertama gagal 403 semua suara → sudah diberi pemilih
-  Python + diagnosa; menunggu Zona menjalankan ulang & menilai Short pertama bersuara baru. Lain: `setup_suara.bat` (VoxCPM2, GPU NVIDIA).
+- **Suara**: selesai — Zona memilih William (pria, Shorts + panjang) & Emma (wanita) setelah mendengar contoh; `contoh_suara.bat`
+  berjalan setelah perbaikan pemilih Python. Tinggal dinilai di video pertama bersuara baru (tempo/durasi vs target naskah).
 
 ## Tertunda (urut prioritas)
 
